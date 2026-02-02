@@ -6,10 +6,24 @@
  */
 
 // Task Management
-export * from './tasks/index.js';
+export {
+  TaskManager,
+  SQLiteTaskStore,
+  type Task,
+  type TaskStatus,
+  type TaskNode,
+  type TaskContext,
+  type ToolOutputCache,
+  type ITaskStore,
+} from './tasks/index.js';
 
 // Context Budget
-export * from './context/index.js';
+export {
+  ContextBudgetMonitor,
+  type BudgetCategory,
+  type BudgetConfig,
+  type BudgetStatus,
+} from './context/index.js';
 
-// Agent Orchestration
+// Agent types (placeholder - will be expanded)
 export * from './agents/index.js';

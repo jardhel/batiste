@@ -2,18 +2,9 @@
  * Task Management Module
  *
  * Persistent task DAG with SQLite backing.
- * Will be extracted from seu-claude.
+ * Like a prep list that survives kitchen fires.
  */
 
-export interface Task {
-  id: string;
-  label: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  parentId?: string;
-  context: Record<string, unknown>;
-  createdAt: number;
-  updatedAt: number;
-}
-
-// Placeholder - will be populated from seu-claude
-export const VERSION = '0.1.0';
+export * from './types.js';
+export { TaskManager } from './TaskManager.js';
+export { SQLiteTaskStore } from './SQLiteTaskStore.js';
