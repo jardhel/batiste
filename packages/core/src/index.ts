@@ -25,5 +25,16 @@ export {
   type BudgetStatus,
 } from './context/index.js';
 
-// Agent types (placeholder - will be expanded)
+// Agent Orchestration
 export * from './agents/index.js';
+
+// Sandbox
+export {
+  ProcessSandbox,
+  type ISandbox,
+  type ISandboxFactory,
+  type SandboxCreateOptions,
+  type SandboxStatus,
+  type ExecutionOptions,
+  type ExecutionResult,
+} from './sandbox/index.js';
