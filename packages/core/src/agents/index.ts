@@ -1,17 +1,25 @@
 /**
- * Agent Orchestration Module
+ * Multi-Agent Orchestration Module
  *
- * Multi-agent workflow management with specialized agents.
- * Will be extracted from seu-claude.
+ * Exports all agent-related types, classes, and utilities.
  */
 
-export type AgentRole = 'orchestrator' | 'coder' | 'reviewer' | 'tester' | 'documenter';
+// Types
+export * from './types.js';
 
-export interface AgentTask {
-  description: string;
-  context: Record<string, unknown>;
-  files?: string[];
-}
+// Base Agent
+export { Agent, type AgentConfig } from './Agent.js';
 
-// Placeholder - will be populated from seu-claude
-export const VERSION = '0.1.0';
+// Specialized Agents
+export { CoderAgent, type CoderAgentConfig } from './specialized/CoderAgent.js';
+export { ReviewerAgent, type ReviewerAgentConfig } from './specialized/ReviewerAgent.js';
+
+// Pool Management
+export { AgentPool, type PoolMetrics, type LoadBalancingStrategy } from './AgentPool.js';
+
+// Orchestration
+export {
+  Orchestrator,
+  type OrchestratorConfig,
+  WORKFLOW_TEMPLATES,
+} from './Orchestrator.js';
