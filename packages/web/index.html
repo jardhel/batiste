@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batiste Protocol — Autonomous Agent Compute Marketplace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:           #080808;
+      --bg-surface:   #0d0d0d;
+      --bg-elevated:  #131313;
+      --bg-hover:     #181818;
+      --border:       rgba(255,255,255,0.055);
+      --border-md:    rgba(255,255,255,0.09);
+      --border-green: rgba(0,229,160,0.22);
+      --border-red:   rgba(255,55,85,0.3);
+      --accent:       #00e5a0;
+      --accent-2:     #00c488;
+      --accent-dim:   rgba(0,229,160,0.08);
+      --accent-glow:  rgba(0,229,160,0.15);
+      --red:          #ff3755;
+      --red-dim:      rgba(255,55,85,0.08);
+      --text:         #e8e8e8;
+      --text-2:       #888;
+      --text-3:       #444;
+      --mono:         'JetBrains Mono', monospace;
+      --sans:         'Syne', sans-serif;
+      --r:            8px;
+      --r-lg:         12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Dot grid atmosphere ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.028) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Green radial glow ── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 70% 45% at 50% -10%, rgba(0,229,160,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 35% at 85% 90%, rgba(0,229,160,0.04) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page-wrap { position: relative; z-index: 1; }
+
+    /* ─────────────────────────── NAV ─────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px;
+      height: 60px;
+      border-bottom: 1px solid transparent;
+      transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+    }
+
+    nav.scrolled {
+      background: rgba(8,8,8,0.85);
+      border-bottom-color: var(--border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .nav-brand {
+      display: flex; align-items: baseline; gap: 6px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .nav-brand-name {
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .nav-brand-tag {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 2px 6px;
+      border: 1px solid var(--border-green);
+      border-radius: 3px;
+      background: var(--accent-dim);
+    }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 2px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: var(--text-2);
+      text-decoration: none;
+      padding: 6px 14px;
+      border-radius: var(--r);
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); background: var(--bg-elevated); }
+
+    .nav-cta {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      color: #000;
+      background: var(--accent);
+      border: none;
+      padding: 8px 18px;
+      border-radius: var(--r);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      white-space: nowrap;
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-2);
+      transform: translateY(-1px);
+      box-shadow: 0 0 20px rgba(0,229,160,0.25);
+    }
+
+    /* ─────────────────────────── HERO ─────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 64px;
+      padding: 120px 80px 80px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 28px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: block; width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .hero-headline {
+      font-size: clamp(36px, 4.5vw, 58px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+
+    .hero-headline em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent) 0%, #00b4d8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.7;
+      color: var(--text-2);
+      max-width: 440px;
+      margin-bottom: 40px;
+    }
+
+    .hero-actions {
+      display: flex; align-items: center; gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #000;
+      background: var(--accent);
+      border: none;
+      padding: 12px 28px;
+      border-radius: var(--r);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,229,160,0.3);
+    }
+
+    .btn-ghost {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      background: transparent;
+      border: 1px solid var(--border-md);
+      padding: 12px 28px;
+      border-radius: var(--r);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex; align-items: center;
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(255,255,255,0.18);
+      background: var(--bg-elevated);
+    }
+
+    /* ── Terminal block ── */
+    .terminal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0,229,160,0.06), 0 24px 64px rgba(0,0,0,0.5);
+    }
+
+    .terminal-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elevated);
+    }
+
+    .term-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+
+    .term-dot.red   { background: #ff5f57; }
+    .term-dot.amber { background: #febc2e; }
+    .term-dot.green { background: #28c840; }
+
+    .terminal-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-3);
+      margin-left: auto;
+      letter-spacing: 0.08em;
+    }
+
+    .terminal-body {
+      padding: 24px 20px 28px;
+      min-height: 200px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.9;
+    }
+
+    .term-line {
+      display: block;
+      color: var(--text-2);
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .term-line.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .term-line .prompt { color: var(--accent); margin-right: 6px; }
+
+    .term-line.success .text { color: var(--accent); }
+    .term-line.info    .text { color: #7eb8f7; }
+    .term-line.dim     .text { color: var(--text-3); }
+
+    .term-cursor {
+      display: inline-block;
+      width: 7px; height: 14px;
+      background: var(--accent);
+      vertical-align: middle;
+      margin-left: 2px;
+      animation: cursor-blink 1.1s step-end infinite;
+      opacity: 0;
+    }
+
+    .term-cursor.active { opacity: 1; }
+
+    @keyframes cursor-blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    .terminal-badge {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 4px;
+      padding: 8px 12px;
+      background: rgba(0,229,160,0.05);
+      border: 1px solid var(--border-green);
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    .terminal-badge.show { opacity: 1; }
+
+    .terminal-badge span {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+    }
+
+    /* ─────────────────────────── METRICS ─────────────────────────── */
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    .metrics-bar {
+      padding: 48px 80px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 24px 28px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .metric-card.live::before { opacity: 0.6; }
+
+    .metric-card.live {
+      border-color: var(--border-green);
+      box-shadow: 0 0 30px rgba(0,229,160,0.05);
+    }
+
+    .metric-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-2);
+      margin-bottom: 12px;
+    }
+
+    .metric-value {
+      font-family: var(--mono);
+      font-size: 36px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 8px;
+      font-family: var(--mono);
+    }
+
+    .metric-pulse {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-top: 10px;
+    }
+
+    .pulse-ring {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      position: relative;
+    }
+
+    .pulse-ring::after {
+      content: '';
+      position: absolute; inset: -4px;
+      border-radius: 50%;
+      border: 1px solid var(--accent);
+      animation: pulse-ring 2s ease-out infinite;
+    }
+
+    @keyframes pulse-ring {
+      0%   { transform: scale(0.6); opacity: 0.8; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    /* ─────────────────────────── SECTION WRAPPER ─────────────────────────── */
+    .section {
+      padding: 72px 80px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 36px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    .section-count {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-3);
+      letter-spacing: 0.1em;
+    }
+
+    /* ─────────────────────────── MARKETPLACE ─────────────────────────── */
+    .nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .node-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+      cursor: pointer;
+    }
+
+    .node-card:hover {
+      border-color: var(--border-green);
+      box-shadow: 0 0 40px rgba(0,229,160,0.07);
+      transform: translateY(-2px);
+    }
+
+    .node-card-top {
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+
+    .node-name {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    .node-desc {
+      font-size: 12px;
+      color: var(--text-2);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .status-badge.online {
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid var(--border-green);
+    }
+
+    .status-badge.standby {
+      color: var(--text-3);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+    }
+
+    .status-badge .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-badge.online .dot {
+      animation: pulse-dot 2s ease-in-out infinite;
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    .caps-row {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+
+    .cap-chip {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-2);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      padding: 3px 9px;
+      border-radius: 4px;
+      letter-spacing: 0.06em;
+    }
+
+    .node-stats {
+      display: flex; align-items: center; gap: 20px;
+    }
+
+    .node-stat {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+
+    .node-stat-label {
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .node-stat-value {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .node-stat-value.accent { color: var(--accent); }
+
+    .node-card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .node-price {
+      display: flex; flex-direction: column; gap: 1px;
+    }
+
+    .price-label {
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .price-value {
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .price-unit {
+      font-size: 10px;
+      color: var(--text-3);
+    }
+
+    .btn-connect {
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid var(--border-green);
+      padding: 8px 18px;
+      border-radius: var(--r);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-connect:hover {
+      background: rgba(0,229,160,0.14);
+      box-shadow: 0 0 16px rgba(0,229,160,0.2);
+    }
+
+    .btn-connect:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* ─────────────────────────── AUDIT FEED ─────────────────────────── */
+    .audit-table {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+    }
+
+    .audit-table-head {
+      display: grid;
+      grid-template-columns: 90px 1fr 1fr 60px 70px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elevated);
+    }
+
+    .audit-th {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .audit-feed-body {
+      max-height: 280px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .audit-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 1fr 60px 70px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      transition: background 0.15s;
+      animation: row-in 0.4s ease forwards;
+    }
+
+    @keyframes row-in {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .audit-row:hover { background: var(--bg-elevated); }
+    .audit-row:last-child { border-bottom: none; }
+
+    .audit-ts {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    .audit-agent {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    .audit-tool {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .audit-status {
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .audit-status.ok  { color: var(--accent); }
+    .audit-status.err { color: var(--red); }
+
+    .audit-dur {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-3);
+      text-align: right;
+    }
+
+    .live-indicator {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+    }
+
+    /* ─────────────────────────── KILL SWITCH ─────────────────────────── */
+    .killswitch-wrap {
+      padding: 0 80px 80px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .killswitch {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-red);
+      border-radius: var(--r-lg);
+      padding: 40px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 40px;
+      box-shadow: 0 0 40px rgba(255,55,85,0.04) inset;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .killswitch::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--red), transparent);
+      opacity: 0.5;
+    }
+
+    .ks-left { flex: 1; }
+
+    .ks-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .ks-label::before {
+      content: '';
+      display: block; width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+    }
+
+    .ks-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .ks-desc {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.6;
+      max-width: 520px;
+    }
+
+    .btn-killswitch {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--red);
+      background: var(--red-dim);
+      border: 1px solid var(--border-red);
+      padding: 14px 32px;
+      border-radius: var(--r);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    .btn-killswitch:hover:not(:disabled) {
+      background: rgba(255,55,85,0.14);
+      box-shadow: 0 0 24px rgba(255,55,85,0.2);
+    }
+
+    .btn-killswitch.confirm {
+      animation: ks-pulse 0.4s ease;
+      background: rgba(255,55,85,0.12);
+      border-color: var(--red);
+    }
+
+    .btn-killswitch.revoked {
+      color: var(--text-3);
+      background: transparent;
+      border-color: var(--border);
+      cursor: not-allowed;
+    }
+
+    @keyframes ks-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(255,55,85,0.5); }
+      100% { box-shadow: 0 0 0 20px rgba(255,55,85,0); }
+    }
+
+    /* ─────────────────────────── FOOTER ─────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 80px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 20px;
+    }
+
+    .footer-brand {
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .footer-brand-name {
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .footer-hq {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: 0.1em;
+    }
+
+    .footer-links {
+      display: flex; gap: 24px;
+    }
+
+    .footer-links a {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--text-3);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--accent); }
+
+    /* ─────────────────────────── RESPONSIVE ─────────────────────────── */
+    @media (max-width: 1024px) {
+      .hero { grid-template-columns: 1fr; gap: 48px; padding: 100px 40px 60px; }
+      .nodes-grid { grid-template-columns: repeat(2, 1fr); }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .section { padding: 60px 40px; }
+      .metrics-bar { padding: 40px 40px; }
+      .killswitch-wrap { padding: 0 40px 60px; }
+      footer { padding: 32px 40px; flex-direction: column; align-items: flex-start; gap: 16px; }
+    }
+
+    @media (max-width: 680px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero { padding: 90px 20px 48px; }
+      .nodes-grid { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .section { padding: 48px 20px; }
+      .metrics-bar { padding: 32px 20px; }
+      .killswitch-wrap { padding: 0 20px 48px; }
+      .killswitch { flex-direction: column; align-items: flex-start; }
+      footer { padding: 28px 20px; }
+      .audit-table-head, .audit-row { grid-template-columns: 70px 1fr 1fr 40px; }
+      .audit-dur { display: none; }
+    }
+
+    /* ── Fade-in on scroll ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+
+<body>
+<div class="page-wrap">
+
+  <!-- ── NAV ── -->
+  <nav id="nav">
+    <a href="#" class="nav-brand">
+      <span class="nav-brand-name">Batiste</span>
+      <span class="nav-brand-tag">PROTOCOL</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#marketplace">Nodes</a></li>
+      <li><a href="#activity">Activity</a></li>
+      <li><a href="#security">Audit</a></li>
+      <li><a href="#">Docs</a></li>
+    </ul>
+    <button class="nav-cta" onclick="document.getElementById('marketplace').scrollIntoView({behavior:'smooth'})">
+      Connect Node
+    </button>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow">Live Network</div>
+      <h1 class="hero-headline">
+        The Autonomous Agent<br>
+        <em>Compute Marketplace</em>
+      </h1>
+      <p class="hero-sub">
+        Secure, zero-trust infrastructure connecting enterprise software to specialized AI compute nodes. Every operation verified, every cycle metered, every agent accountable.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="document.getElementById('marketplace').scrollIntoView({behavior:'smooth'})">
+          ↗ Deploy Node
+        </button>
+        <button class="btn-ghost" onclick="document.getElementById('marketplace').scrollIntoView({behavior:'smooth'})">
+          View Marketplace
+        </button>
+      </div>
+    </div>
+
+    <div class="terminal" id="terminal">
+      <div class="terminal-bar">
+        <span class="term-dot red"></span>
+        <span class="term-dot amber"></span>
+        <span class="term-dot green"></span>
+        <span class="terminal-title">batiste.network — secure shell</span>
+      </div>
+      <div class="terminal-body">
+        <span class="term-line" id="tl1">
+          <span class="prompt">$</span>
+          <span class="text">batiste init --preset enterprise</span>
+        </span>
+        <span class="term-line dim" id="tl2">
+          <span class="text">Initializing Batiste Protocol v0.1.0...</span>
+        </span>
+        <span class="term-line" id="tl3">
+          <span class="prompt">›</span>
+          <span class="text">Loading zero-trust auth layer</span>
+        </span>
+        <span class="term-line" id="tl4">
+          <span class="prompt">›</span>
+          <span class="text">Configuring scope policies</span>
+        </span>
+        <span class="term-line" id="tl5">
+          <span class="prompt">›</span>
+          <span class="text">Starting audit ledger (WAL mode)</span>
+        </span>
+        <span class="term-line success" id="tl6">
+          <span class="prompt">✓</span>
+          <span class="text">SECURE HANDSHAKE ESTABLISHED</span>
+        </span>
+        <span class="term-line success" id="tl7">
+          <span class="prompt">✓</span>
+          <span class="text">3 nodes online · ready</span>
+        </span>
+        <div class="terminal-badge" id="term-badge">
+          <span>▸ BATISTE SEQUENCE ACTIVE</span>
+        </div>
+        <span class="term-cursor active" id="term-cursor"></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- ── METRICS ── -->
+  <div class="metrics-bar reveal" id="metrics">
+    <div class="metrics-grid">
+      <div class="metric-card live">
+        <div class="metric-label">Active Nodes</div>
+        <div class="metric-value" data-target="3" data-val="0">0</div>
+        <div class="metric-pulse">
+          <div class="pulse-ring"></div>
+          LIVE
+        </div>
+      </div>
+      <div class="metric-card live">
+        <div class="metric-label">API Calls Today</div>
+        <div class="metric-value" data-target="1247" data-val="0">0</div>
+        <div class="metric-sub">+38 last hour</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Avg Latency</div>
+        <div class="metric-value">38<span style="font-size:18px;color:var(--text-3)">ms</span></div>
+        <div class="metric-sub">p99 · 91ms</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Uptime</div>
+        <div class="metric-value">99.<span style="font-size:28px">97</span><span style="font-size:14px;color:var(--text-3)">%</span></div>
+        <div class="metric-sub">Last 30 days</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ── MARKETPLACE ── -->
+  <div class="section reveal" id="marketplace">
+    <div class="section-header">
+      <h2 class="section-title">Marketplace</h2>
+      <span class="section-count">3 nodes · 2 online</span>
+    </div>
+    <div class="nodes-grid">
+
+      <!-- Node 1 -->
+      <div class="node-card">
+        <div class="node-card-top">
+          <div>
+            <div class="node-name">Code Analyzer</div>
+            <div class="node-desc">AST parsing, test-driven development, and multi-pass auto-fix for TypeScript &amp; Python codebases.</div>
+          </div>
+          <span class="status-badge online"><span class="dot"></span>Online</span>
+        </div>
+        <div class="caps-row">
+          <span class="cap-chip">AST</span>
+          <span class="cap-chip">TDD</span>
+          <span class="cap-chip">AutoFix</span>
+          <span class="cap-chip">LSP</span>
+        </div>
+        <div class="node-stats">
+          <div class="node-stat">
+            <span class="node-stat-label">Latency</span>
+            <span class="node-stat-value accent">42ms</span>
+          </div>
+          <div class="node-stat">
+            <span class="node-stat-label">Reliability</span>
+            <span class="node-stat-value">99.8%</span>
+          </div>
+          <div class="node-stat">
+            <span class="node-stat-label">Calls today</span>
+            <span class="node-stat-value">847</span>
+          </div>
+        </div>
+        <div class="node-card-footer">
+          <div class="node-price">
+            <span class="price-label">Price per cycle</span>
+            <span class="price-value">0.001 <span class="price-unit">/ cycle</span></span>
+          </div>
+          <button class="btn-connect">Connect →</button>
+        </div>
+      </div>
+
+      <!-- Node 2 -->
+      <div class="node-card">
+        <div class="node-card-top">
+          <div>
+            <div class="node-name">Doc Intelligence</div>
+            <div class="node-desc">PDF extraction, CSV ETL, and structured document analysis for legal and financial workflows.</div>
+          </div>
+          <span class="status-badge online"><span class="dot"></span>Online</span>
+        </div>
+        <div class="caps-row">
+          <span class="cap-chip">PDF</span>
+          <span class="cap-chip">CSV</span>
+          <span class="cap-chip">ETL</span>
+          <span class="cap-chip">Schema</span>
+        </div>
+        <div class="node-stats">
+          <div class="node-stat">
+            <span class="node-stat-label">Latency</span>
+            <span class="node-stat-value accent">38ms</span>
+          </div>
+          <div class="node-stat">
+            <span class="node-stat-label">Reliability</span>
+            <span class="node-stat-value">99.9%</span>
+          </div>
+          <div class="node-stat">
+            <span class="node-stat-label">Calls today</span>
+            <span class="node-stat-value">312</span>
+          </div>
+        </div>
+        <div class="node-card-footer">
+          <div class="node-price">
+            <span class="price-label">Price per cycle</span>
+            <span class="price-value">0.002 <span class="price-unit">/ cycle</span></span>
+          </div>
+          <button class="btn-connect">Connect →</button>
+        </div>
+      </div>
+
+      <!-- Node 3 -->
+      <div class="node-card" style="opacity:0.7">
+        <div class="node-card-top">
+          <div>
+            <div class="node-name">Compliance Guard</div>
+            <div class="node-desc">Audit logging, kill switch control, and SOC2-ready compliance reporting for regulated industries.</div>
+          </div>
+          <span class="status-badge standby"><span class="dot"></span>Standby</span>
+        </div>
+        <div class="caps-row">
+          <span class="cap-chip">Audit</span>
+          <span class="cap-chip">Kill Switch</span>
+          <span class="cap-chip">SOC2</span>
+          <span class="cap-chip">JWT</span>
+        </div>
+        <div class="node-stats">
+          <div class="node-stat">
+            <span class="node-stat-label">Latency</span>
+            <span class="node-stat-value" style="color:var(--text-3)">—</span>
+          </div>
+          <div class="node-stat">
+            <span class="node-stat-label">Reliability</span>
+            <span class="node-stat-value">—</span>
+          </div>
+          <div class="node-stat">
+            <span class="node-stat-label">Calls today</span>
+            <span class="node-stat-value">0</span>
+          </div>
+        </div>
+        <div class="node-card-footer">
+          <div class="node-price">
+            <span class="price-label">Price per cycle</span>
+            <span class="price-value">0.003 <span class="price-unit">/ cycle</span></span>
+          </div>
+          <button class="btn-connect" disabled>Offline</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── AUDIT FEED ── -->
+  <div class="section reveal" id="activity" style="padding-top:0">
+    <div class="section-header">
+      <h2 class="section-title">Agent Activity</h2>
+      <span class="live-indicator">
+        <span class="pulse-ring" style="width:6px;height:6px"></span>
+        LIVE
+      </span>
+    </div>
+    <div class="audit-table">
+      <div class="audit-table-head">
+        <span class="audit-th">Time</span>
+        <span class="audit-th">Agent</span>
+        <span class="audit-th">Tool</span>
+        <span class="audit-th">Status</span>
+        <span class="audit-th" style="text-align:right">Duration</span>
+      </div>
+      <div class="audit-feed-body" id="audit-feed">
+        <!-- JS populated -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KILL SWITCH ── -->
+  <div class="killswitch-wrap reveal" id="security">
+    <div class="killswitch">
+      <div class="ks-left">
+        <div class="ks-label">Emergency Control</div>
+        <div class="ks-title">Emergency Kill Switch</div>
+        <p class="ks-desc">Instantly revoke all agent access across every node in your network. No delay, no negotiation — all sessions terminated within one protocol cycle. Full audit log preserved.</p>
+      </div>
+      <button class="btn-killswitch" id="ks-btn" onclick="handleKillSwitch()">
+        Revoke All Access
+      </button>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-brand">
+      <span class="footer-brand-name">Batiste</span>
+      <span class="footer-hq">EINDHOVEN, NETHERLANDS · HQ</span>
+    </div>
+    <div class="footer-links">
+      <a href="mailto:investors@batiste.network">investors@batiste.network</a>
+      <a href="#">batiste.network</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+  </footer>
+
+</div><!-- /page-wrap -->
+
+<script>
+  // ── NAV scroll ──────────────────────────────────────────────────
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  }, { passive: true });
+
+  // ── Terminal animation ───────────────────────────────────────────
+  const lines = ['tl1','tl2','tl3','tl4','tl5','tl6','tl7'];
+  const delays = [200, 600, 1000, 1400, 1800, 2400, 3000];
+
+  lines.forEach((id, i) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('visible');
+    }, delays[i]);
+  });
+
+  setTimeout(() => {
+    document.getElementById('term-badge')?.classList.add('show');
+  }, 3600);
+
+  // ── Scroll reveal ────────────────────────────────────────────────
+  const revealEls = document.querySelectorAll('.reveal');
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        // Trigger counter animation for metrics
+        if (e.target.id === 'metrics') startCounters();
+      }
+    });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el => revealObserver.observe(el));
+
+  // ── Counter animation ────────────────────────────────────────────
+  let countersStarted = false;
+  function startCounters() {
+    if (countersStarted) return;
+    countersStarted = true;
+    document.querySelectorAll('[data-target]').forEach(el => {
+      const target = parseInt(el.dataset.target, 10);
+      const duration = 1200;
+      const start = performance.now();
+      function step(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(eased * target).toLocaleString();
+        if (t < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  // ── Audit feed ───────────────────────────────────────────────────
+  const TOOLS = ['parse_pdf','analyze_ast','query_csv','validate_code','index_codebase','run_tdd','find_symbol','auto_fix'];
+  const AGENTS = ['agent-f8a2','agent-k3x1','agent-m9p4','agent-d7r6','agent-x2n5'];
+
+  function randItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+  function formatTime(d) {
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2, '0')).join(':');
+  }
+
+  function createRow(entry) {
+    const row = document.createElement('div');
+    row.className = 'audit-row';
+    const isOk = Math.random() > 0.08;
+    row.innerHTML = `
+      <span class="audit-ts">${entry.ts}</span>
+      <span class="audit-agent">${entry.agent}</span>
+      <span class="audit-tool">${entry.tool}</span>
+      <span class="audit-status ${isOk ? 'ok' : 'err'}">${isOk ? '✓' : '✗'}</span>
+      <span class="audit-dur">${entry.dur}ms</span>
+    `;
+    return row;
+  }
+
+  const feed = document.getElementById('audit-feed');
+  const MAX_ROWS = 6;
+
+  function addEntry() {
+    const now = new Date();
+    const entry = {
+      ts:    formatTime(now),
+      agent: randItem(AGENTS),
+      tool:  randItem(TOOLS),
+      dur:   randInt(18, 340),
+    };
+    const row = createRow(entry);
+    feed.insertBefore(row, feed.firstChild);
+    while (feed.children.length > MAX_ROWS) {
+      feed.removeChild(feed.lastChild);
+    }
+  }
+
+  // Seed initial entries
+  const seedTime = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(seedTime - i * 8000);
+    const entry = {
+      ts:    formatTime(d),
+      agent: randItem(AGENTS),
+      tool:  randItem(TOOLS),
+      dur:   randInt(18, 340),
+    };
+    feed.appendChild(createRow(entry));
+  }
+
+  // Live updates
+  setInterval(addEntry, 3500 + Math.random() * 2000);
+
+  // ── Kill switch ──────────────────────────────────────────────────
+  let ksState = 'idle'; // idle → confirm → revoked
+
+  function handleKillSwitch() {
+    const btn = document.getElementById('ks-btn');
+    if (ksState === 'idle') {
+      ksState = 'confirm';
+      btn.textContent = '⚠ Confirm — Click Again to Revoke';
+      btn.classList.add('confirm');
+      setTimeout(() => {
+        if (ksState === 'confirm') {
+          ksState = 'idle';
+          btn.textContent = 'Revoke All Access';
+          btn.classList.remove('confirm');
+        }
+      }, 4000);
+    } else if (ksState === 'confirm') {
+      ksState = 'revoked';
+      btn.textContent = '✓ All Access Revoked';
+      btn.classList.remove('confirm');
+      btn.classList.add('revoked');
+      btn.disabled = true;
+      // Kill the live feed visually
+      document.querySelectorAll('.pulse-ring, .status-badge.online .dot').forEach(el => {
+        el.style.animation = 'none';
+        el.style.background = 'var(--text-3)';
+        el.style.boxShadow = 'none';
+      });
+      document.querySelectorAll('.status-badge.online').forEach(badge => {
+        badge.className = 'status-badge standby';
+        badge.querySelector('.dot').style.animation = 'none';
+        const text = badge.childNodes[badge.childNodes.length - 1];
+        if (text) text.textContent = 'Revoked';
+      });
+    }
+  }
+</script>
+</body>
+</html>
