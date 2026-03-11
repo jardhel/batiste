@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batiste — Wireframe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #f4f4f2;
+      --surface:   #ffffff;
+      --border:    #d4d4d0;
+      --border-2:  #e8e8e4;
+      --box:       #e4e4e0;
+      --box-2:     #d8d8d4;
+      --text:      #1a1a18;
+      --text-2:    #6b6b66;
+      --text-3:    #a8a8a4;
+      --accent:    #1a1a18;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Inter', sans-serif;
+      --r:         6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Sidebar nav ── */
+    .wf-shell {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 100vh;
+    }
+
+    .wf-sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .wf-logo {
+      padding: 0 20px 24px;
+      border-bottom: 1px solid var(--border-2);
+    }
+
+    .wf-logo-name {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .wf-logo-sub {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.12em;
+      margin-top: 2px;
+    }
+
+    .wf-screens-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 20px 20px 8px;
+    }
+
+    .wf-screen-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .wf-screen-btn:hover { color: var(--text); background: var(--bg); }
+
+    .wf-screen-btn.active {
+      color: var(--text);
+      background: var(--bg);
+      border-left-color: var(--text);
+    }
+
+    .wf-screen-btn .num {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-3);
+      min-width: 16px;
+    }
+
+    .wf-sidebar-footer {
+      margin-top: auto;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-2);
+    }
+
+    .wf-meta {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-3);
+      line-height: 1.8;
+    }
+
+    /* ── Main area ── */
+    .wf-main {
+      padding: 40px 48px;
+      overflow-y: auto;
+    }
+
+    .wf-screen { display: none; }
+    .wf-screen.active { display: block; }
+
+    /* ── Annotation system ── */
+    .screen-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .screen-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .screen-subtitle {
+      font-size: 12px;
+      color: var(--text-2);
+      margin-top: 2px;
+    }
+
+    .screen-tag {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.12em;
+      background: var(--box);
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── Wireframe primitives ── */
+    .wf-frame {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .wf-frame-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-2);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .wf-frame-label span { color: var(--text-3); font-weight: 400; }
+
+    .wf-frame-body { padding: 16px; }
+
+    /* placeholder box */
+    .ph {
+      background: var(--box);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: 0.08em;
+    }
+
+    .ph.dark {
+      background: var(--box-2);
+    }
+
+    /* text placeholder lines */
+    .ph-line {
+      height: 8px;
+      background: var(--box);
+      border-radius: 2px;
+    }
+
+    .ph-line.short { width: 40%; }
+    .ph-line.med   { width: 65%; }
+    .ph-line.full  { width: 100%; }
+
+    /* ── Layout helpers ── */
+    .row { display: flex; gap: 12px; align-items: stretch; }
+    .col { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .g8  { gap: 8px; }
+    .g16 { gap: 16px; }
+    .g24 { gap: 24px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+
+    /* ── Nav wireframe ── */
+    .wf-nav {
+      height: 52px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .wf-nav-logo { width: 80px; height: 20px; background: var(--box-2); border-radius: 3px; }
+    .wf-nav-sep { flex: 1; }
+    .wf-nav-link { width: 48px; height: 14px; background: var(--box); border-radius: 2px; }
+    .wf-nav-btn { width: 90px; height: 28px; background: var(--box-2); border-radius: 4px; }
+
+    /* ── Card ── */
+    .wf-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 16px;
+    }
+
+    .wf-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .wf-card-title { width: 55%; height: 12px; background: var(--box-2); border-radius: 2px; }
+    .wf-badge { height: 18px; width: 56px; background: var(--box); border-radius: 10px; }
+    .wf-badge.active { background: var(--box-2); }
+
+    .wf-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .wf-chip { height: 20px; width: 36px; background: var(--box); border-radius: 3px; border: 1px solid var(--border-2); }
+
+    .wf-divider { height: 1px; background: var(--border-2); margin: 12px 0; }
+
+    .wf-card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .wf-price { width: 60px; height: 14px; background: var(--box); border-radius: 2px; }
+    .wf-btn { height: 28px; width: 80px; background: var(--box-2); border-radius: 4px; }
+
+    /* ── Table ── */
+    .wf-table { width: 100%; border-collapse: collapse; }
+    .wf-table th {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .wf-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-2);
+      vertical-align: middle;
+    }
+
+    .wf-table tr:last-child td { border-bottom: none; }
+
+    .wf-table-ph { height: 10px; border-radius: 2px; background: var(--box); }
+
+    /* ── Annotation callouts ── */
+    .anno-wrap { position: relative; }
+
+    .anno {
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--text-2);
+      line-height: 1.5;
+      padding: 6px 10px;
+      background: #fffdf0;
+      border: 1px solid #e8e0c0;
+      border-radius: 4px;
+      margin-top: 6px;
+    }
+
+    .anno::before {
+      content: '→';
+      font-size: 9px;
+      color: var(--text-3);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .annotations {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 12px 0 4px;
+    }
+
+    /* ── Hero wireframe ── */
+    .wf-hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: center;
+      min-height: 220px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .hero-ph-left { display: flex; flex-direction: column; gap: 10px; }
+    .hero-ph-eyebrow { height: 10px; width: 30%; background: var(--box); border-radius: 2px; }
+    .hero-ph-h1 { height: 20px; background: var(--box-2); border-radius: 3px; }
+    .hero-ph-h1b { height: 20px; width: 80%; background: var(--box-2); border-radius: 3px; }
+    .hero-ph-p { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+    .hero-ph-btns { display: flex; gap: 8px; margin-top: 6px; }
+    .hero-ph-btn1 { height: 32px; width: 110px; background: var(--box-2); border-radius: 4px; }
+    .hero-ph-btn2 { height: 32px; width: 120px; background: var(--box); border-radius: 4px; border: 1px solid var(--border); }
+    .hero-ph-terminal { height: 180px; background: var(--box); border-radius: 5px; display: flex; flex-direction: column; overflow: hidden; }
+    .hero-ph-term-bar { height: 32px; background: var(--box-2); }
+    .hero-ph-term-body { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 7px; }
+    .hero-ph-term-line { height: 8px; background: rgba(0,0,0,0.08); border-radius: 2px; }
+
+    /* ── Kill switch wireframe ── */
+    .wf-ks {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .wf-ks-left { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .wf-ks-label { height: 8px; width: 25%; background: var(--box); border-radius: 2px; }
+    .wf-ks-title { height: 16px; width: 50%; background: var(--box-2); border-radius: 3px; }
+    .wf-ks-desc { display: flex; flex-direction: column; gap: 5px; }
+    .wf-ks-btn { height: 40px; width: 180px; background: var(--box-2); border-radius: 5px; flex-shrink: 0; border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; }
+    .wf-ks-btn span { font-family: var(--mono); font-size: 9px; color: var(--text-3); }
+
+    /* ── Flow diagram ── */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .flow-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .flow-box {
+      width: 100px;
+      height: 60px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8px;
+    }
+
+    .flow-box-text {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-2);
+      line-height: 1.4;
+    }
+
+    .flow-arrow {
+      width: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-3);
+      font-size: 14px;
+      flex-shrink: 0;
+      padding-bottom: 20px;
+    }
+
+    .flow-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-3);
+      text-align: center;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Component inventory ── */
+    .comp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .comp-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .comp-preview {
+      height: 56px;
+      background: var(--bg);
+      border-radius: 4px;
+      border: 1px solid var(--border-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      gap: 6px;
+    }
+
+    .comp-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .comp-desc {
+      font-size: 10px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
+    /* ── Page section labels ── */
+    .section-sep {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 20px 0 12px;
+    }
+
+    .section-sep-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    .section-sep-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-2);
+    }
+
+    /* ── Note box ── */
+    .note {
+      background: #f8f6f0;
+      border: 1px solid #e0dac8;
+      border-radius: var(--r);
+      padding: 12px 16px;
+      font-size: 11px;
+      color: #6b6040;
+      line-height: 1.6;
+    }
+
+    .note strong { color: #3d3820; }
+  </style>
+</head>
+<body>
+
+<div class="wf-shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="wf-sidebar">
+    <div class="wf-logo">
+      <div class="wf-logo-name">Batiste</div>
+      <div class="wf-logo-sub">WIREFRAME · v0.1</div>
+    </div>
+
+    <div class="wf-screens-label">Screens</div>
+
+    <button class="wf-screen-btn active" onclick="show('s1', this)">
+      <span class="num">01</span> Marketplace Home
+    </button>
+    <button class="wf-screen-btn" onclick="show('s2', this)">
+      <span class="num">02</span> Node Detail
+    </button>
+    <button class="wf-screen-btn" onclick="show('s3', this)">
+      <span class="num">03</span> Audit Trail
+    </button>
+    <button class="wf-screen-btn" onclick="show('s4', this)">
+      <span class="num">04</span> Admin Controls
+    </button>
+    <button class="wf-screen-btn" onclick="show('s5', this)">
+      <span class="num">05</span> Connect Flow
+    </button>
+    <button class="wf-screen-btn" onclick="show('s6', this)">
+      <span class="num">06</span> Components
+    </button>
+
+    <div class="wf-sidebar-footer">
+      <div class="wf-meta">
+        Batiste Protocol<br>
+        Wireframe · March 2026<br>
+        Eindhoven, NL
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="wf-main">
+
+    <!-- ──────────────────────────────────────────────────────── -->
+    <!-- SCREEN 1: MARKETPLACE HOME                              -->
+    <!-- ──────────────────────────────────────────────────────── -->
+    <div class="wf-screen active" id="s1">
+      <div class="screen-label">
+        <div>
+          <div class="screen-title">Marketplace Home</div>
+          <div class="screen-subtitle">Primary landing screen — node discovery and live status</div>
+        </div>
+        <span class="screen-tag">SCREEN 01 / 06</span>
+      </div>
+
+      <!-- NAV -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Navigation Bar <span>fixed · 60px height</span></div>
+        <div class="wf-frame-body">
+          <div class="wf-nav">
+            <div class="wf-nav-logo"></div>
+            <div class="wf-nav-sep"></div>
+            <div class="wf-nav-link"></div>
+            <div class="wf-nav-link"></div>
+            <div class="wf-nav-link"></div>
+            <div class="wf-nav-link"></div>
+            <div class="wf-nav-btn"></div>
+          </div>
+          <div class="annotations">
+            <div class="anno">Logo + "PROTOCOL" tag left-aligned</div>
+            <div class="anno">Nav links: Nodes · Activity · Audit · Docs</div>
+            <div class="anno">CTA: "Connect Node" — filled button, right-aligned</div>
+            <div class="anno">On scroll: background gets blur + border appears</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HERO -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Hero Section <span>full viewport height · 2-col grid</span></div>
+        <div class="wf-frame-body">
+          <div class="wf-hero">
+            <div class="hero-ph-left">
+              <div class="hero-ph-eyebrow"></div>
+              <div class="hero-ph-h1"></div>
+              <div class="hero-ph-h1b"></div>
+              <div class="hero-ph-p">
+                <div class="ph-line full"></div>
+                <div class="ph-line full"></div>
+                <div class="ph-line med"></div>
+              </div>
+              <div class="hero-ph-btns">
+                <div class="hero-ph-btn1"></div>
+                <div class="hero-ph-btn2"></div>
+              </div>
+            </div>
+            <div class="hero-ph-terminal">
+              <div class="hero-ph-term-bar"></div>
+              <div class="hero-ph-term-body">
+                <div class="hero-ph-term-line" style="width:70%"></div>
+                <div class="hero-ph-term-line" style="width:85%"></div>
+                <div class="hero-ph-term-line" style="width:60%"></div>
+                <div class="hero-ph-term-line" style="width:75%"></div>
+                <div class="hero-ph-term-line" style="width:90%"></div>
+                <div class="hero-ph-term-line" style="width:50%"></div>
+              </div>
+            </div>
+          </div>
+          <div class="annotations">
+            <div class="anno">Left: eyebrow "Live Network" + animated dot, headline, subtitle, 2 CTAs</div>
+            <div class="anno">Right: terminal window — animates typed init sequence on load</div>
+            <div class="anno">Terminal shows: init → handshake → "3 nodes online" → blinking cursor</div>
+            <div class="anno">Primary CTA: "Deploy Node" (solid) · Secondary: "View Marketplace" (ghost)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- METRICS BAR -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Live Metrics Bar <span>4-column grid · scroll-triggered counter animation</span></div>
+        <div class="wf-frame-body">
+          <div class="grid-4" style="margin-bottom:10px">
+            <div class="wf-card">
+              <div style="height:9px;width:60%;background:var(--box);border-radius:2px;margin-bottom:10px"></div>
+              <div style="height:28px;width:40%;background:var(--box-2);border-radius:3px;margin-bottom:8px"></div>
+              <div style="height:8px;width:30%;background:var(--box);border-radius:2px"></div>
+            </div>
+            <div class="wf-card">
+              <div style="height:9px;width:70%;background:var(--box);border-radius:2px;margin-bottom:10px"></div>
+              <div style="height:28px;width:55%;background:var(--box-2);border-radius:3px;margin-bottom:8px"></div>
+              <div style="height:8px;width:40%;background:var(--box);border-radius:2px"></div>
+            </div>
+            <div class="wf-card">
+              <div style="height:9px;width:55%;background:var(--box);border-radius:2px;margin-bottom:10px"></div>
+              <div style="height:28px;width:35%;background:var(--box-2);border-radius:3px;margin-bottom:8px"></div>
+              <div style="height:8px;width:35%;background:var(--box);border-radius:2px"></div>
+            </div>
+            <div class="wf-card">
+              <div style="height:9px;width:45%;background:var(--box);border-radius:2px;margin-bottom:10px"></div>
+              <div style="height:28px;width:50%;background:var(--box-2);border-radius:3px;margin-bottom:8px"></div>
+              <div style="height:8px;width:38%;background:var(--box);border-radius:2px"></div>
+            </div>
+          </div>
+          <div class="annotations">
+            <div class="anno">Active Nodes · API Calls Today · Avg Latency · Uptime</div>
+            <div class="anno">Cards with "live" state get a green top-border glow + pulse dot</div>
+            <div class="anno">Numbers count up from 0 on first scroll into view</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NODE GRID -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Marketplace Node Grid <span>3-column · 1fr each</span></div>
+        <div class="wf-frame-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div style="height:14px;width:120px;background:var(--box-2);border-radius:3px"></div>
+            <div style="height:10px;width:80px;background:var(--box);border-radius:2px"></div>
+          </div>
+          <div class="grid-3" style="margin-bottom:12px">
+            <!-- Card 1 -->
+            <div class="wf-card">
+              <div class="wf-card-head">
+                <div style="flex:1">
+                  <div class="wf-card-title"></div>
+                  <div style="height:8px;width:80%;background:var(--box);border-radius:2px;margin-top:6px"></div>
+                  <div style="height:8px;width:65%;background:var(--box);border-radius:2px;margin-top:4px"></div>
+                </div>
+                <div class="wf-badge active" style="margin-left:10px"></div>
+              </div>
+              <div class="wf-chips">
+                <div class="wf-chip"></div><div class="wf-chip"></div><div class="wf-chip"></div><div class="wf-chip"></div>
+              </div>
+              <div style="display:flex;gap:16px;margin-bottom:4px">
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <div style="height:7px;width:40px;background:var(--box);border-radius:2px"></div>
+                  <div style="height:12px;width:35px;background:var(--box-2);border-radius:2px"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <div style="height:7px;width:48px;background:var(--box);border-radius:2px"></div>
+                  <div style="height:12px;width:40px;background:var(--box-2);border-radius:2px"></div>
+                </div>
+              </div>
+              <div class="wf-divider"></div>
+              <div class="wf-card-footer">
+                <div class="wf-price"></div>
+                <div class="wf-btn"></div>
+              </div>
+            </div>
+            <!-- Card 2 (same structure) -->
+            <div class="wf-card">
+              <div class="wf-card-head">
+                <div style="flex:1">
+                  <div class="wf-card-title" style="width:70%"></div>
+                  <div style="height:8px;width:90%;background:var(--box);border-radius:2px;margin-top:6px"></div>
+                  <div style="height:8px;width:55%;background:var(--box);border-radius:2px;margin-top:4px"></div>
+                </div>
+                <div class="wf-badge active" style="margin-left:10px"></div>
+              </div>
+              <div class="wf-chips">
+                <div class="wf-chip"></div><div class="wf-chip"></div><div class="wf-chip"></div>
+              </div>
+              <div style="display:flex;gap:16px;margin-bottom:4px">
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <div style="height:7px;width:40px;background:var(--box);border-radius:2px"></div>
+                  <div style="height:12px;width:35px;background:var(--box-2);border-radius:2px"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <div style="height:7px;width:48px;background:var(--box);border-radius:2px"></div>
+                  <div style="height:12px;width:40px;background:var(--box-2);border-radius:2px"></div>
+                </div>
+              </div>
+              <div class="wf-divider"></div>
+              <div class="wf-card-footer">
+                <div class="wf-price"></div>
+                <div class="wf-btn"></div>
+              </div>
+            </div>
+            <!-- Card 3 (dimmed = standby) -->
+            <div class="wf-card" style="opacity:0.5">
+              <div class="wf-card-head">
+                <div style="flex:1">
+                  <div class="wf-card-title" style="width:80%"></div>
+                  <div style="height:8px;width:75%;background:var(--box);border-radius:2px;margin-top:6px"></div>
+                </div>
+                <div class="wf-badge" style="margin-left:10px"></div>
+              </div>
+              <div class="wf-chips">
+                <div class="wf-chip"></div><div class="wf-chip"></div><div class="wf-chip" style="width:60px"></div>
+              </div>
+              <div style="height:20px;width:50%;background:var(--box);border-radius:2px;margin-bottom:4px"></div>
+              <div class="wf-divider"></div>
+              <div class="wf-card-footer">
+                <div class="wf-price"></div>
+                <div class="wf-btn" style="opacity:0.4"></div>
+              </div>
+            </div>
+          </div>
+          <div class="annotations">
+            <div class="anno">Card 3 is "Standby" — visually dimmed, Connect button disabled</div>
+            <div class="anno">Hover state: border gets green tint, card lifts 2px</div>
+            <div class="anno">Status badge: ONLINE (pulse dot) or STANDBY (static dot)</div>
+            <div class="anno">Capability chips: AST · TDD · AutoFix · LSP / PDF · CSV · ETL / Audit · Kill Switch · SOC2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────── -->
+    <!-- SCREEN 2: NODE DETAIL                                   -->
+    <!-- ──────────────────────────────────────────────────────── -->
+    <div class="wf-screen" id="s2">
+      <div class="screen-label">
+        <div>
+          <div class="screen-title">Node Detail</div>
+          <div class="screen-subtitle">Expanded view of a single node — capabilities, stats, connect</div>
+        </div>
+        <span class="screen-tag">SCREEN 02 / 06</span>
+      </div>
+
+      <!-- Breadcrumb + Header -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Node Header <span>breadcrumb + status + key actions</span></div>
+        <div class="wf-frame-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+            <div style="height:8px;width:70px;background:var(--box);border-radius:2px"></div>
+            <div style="color:var(--text-3);font-size:10px">›</div>
+            <div style="height:8px;width:90px;background:var(--box-2);border-radius:2px"></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="height:20px;width:160px;background:var(--box-2);border-radius:3px"></div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <div class="wf-badge active" style="width:60px"></div>
+                <div style="height:8px;width:80px;background:var(--box);border-radius:2px"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <div class="wf-btn" style="width:100px;background:var(--box)"></div>
+              <div class="wf-btn" style="width:120px"></div>
+            </div>
+          </div>
+          <div class="annotations">
+            <div class="anno">Breadcrumb: Marketplace › Code Analyzer</div>
+            <div class="anno">Status badge, node version tag</div>
+            <div class="anno">Actions: "View Docs" (ghost) + "Connect Node" (primary)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats + Details 2-col -->
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="wf-frame" style="margin-bottom:0">
+          <div class="wf-frame-label">Performance Stats</div>
+          <div class="wf-frame-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:4px;padding:12px;background:var(--bg);border-radius:4px">
+                <div style="height:7px;width:50%;background:var(--box);border-radius:2px"></div>
+                <div style="height:20px;width:60%;background:var(--box-2);border-radius:3px"></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;padding:12px;background:var(--bg);border-radius:4px">
+                <div style="height:7px;width:55%;background:var(--box);border-radius:2px"></div>
+                <div style="height:20px;width:50%;background:var(--box-2);border-radius:3px"></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;padding:12px;background:var(--bg);border-radius:4px">
+                <div style="height:7px;width:60%;background:var(--box);border-radius:2px"></div>
+                <div style="height:20px;width:55%;background:var(--box-2);border-radius:3px"></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;padding:12px;background:var(--bg);border-radius:4px">
+                <div style="height:7px;width:45%;background:var(--box);border-radius:2px"></div>
+                <div style="height:20px;width:40%;background:var(--box-2);border-radius:3px"></div>
+              </div>
+            </div>
+            <div class="annotations">
+              <div class="anno">Latency · Reliability · Calls/day · Cycles billed</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-frame" style="margin-bottom:0">
+          <div class="wf-frame-label">Capabilities</div>
+          <div class="wf-frame-body">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--bg);border-radius:4px">
+                <div style="height:9px;width:80px;background:var(--box-2);border-radius:2px"></div>
+                <div style="height:8px;width:50px;background:var(--box);border-radius:2px"></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--bg);border-radius:4px">
+                <div style="height:9px;width:60px;background:var(--box-2);border-radius:2px"></div>
+                <div style="height:8px;width:50px;background:var(--box);border-radius:2px"></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--bg);border-radius:4px">
+                <div style="height:9px;width:90px;background:var(--box-2);border-radius:2px"></div>
+                <div style="height:8px;width:50px;background:var(--box);border-radius:2px"></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--bg);border-radius:4px">
+                <div style="height:9px;width:70px;background:var(--box-2);border-radius:2px"></div>
+                <div style="height:8px;width:50px;background:var(--box);border-radius:2px"></div>
+              </div>
+            </div>
+            <div class="annotations">
+              <div class="anno">Tool name (left) + "Available" / "Premium" tag (right)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pricing -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Pricing & Billing</div>
+        <div class="wf-frame-body">
+          <div style="display:flex;gap:16px;align-items:stretch">
+            <div style="flex:1;padding:16px;background:var(--bg);border-radius:5px;border:1px solid var(--border-2);display:flex;flex-direction:column;gap:8px">
+              <div style="height:10px;width:60%;background:var(--box);border-radius:2px"></div>
+              <div style="height:24px;width:45%;background:var(--box-2);border-radius:3px"></div>
+              <div style="height:8px;width:80%;background:var(--box);border-radius:2px"></div>
+            </div>
+            <div style="flex:1;padding:16px;background:var(--bg);border-radius:5px;border:1px solid var(--border-2);display:flex;flex-direction:column;gap:8px">
+              <div style="height:10px;width:50%;background:var(--box);border-radius:2px"></div>
+              <div style="height:24px;width:55%;background:var(--box-2);border-radius:3px"></div>
+              <div style="height:8px;width:70%;background:var(--box);border-radius:2px"></div>
+            </div>
+            <div style="flex:1;padding:16px;background:var(--bg);border-radius:5px;border:1px solid var(--border-2);display:flex;flex-direction:column;gap:8px">
+              <div style="height:10px;width:55%;background:var(--box);border-radius:2px"></div>
+              <div style="height:24px;width:40%;background:var(--box-2);border-radius:3px"></div>
+              <div style="height:8px;width:65%;background:var(--box);border-radius:2px"></div>
+            </div>
+          </div>
+          <div class="annotations">
+            <div class="anno">Price per cycle · Estimated monthly cost · Billing summary</div>
+            <div class="anno">"Predictable per-cycle" pricing is a key pitch deck differentiator — must be prominent</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>Decision point:</strong> Node Detail opens as a slide-over panel (right drawer) from the Marketplace grid, OR as a full page with its own URL (/nodes/code-analyzer). Recommend: full page for SEO + shareability.
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────── -->
+    <!-- SCREEN 3: AUDIT TRAIL                                   -->
+    <!-- ──────────────────────────────────────────────────────── -->
+    <div class="wf-screen" id="s3">
+      <div class="screen-label">
+        <div>
+          <div class="screen-title">Audit Trail</div>
+          <div class="screen-subtitle">Complete log of all agent activity — for legal and compliance teams</div>
+        </div>
+        <span class="screen-tag">SCREEN 03 / 06</span>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Filter Bar <span>sticky below nav</span></div>
+        <div class="wf-frame-body">
+          <div style="display:flex;gap:10px;align-items:center">
+            <div style="height:32px;flex:1;background:var(--bg);border:1px solid var(--border);border-radius:5px"></div>
+            <div style="height:32px;width:120px;background:var(--bg);border:1px solid var(--border);border-radius:5px"></div>
+            <div style="height:32px;width:100px;background:var(--bg);border:1px solid var(--border);border-radius:5px"></div>
+            <div style="height:32px;width:120px;background:var(--bg);border:1px solid var(--border);border-radius:5px"></div>
+            <div style="height:32px;width:100px;background:var(--box-2);border-radius:5px"></div>
+          </div>
+          <div class="annotations">
+            <div class="anno">Search by agent ID or tool name · Filter by date range · Filter by status (all / success / error) · Export CSV button</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="grid-4" style="margin-bottom:16px">
+        <div class="wf-card">
+          <div style="height:8px;width:70%;background:var(--box);border-radius:2px;margin-bottom:8px"></div>
+          <div style="height:20px;width:45%;background:var(--box-2);border-radius:3px"></div>
+        </div>
+        <div class="wf-card">
+          <div style="height:8px;width:60%;background:var(--box);border-radius:2px;margin-bottom:8px"></div>
+          <div style="height:20px;width:55%;background:var(--box-2);border-radius:3px"></div>
+        </div>
+        <div class="wf-card">
+          <div style="height:8px;width:75%;background:var(--box);border-radius:2px;margin-bottom:8px"></div>
+          <div style="height:20px;width:40%;background:var(--box-2);border-radius:3px"></div>
+        </div>
+        <div class="wf-card">
+          <div style="height:8px;width:55%;background:var(--box);border-radius:2px;margin-bottom:8px"></div>
+          <div style="height:20px;width:50%;background:var(--box-2);border-radius:3px"></div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Activity Log <span>paginated · 50 rows per page</span></div>
+        <div class="wf-frame-body" style="padding:0">
+          <table class="wf-table" style="margin-bottom:0">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Session ID</th>
+                <th>Agent ID</th>
+                <th>Tool</th>
+                <th>Input Size</th>
+                <th>Status</th>
+                <th>Duration</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="wf-table-ph" style="width:75px"></div></td>
+                <td><div class="wf-table-ph" style="width:80px"></div></td>
+                <td><div class="wf-table-ph" style="width:70px"></div></td>
+                <td><div class="wf-table-ph" style="width:90px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:40px"></div></td>
+                <td><div class="wf-table-ph" style="width:24px"></div></td>
+              </tr>
+              <tr>
+                <td><div class="wf-table-ph" style="width:75px"></div></td>
+                <td><div class="wf-table-ph" style="width:80px"></div></td>
+                <td><div class="wf-table-ph" style="width:70px"></div></td>
+                <td><div class="wf-table-ph" style="width:60px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:40px"></div></td>
+                <td><div class="wf-table-ph" style="width:24px"></div></td>
+              </tr>
+              <tr>
+                <td><div class="wf-table-ph" style="width:75px"></div></td>
+                <td><div class="wf-table-ph" style="width:80px"></div></td>
+                <td><div class="wf-table-ph" style="width:70px"></div></td>
+                <td><div class="wf-table-ph" style="width:80px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:40px"></div></td>
+                <td><div class="wf-table-ph" style="width:24px"></div></td>
+              </tr>
+              <tr>
+                <td><div class="wf-table-ph" style="width:75px"></div></td>
+                <td><div class="wf-table-ph" style="width:80px"></div></td>
+                <td><div class="wf-table-ph" style="width:70px"></div></td>
+                <td><div class="wf-table-ph" style="width:100px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:40px"></div></td>
+                <td><div class="wf-table-ph" style="width:24px"></div></td>
+              </tr>
+              <tr>
+                <td><div class="wf-table-ph" style="width:75px"></div></td>
+                <td><div class="wf-table-ph" style="width:80px"></div></td>
+                <td><div class="wf-table-ph" style="width:70px"></div></td>
+                <td><div class="wf-table-ph" style="width:70px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:50px"></div></td>
+                <td><div class="wf-table-ph" style="width:40px"></div></td>
+                <td><div class="wf-table-ph" style="width:24px"></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="annotations">
+        <div class="anno">Last column: "›" chevron to open row detail panel (full tool args, raw response, token count)</div>
+        <div class="anno">Row click-to-expand: shows tool arguments passed, raw result preview, bytes transferred</div>
+        <div class="anno">"Export CSV" generates full audit log for legal review — critical for law firms</div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────── -->
+    <!-- SCREEN 4: ADMIN CONTROLS                                -->
+    <!-- ──────────────────────────────────────────────────────── -->
+    <div class="wf-screen" id="s4">
+      <div class="screen-label">
+        <div>
+          <div class="screen-title">Admin Controls</div>
+          <div class="screen-subtitle">Security controls, kill switch, token management</div>
+        </div>
+        <span class="screen-tag">SCREEN 04 / 06</span>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:16px">
+        <!-- Active Sessions -->
+        <div class="wf-frame" style="margin-bottom:0">
+          <div class="wf-frame-label">Active Sessions</div>
+          <div class="wf-frame-body">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg);border-radius:4px">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div style="height:9px;width:80px;background:var(--box-2);border-radius:2px"></div>
+                  <div style="height:7px;width:60px;background:var(--box);border-radius:2px"></div>
+                </div>
+                <div style="height:24px;width:60px;background:var(--box);border-radius:4px"></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg);border-radius:4px">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div style="height:9px;width:70px;background:var(--box-2);border-radius:2px"></div>
+                  <div style="height:7px;width:55px;background:var(--box);border-radius:2px"></div>
+                </div>
+                <div style="height:24px;width:60px;background:var(--box);border-radius:4px"></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg);border-radius:4px">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div style="height:9px;width:75px;background:var(--box-2);border-radius:2px"></div>
+                  <div style="height:7px;width:65px;background:var(--box);border-radius:2px"></div>
+                </div>
+                <div style="height:24px;width:60px;background:var(--box);border-radius:4px"></div>
+              </div>
+            </div>
+            <div class="annotations">
+              <div class="anno">Each session: agent ID + start time + "Revoke" button</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Token Management -->
+        <div class="wf-frame" style="margin-bottom:0">
+          <div class="wf-frame-label">Access Tokens</div>
+          <div class="wf-frame-body">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+              <div style="height:28px;width:100px;background:var(--box-2);border-radius:4px"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--bg);border-radius:4px">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <div style="height:8px;width:110px;background:var(--box);border-radius:2px;font-family:monospace"></div>
+                  <div class="wf-badge" style="width:48px"></div>
+                </div>
+                <div style="height:8px;width:40px;background:var(--box);border-radius:2px"></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--bg);border-radius:4px">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <div style="height:8px;width:110px;background:var(--box);border-radius:2px"></div>
+                  <div class="wf-badge active" style="width:48px"></div>
+                </div>
+                <div style="height:8px;width:40px;background:var(--box);border-radius:2px"></div>
+              </div>
+            </div>
+            <div class="annotations">
+              <div class="anno">Token prefix (masked) · status · expiry · "Revoke" link</div>
+              <div class="anno">"Issue Token" button opens modal with scope selector + TTL</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kill Switch -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Emergency Kill Switch <span>2-step confirmation required</span></div>
+        <div class="wf-frame-body">
+          <div class="wf-ks">
+            <div class="wf-ks-left">
+              <div class="wf-ks-label"></div>
+              <div class="wf-ks-title"></div>
+              <div class="wf-ks-desc">
+                <div class="ph-line full"></div>
+                <div class="ph-line full"></div>
+                <div class="ph-line med"></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+              <div class="wf-ks-btn"><span>REVOKE ALL ACCESS</span></div>
+              <div style="font-family:var(--mono);font-size:9px;color:var(--text-3)">Step 1 of 2 — confirm required</div>
+            </div>
+          </div>
+          <div class="annotations">
+            <div class="anno">State 1 (idle): "Revoke All Access" — red text, red border</div>
+            <div class="anno">State 2 (confirm): "⚠ Click Again to Confirm" — pulsing warning</div>
+            <div class="anno">State 3 (revoked): "✓ All Access Revoked" — disabled, sessions update live</div>
+            <div class="anno">After revoke: audit log entry created automatically, all session cards flip to "Revoked"</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scope Policies -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Scope Policies <span>per-node file/tool access rules</span></div>
+        <div class="wf-frame-body">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:5px">
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <div style="height:10px;width:90px;background:var(--box-2);border-radius:2px"></div>
+                <div style="display:flex;gap:6px">
+                  <div style="height:16px;width:50px;background:var(--box);border-radius:3px"></div>
+                  <div style="height:16px;width:60px;background:var(--box);border-radius:3px"></div>
+                  <div style="height:16px;width:44px;background:var(--box);border-radius:3px"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <div style="height:24px;width:50px;background:var(--box);border-radius:4px"></div>
+                <div style="height:24px;width:50px;background:var(--box);border-radius:4px"></div>
+              </div>
+            </div>
+          </div>
+          <div class="annotations">
+            <div class="anno">Policy name · allowed paths as chips · "Edit" + "Delete" per row</div>
+            <div class="anno">e.g. "default-policy" — allows src/** · denies **/*.env · max depth 10</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────── -->
+    <!-- SCREEN 5: CONNECT FLOW                                  -->
+    <!-- ──────────────────────────────────────────────────────── -->
+    <div class="wf-screen" id="s5">
+      <div class="screen-label">
+        <div>
+          <div class="screen-title">Connect Flow</div>
+          <div class="screen-subtitle">Step-by-step agent connection — 3 steps, modal overlay</div>
+        </div>
+        <span class="screen-tag">SCREEN 05 / 06</span>
+      </div>
+
+      <!-- Flow diagram -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Connection Flow Steps</div>
+        <div class="wf-frame-body">
+          <div class="flow">
+            <div class="flow-step">
+              <div class="flow-box">
+                <div class="flow-box-text">Select Node<br>+ Scope</div>
+              </div>
+              <div class="flow-label">STEP 1</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="flow-box">
+                <div class="flow-box-text">Set Token<br>TTL + Perms</div>
+              </div>
+              <div class="flow-label">STEP 2</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="flow-box">
+                <div class="flow-box-text">Issue JWT<br>Token</div>
+              </div>
+              <div class="flow-label">STEP 3</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="flow-box">
+                <div class="flow-box-text">Copy + Test<br>Connection</div>
+              </div>
+              <div class="flow-label">STEP 4</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="flow-box">
+                <div class="flow-box-text">Live in<br>Audit Trail</div>
+              </div>
+              <div class="flow-label">DONE</div>
+            </div>
+          </div>
+          <div class="annotations" style="margin-top:12px">
+            <div class="anno">Step 1: Choose node + select allowed tools (checkboxes)</div>
+            <div class="anno">Step 2: Set token expiry (1h / 24h / 7d / custom) + scope paths</div>
+            <div class="anno">Step 3: JWT token displayed — copy to clipboard + MCP config snippet</div>
+            <div class="anno">Step 4: Test connection button — pings node endpoint + shows live latency</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal wireframe -->
+      <div class="wf-frame">
+        <div class="wf-frame-label">Connect Modal — Step 3: Token Issued <span>centered overlay · max-width 480px</span></div>
+        <div class="wf-frame-body">
+          <div style="max-width:440px;margin:0 auto">
+            <!-- Modal -->
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <!-- Modal header -->
+              <div style="padding:16px 20px;border-bottom:1px solid var(--border-2);display:flex;align-items:center;justify-content:space-between">
+                <div style="height:12px;width:140px;background:var(--box-2);border-radius:3px"></div>
+                <div style="height:20px;width:20px;background:var(--box);border-radius:50%"></div>
+              </div>
+              <!-- Step indicator -->
+              <div style="padding:12px 20px;display:flex;gap:6px">
+                <div style="height:3px;flex:1;background:var(--box-2);border-radius:2px"></div>
+                <div style="height:3px;flex:1;background:var(--box-2);border-radius:2px"></div>
+                <div style="height:3px;flex:1;background:var(--box-2);border-radius:2px"></div>
+                <div style="height:3px;flex:1;background:var(--box);border-radius:2px"></div>
+              </div>
+              <!-- Token display -->
+              <div style="padding:0 20px 16px">
+                <div style="height:9px;width:70%;background:var(--box);border-radius:2px;margin-bottom:8px"></div>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:12px;display:flex;align-items:center;justify-content:space-between">
+                  <div style="height:10px;width:70%;background:var(--box);border-radius:2px;font-family:monospace"></div>
+                  <div style="height:24px;width:60px;background:var(--box-2);border-radius:3px"></div>
+                </div>
+                <!-- MCP config snippet -->
+                <div style="height:9px;width:60%;background:var(--box);border-radius:2px;margin-top:14px;margin-bottom:8px"></div>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:12px;display:flex;flex-direction:column;gap:5px">
+                  <div style="height:8px;width:85%;background:var(--box);border-radius:2px"></div>
+                  <div style="height:8px;width:70%;background:var(--box);border-radius:2px"></div>
+                  <div style="height:8px;width:80%;background:var(--box);border-radius:2px"></div>
+                </div>
+              </div>
+              <!-- Footer -->
+              <div style="padding:14px 20px;border-top:1px solid var(--border-2);display:flex;justify-content:space-between">
+                <div style="height:32px;width:80px;background:var(--box);border-radius:4px"></div>
+                <div style="height:32px;width:120px;background:var(--box-2);border-radius:4px"></div>
+              </div>
+            </div>
+          </div>
+          <div class="annotations" style="margin-top:16px">
+            <div class="anno">Token shown once, masked after close — copy button copies full JWT</div>
+            <div class="anno">MCP config snippet ready to paste into Claude Desktop or other MCP clients</div>
+            <div class="anno">Progress bar at top shows steps 1–4 filled</div>
+            <div class="anno">Footer: "Back" (ghost) + "Test Connection" (primary)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────── -->
+    <!-- SCREEN 6: COMPONENT INVENTORY                           -->
+    <!-- ──────────────────────────────────────────────────────── -->
+    <div class="wf-screen" id="s6">
+      <div class="screen-label">
+        <div>
+          <div class="screen-title">Component Inventory</div>
+          <div class="screen-subtitle">Reusable UI primitives across all screens</div>
+        </div>
+        <span class="screen-tag">SCREEN 06 / 06</span>
+      </div>
+
+      <div class="comp-grid">
+
+        <div class="comp-item">
+          <div class="comp-preview">
+            <div style="height:22px;width:60px;background:var(--box-2);border-radius:4px"></div>
+            <div style="height:22px;width:70px;background:var(--box);border-radius:4px;border:1px solid var(--border)"></div>
+          </div>
+          <div class="comp-name">Buttons</div>
+          <div class="comp-desc">Primary (filled), Ghost (border), Danger (red). All have hover lift + glow.</div>
+        </div>
+
+        <div class="comp-item">
+          <div class="comp-preview">
+            <div style="display:flex;gap:5px">
+              <div style="height:18px;width:55px;background:var(--box-2);border-radius:10px"></div>
+              <div style="height:18px;width:60px;background:var(--box);border-radius:10px"></div>
+            </div>
+          </div>
+          <div class="comp-name">Status Badge</div>
+          <div class="comp-desc">ONLINE (pulse dot + green) / STANDBY (static dot + muted).</div>
+        </div>
+
+        <div class="comp-item">
+          <div class="comp-preview">
+            <div style="display:flex;gap:5px;flex-wrap:wrap">
+              <div style="height:16px;width:32px;background:var(--box);border-radius:3px;border:1px solid var(--border-2)"></div>
+              <div style="height:16px;width:28px;background:var(--box);border-radius:3px;border:1px solid var(--border-2)"></div>
+              <div style="height:16px;width:36px;background:var(--box);border-radius:3px;border:1px solid var(--border-2)"></div>
+            </div>
+          </div>
+          <div class="comp-name">Capability Chips</div>
+          <div class="comp-desc">Mono font, small tag. Used on node cards to show available tools.</div>
+        </div>
+
+        <div class="comp-item">
+          <div class="comp-preview">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:8px;width:100%;display:flex;flex-direction:column;gap:4px">
+              <div style="height:7px;width:50%;background:var(--box);border-radius:2px"></div>
+              <div style="height:14px;width:35%;background:var(--box-2);border-radius:2px"></div>
+            </div>
+          </div>
+          <div class="comp-name">Metric Card</div>
+          <div class="comp-desc">Label + value + optional sub-text. Live variant has green top-bar.</div>
+        </div>
+
+        <div class="comp-item">
+          <div class="comp-preview">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:100%">
+              <div style="height:24px;background:var(--bg);border-bottom:1px solid var(--border-2);display:flex;align-items:center;padding:0 8px;gap:4px">
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--box-2)"></div>
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--box-2)"></div>
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--box-2)"></div>
+              </div>
+              <div style="padding:8px;display:flex;flex-direction:column;gap:4px">
+                <div style="height:6px;width:80%;background:var(--box);border-radius:2px"></div>
+                <div style="height:6px;width:65%;background:var(--box);border-radius:2px"></div>
+              </div>
+            </div>
+          </div>
+          <div class="comp-name">Terminal Block</div>
+          <div class="comp-desc">MacOS window chrome + monospace content. Used in hero.</div>
+        </div>
+
+        <div class="comp-item">
+          <div class="comp-preview">
+            <div style="display:flex;flex-direction:column;gap:4px;width:100%">
+              <div style="height:10px;width:100%;background:var(--box);border-radius:2px"></div>
+              <div style="height:10px;width:100%;background:var(--box);border-radius:2px"></div>
+              <div style="height:10px;width:75%;background:var(--box);border-radius:2px"></div>
+            </div>
+          </div>
+          <div class="comp-name">Audit Row</div>
+          <div class="comp-desc">Timestamp · Agent · Tool · Status · Duration. Hover highlights row.</div>
+        </div>
+
+        <div class="comp-item">
+          <div class="comp-preview" style="flex-direction:column;gap:6px">
+            <div style="height:3px;width:80%;background:var(--box-2);border-radius:2px"></div>
+            <div style="display:flex;gap:6px">
+              <div style="height:3px;flex:1;background:var(--box-2);border-radius:2px"></div>
+              <div style="height:3px;flex:1;background:var(--box-2);border-radius:2px"></div>
+              <div style="height:3px;flex:1;background:var(--box);border-radius:2px"></div>
+              <div style="height:3px;flex:1;background:var(--box);border-radius:2px"></div>
+            </div>
+          </div>
+          <div class="comp-name">Step Progress</div>
+          <div class="comp-desc">Horizontal bar for multi-step flows. Filled segments = completed.</div>
+        </div>
+
+        <div class="comp-item">
+          <div class="comp-preview">
+            <div style="height:32px;width:90%;background:var(--surface);border:1px solid var(--border);border-radius:4px"></div>
+          </div>
+          <div class="comp-name">Input Field</div>
+          <div class="comp-desc">Used in filter bar, token forms. Border highlight on focus.</div>
+        </div>
+
+        <div class="comp-item">
+          <div class="comp-preview">
+            <div style="width:90%;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:10px;display:flex;align-items:center;justify-content:space-between">
+              <div style="height:10px;width:50%;background:var(--box);border-radius:2px"></div>
+              <div style="height:24px;width:60px;background:var(--box-2);border-radius:4px"></div>
+            </div>
+          </div>
+          <div class="comp-name">Kill Switch Bar</div>
+          <div class="comp-desc">Red border · description left · red danger button right. 2-step confirm.</div>
+        </div>
+
+      </div>
+
+      <div style="margin-top:24px">
+        <div class="note">
+          <strong>Typography system:</strong> Display headings → Syne 800 · Body text → Syne 400–500 · All data (timestamps, IDs, prices, code) → JetBrains Mono 400. This creates a clear visual grammar: "human" vs "machine" information.
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.wf-screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.wf-screen-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+    document.querySelector('.wf-main').scrollTop = 0;
+  }
+</script>
+
+</body>
+</html>
