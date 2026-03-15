@@ -232,6 +232,27 @@ describe('SecureGateway', () => {
     expect(res.status).toBe(403);
   });
 
+  it('should expose /metrics endpoint with performance data', async () => {
+    gateway = await startGateway(createTestMcpServer, {
+      port: 0,
+      security: { tls: { enabled: false } },
+    });
+
+    const res = await httpGet(gateway.port, '/metrics');
+    expect(res.status).toBe(200);
+    const body = JSON.parse(res.body) as {
+      reliability: number;
+      sampleCount: number;
+      windowMs: number;
+    };
+    expect(body.reliability).toBe(1); // no failures yet
+    expect(body.sampleCount).toBeGreaterThanOrEqual(0);
+    expect(body.windowMs).toBe(3_600_000);
+    // Also check in-process metrics accessor
+    expect(gateway.metrics).toBeDefined();
+    expect(typeof gateway.metrics.reliability).toBe('number');
+  });
+
   it('should enforce max concurrent sessions', async () => {
     gateway = await startGateway(createTestMcpServer, {
       port: 0,

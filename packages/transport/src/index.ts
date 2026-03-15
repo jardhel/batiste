@@ -12,6 +12,7 @@
  */
 
 export { startGateway, type GatewayHandle, type McpServerFactory } from './secure-gateway.js';
+export { PerformanceTracker, type PerformanceMetrics } from './performance-tracker.js';
 export { startTransport, type TransportHandle, type StdioHandle } from './transport-factory.js';
 export { RateLimiter } from './rate-limiter.js';
 export { SessionManager, type SessionManagerConfig } from './session-manager.js';

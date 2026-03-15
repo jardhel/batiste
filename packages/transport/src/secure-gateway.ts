@@ -24,6 +24,7 @@ import { RequestValidator, getClientIp } from './request-validator.js';
 import { SessionManager } from './session-manager.js';
 import { TlsManager } from './tls-manager.js';
 import { GatewayConfigSchema, type GatewayConfig } from './types.js';
+import { PerformanceTracker } from './performance-tracker.js';
 
 export interface GatewayHandle {
   /** Stop the gateway server */
@@ -32,6 +33,8 @@ export interface GatewayHandle {
   port: number;
   /** Get the session manager for inspection */
   sessions: SessionManager;
+  /** Live performance metrics (latency histogram + reliability) */
+  metrics: PerformanceTracker;
 }
 
 /** Factory that creates a fresh MCP Server for each session */
@@ -54,8 +57,26 @@ export async function startGateway(
   // Map of MCP session ID -> { transport, server }
   const sessions = new Map<string, { transport: StreamableHTTPServerTransport; server: Server }>();
 
+  const tracker = new PerformanceTracker();
+
   const handler = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     const url = req.url ?? '/';
+    const startMs = Date.now();
+
+    // Wrap res.writeHead to capture final status for reliability tracking
+    const origWriteHead = res.writeHead.bind(res) as typeof res.writeHead;
+    let statusCode = 200;
+    res.writeHead = ((...args: Parameters<typeof res.writeHead>) => {
+      statusCode = typeof args[0] === 'number' ? args[0] : statusCode;
+      return origWriteHead(...args);
+    }) as typeof res.writeHead;
+
+    res.on('finish', () => {
+      // Skip metrics/health endpoints from tracking
+      if (url !== '/metrics' && url !== '/health') {
+        tracker.record(Date.now() - startMs, statusCode < 500);
+      }
+    });
 
     // CORS preflight
     if (req.method === 'OPTIONS') {
@@ -71,6 +92,13 @@ export async function startGateway(
         sessions: sessionManager.size,
         uptime: process.uptime(),
       }));
+      return;
+    }
+
+    // Metrics endpoint
+    if (url === '/metrics' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(tracker.summary()));
       return;
     }
 
@@ -246,6 +274,7 @@ export async function startGateway(
       resolve({
         port: actualPort,
         sessions: sessionManager,
+        metrics: tracker,
         close: async () => {
           // Close all transports and servers
           for (const entry of sessions.values()) {
