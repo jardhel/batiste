@@ -1,0 +1,16 @@
+{
+  "name": "@batiste/investor-demo",
+  "version": "0.1.0",
+  "description": "End-to-end investor demo — marketplace, routing, billing, audit, kill switch",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node --experimental-vm-modules --import tsx/esm run.ts",
+    "demo": "npx tsx run.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0"
+  }
+}
