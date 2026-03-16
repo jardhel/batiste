@@ -105,6 +105,37 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.30)
 
+  packages/cli:
+    dependencies:
+      '@batiste/aidk':
+        specifier: workspace:*
+        version: link:../aidk
+      '@batiste/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@batiste/marketplace':
+        specifier: workspace:*
+        version: link:../marketplace
+      '@batiste/transport':
+        specifier: workspace:*
+        version: link:../transport
+      commander:
+        specifier: ^12.0.0
+        version: 12.1.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.30)
+
   packages/code:
     dependencies:
       '@batiste/core':
@@ -778,6 +809,10 @@ packages:
   ci-info@3.9.0:
     resolution: {integrity: sha512-NIxF55hv4nSqQswkAeiOi1r83xy8JldOFDTWiug55KBu9Jnblncd2U6ViHmYgHf01TPZS77NJBhBMKdWj9HQMQ==}
     engines: {node: '>=8'}
+
+  commander@12.1.0:
+    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
+    engines: {node: '>=18'}
 
   content-disposition@1.0.1:
     resolution: {integrity: sha512-oIXISMynqSqm241k6kcQ5UwttDILMK4BiurCfGEREw6+X9jkkpEe5T9FZaApyLGGOnFuyMWZpdolTXMtvEJ08Q==}
@@ -2170,6 +2205,8 @@ snapshots:
   chownr@1.1.4: {}
 
   ci-info@3.9.0: {}
+
+  commander@12.1.0: {}
 
   content-disposition@1.0.1: {}
 

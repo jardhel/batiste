@@ -1,0 +1,49 @@
+{
+  "name": "@batiste/cli",
+  "version": "0.1.0",
+  "description": "Batiste command-line interface — manage nodes, marketplace, and audit logs",
+  "type": "module",
+  "bin": {
+    "batiste": "./bin/batiste.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsc --build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@batiste/aidk": "workspace:*",
+    "@batiste/audit": "workspace:*",
+    "@batiste/marketplace": "workspace:*",
+    "@batiste/transport": "workspace:*",
+    "commander": "^12.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "vitest": "^2.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "keywords": ["ai", "mcp", "cli", "agent", "batiste"],
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jardhel/batiste",
+    "directory": "packages/cli"
+  }
+}
