@@ -1,79 +1,83 @@
-# Batiste
+<div align="center">
 
-**The Autonomous Agent Compute Marketplace.**
+# BATISTE
 
-Batiste is zero-trust infrastructure for AI agents: a marketplace where nodes offer specialised capabilities, clients route to the best node, and every call is billed per cycle, scoped per token, and written to an append-only audit ledger — all without any cloud dependency.
+### The Autonomous Agent Compute Marketplace
 
-Named after the legendary sous-chef who anticipates what the kitchen needs before anyone asks. Batiste never clutters the workspace. It is already three steps ahead.
+[![License](https://img.shields.io/badge/license-UNLICENSED-green.svg)](./LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org)
+[![pnpm](https://img.shields.io/badge/pnpm-%3E%3D9.0.0-orange)](https://pnpm.io)
+[![Build](https://img.shields.io/badge/build-passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-446%20passing-brightgreen)](#)
+[![Beta](https://img.shields.io/badge/release-v0.1.0--beta.1-blue)](https://github.com/jardhel/batiste/releases/tag/v0.1.0-beta.1)
 
-```
-npx tsx examples/investor-demo/run.ts
-```
+**Zero-trust infrastructure for AI agents. Route, bill, audit, and kill-switch every agent call — on your own network, with zero cloud dependencies.**
 
-```
-  BATISTE  ·  Autonomous Agent Compute Marketplace
+[Quick Start](#quick-start) · [Architecture](#architecture) · [CLI](#cli) · [Packages](#packages) · [Contributing](./CONTRIBUTING.md)
 
-  Phase 1  Marketplace Boot Sequence
-  › Initialising Batiste Protocol…           ✓
-  › Starting Marketplace Gateway…            ✓  http://localhost:59300
-  › Opening Audit Ledger…                    ✓  SQLite WAL mode active
+---
 
-  Phase 3  Zero-Trust Routing  (10 calls)
-  [ 1/10]  ast_analysis    Analyse src/auth/middleware.ts       38ms  ✓  → Code Analyzer
-  [ 2/10]  pdf_parse       Extract clauses from NDA.pdf         32ms  ✓  → Doc Intelligence
-  ...
+![Batiste Dashboard](./packages/web/screenshots/02-metrics.png)
 
-  Phase 7  Emergency Kill Switch
-  ✓  All 3 nodes offline in 0ms
-  ✓  Verification: 0 nodes online (expected: 0)
-
-  Demo Complete  —  Batiste is production-ready
-  10/10        routed API calls succeeded
-  $0.031       billed across 22 compute cycles
-  <1ms         kill switch revocation latency
-  0            external services required
-```
+</div>
 
 ---
 
 ## Why Batiste
 
-Every serious AI deployment eventually needs the same five things:
+Enterprise AI projects die in pilot for the same four reasons every time: no audit trail, no access control, no cost visibility, and no way to shut everything down instantly. Batiste is the **developer-experience layer** that removes all four blockers — a production-grade **cli-tool** and compute marketplace that gives your AI agents the same governance guarantees you'd expect from any other enterprise system.
 
-| Problem | Batiste answer |
-|---|---|
-| Which node should handle this call? | Marketplace routing — scored by latency, reliability, price |
-| How do I bill per-use? | PricingMeter — per-cycle ledger with session reports |
-| Who called what, and when? | AuditLedger — append-only SQLite WAL, tamper-evident |
-| How do I revoke access instantly? | KillSwitch — single call, zero lingering sessions |
-| How do I trust the code a node executes? | AST-level scope enforcement via TreeSitter |
+Every tool call is scoped at the AST level, verified by JWT, billed per compute cycle, and written to an append-only ledger. The kill switch revokes everything in under 1ms. Nothing leaves your network.
 
-None of these require a cloud account. Batiste runs entirely on-premise or in a private VPC.
+Think of it as the **automation** backbone for agentic workflows — the invisible sous-chef that orchestrates, audits, and routes without ever cluttering the workspace.
 
 ---
 
-## Packages
+## Quick Start
 
-| Package | Purpose | Key exports |
-|---|---|---|
-| [`@batiste/marketplace`](./packages/marketplace) | Node registry · routing · billing | `startMarketplace()`, `NodeRegistry`, `RoutingLayer`, `PricingMeter` |
-| [`@batiste/transport`](./packages/transport) | Secure HTTP gateway · session management · metrics | `startGateway()`, `PerformanceTracker` |
-| [`@batiste/connectors`](./packages/connectors) | PDF extraction · CSV/ETL | `PdfParser`, `CsvEtl`, MCP tools |
-| [`@batiste/code`](./packages/code) | AST analysis · TDD · AutoFix · LSP | 10 MCP tools |
-| [`@batiste/audit`](./packages/audit) | Append-only audit ledger · kill switch | `AuditLedger`, `KillSwitch`, `SessionMonitor` |
-| [`@batiste/auth`](./packages/auth) | JWT token issuance and verification | `TokenIssuer`, `TokenVerifier` |
-| [`@batiste/scope`](./packages/scope) | AST-level access policy enforcement | `AccessPolicyEngine`, `ScopedHandler` |
-| [`@batiste/aidk`](./packages/aidk) | Node factory — composes all layers | `createNode()` |
-| [`@batiste/cli`](./packages/cli) | `batiste` command-line interface | `batiste node start/publish/list`, `connect`, `status`, `audit tail` |
-| [`@batiste/core`](./packages/core) | Shared MCP primitives · orchestration | `createMcpServer()`, `AgentOrchestrator` |
+**Prerequisites:** Node.js ≥ 20, pnpm ≥ 9
+
+**Step 1 — Clone and install**
+
+```bash
+git clone https://github.com/jardhel/batiste.git
+cd batiste
+pnpm install
+```
+
+**Step 2 — Build all packages**
+
+```bash
+pnpm build
+```
+
+**Step 3 — Run the live demo**
+
+```bash
+npx tsx examples/investor-demo/run.ts
+```
+
+That's it. A marketplace starts, three AI nodes register, ten routed calls execute, a billing report generates, and the kill switch fires — all in-process, no cloud account needed.
+
+---
+
+## Demo
+
+> ![Batiste Hero](./packages/web/screenshots/01-hero.png)
+> *The Batiste dashboard — dark terminal aesthetic, live metrics, marketplace node grid.*
+
+> ![Batiste Audit Feed](./packages/web/screenshots/04-audit.png)
+> *Agent Activity feed with real-time audit trail and Emergency Kill Switch.*
 
 ---
 
 ## Architecture
 
+Batiste is a **monorepo** of composable packages. Every agent call passes through a strict three-layer zero-trust chain before reaching the handler:
+
 ```
   ┌─────────────────────────────────────────────────────┐
-  │                   Marketplace                        │
+  │              Marketplace Gateway                     │
   │  NodeRegistry ──► NodeDiscovery ──► RoutingLayer     │
   │       │                                    │         │
   │  PricingMeter ◄── BillingRecord ◄──────────┘         │
@@ -81,92 +85,104 @@ None of these require a cloud account. Batiste runs entirely on-premise or in a 
                            │  POST /route
                  ┌─────────▼──────────┐
                  │   SecureGateway    │  StreamableHTTP
-                 │  (PerformanceTracker)│  p50 / p95 / p99
+                 │  PerformanceTracker│  p50 / p95 / p99
                  └─────────┬──────────┘
                            │
               ┌────────────▼────────────┐
-              │     createNode()        │  @batiste/aidk
+              │     createNode()        │
               │  Scope → Auth → Audit   │  zero-trust chain
               └────────────┬────────────┘
                            │
-          ┌────────────────┼─────────────────┐
-          ▼                ▼                 ▼
+          ┌────────────────┼──────────────────┐
+          ▼                ▼                  ▼
    Code Analyzer    Doc Intelligence   Compliance Guard
-   AST · TDD        PDF · CSV · ETL    Audit · SOC2
-   AutoFix · LSP    Data lake          Kill switch
+   AST · TDD · LSP  PDF · CSV · ETL    Audit · Kill Switch
 ```
 
-Every tool call passes through three middleware layers in order:
-
-1. **Scope** — AST-level path enforcement. Deny-listed patterns never reach the handler.
-2. **Auth** — JWT verification. Expired or tampered tokens are rejected before execution.
-3. **Audit** — Append-only write to SQLite WAL. Every call, result, and timing recorded.
+| Layer | What it does |
+|---|---|
+| **Scope** | AST-level path enforcement via TreeSitter — deny-listed patterns never reach the handler |
+| **Auth** | JWT verification — expired or tampered tokens rejected before execution |
+| **Audit** | Append-only SQLite WAL write — every call, result, and timing recorded permanently |
 
 ---
 
-## Quickstart
+## Packages
 
-```bash
-# Prerequisites: Node 20+, pnpm 9+
-pnpm install
-pnpm build
-
-# Run the full investor demo (no external services needed)
-npx tsx examples/investor-demo/run.ts
-
-# Start a node
-batiste node start --preset network --port 4001 --label "My Node"
-
-# Register it in the marketplace
-batiste node publish \
-  --name "My Node" \
-  --endpoint http://localhost:4001 \
-  --capabilities ast_analysis,tdd \
-  --price 0.001
-
-# Route to the best node for a capability
-batiste connect --capability ast_analysis
-
-# Watch live metrics
-batiste status --watch
-```
+| Package | Description |
+|---|---|
+| [`@batiste/marketplace`](./packages/marketplace) | Node registry · capability routing · per-cycle billing |
+| [`@batiste/transport`](./packages/transport) | Secure StreamableHTTP gateway · session management · `PerformanceTracker` |
+| [`@batiste/connectors`](./packages/connectors) | **Proprietary connectors** — PDF extraction + RFC 4180 CSV/ETL as MCP tools |
+| [`@batiste/code`](./packages/code) | 10 MCP tools: AST analysis · TDD · AutoFix · LSP · codebase summarisation |
+| [`@batiste/audit`](./packages/audit) | Append-only audit ledger · KillSwitch · SessionMonitor |
+| [`@batiste/auth`](./packages/auth) | JWT token issuance and verification |
+| [`@batiste/scope`](./packages/scope) | AST-level access policy enforcement |
+| [`@batiste/aidk`](./packages/aidk) | `createNode()` factory — composes all zero-trust layers |
+| [`@batiste/cli`](./packages/cli) | `batiste` binary — full **cli-tool** for node and marketplace management |
+| [`@batiste/core`](./packages/core) | Shared MCP primitives · agent orchestration · prompt registry |
 
 ---
 
 ## CLI
 
+The `batiste` **cli-tool** covers the full **developer-experience** lifecycle:
+
+```bash
+# Start a node (local / network / enterprise preset)
+batiste node start --preset network --port 4001 --label "Code Analyzer"
+
+# Publish it to the marketplace
+batiste node publish \
+  --name "Code Analyzer" \
+  --endpoint http://localhost:4001 \
+  --capabilities ast_analysis,tdd,autofix \
+  --price 0.001
+
+# Route to the best available node for a capability
+batiste connect --capability ast_analysis
+
+# Live gateway health + p50/p95/p99 latency metrics
+batiste status --watch
+
+# Follow the audit ledger in real time
+batiste audit tail --follow
 ```
-batiste node start        Start a node (local / network / enterprise preset)
-batiste node publish      Register a node in the marketplace
-batiste node list         List marketplace nodes with latency table
-batiste connect           Route to the best node for a capability
-batiste status [--watch]  Show gateway health + p50/p95/p99 metrics
-batiste audit tail [-f]   Tail the audit ledger (follow mode)
-batiste config            View / update ~/.batiste/config.json
-```
+
+---
+
+## Key Features
+
+- **Zero-trust by default** — Scope, Auth, and Audit are the call path, not optional middleware
+- **On-premise** — zero cloud dependencies; runs fully air-gapped
+- **Proprietary connectors** — PDF extraction and CSV/ETL as native MCP tools; data never leaves your network
+- **AST-level scope** — TreeSitter-powered path enforcement; no regex, no bypass
+- **Kill switch** — revoke all agent access across all nodes in < 1ms
+- **Per-cycle billing** — every compute cycle tracked and reportable per session
+- **Live metrics** — rolling 1h p50/p95/p99 latency histogram exposed at `GET /metrics`
+- **446 tests** — Vitest, real SQLite `:memory:`, no mocks
 
 ---
 
 ## Moats
 
-**Zero-Trust Architecture** — Scope, Auth, and Audit are not optional add-ons. They are the call path. An agent that bypasses the middleware chain cannot exist.
+**Zero-Trust Architecture** — security is structural, not configurable. An agent that bypasses the middleware chain cannot exist in the protocol.
 
-**Proprietary Connectors** — PDF extraction and CSV/ETL are built-in MCP tools, not wrappers around third-party SaaS. The data never leaves the network.
+**Proprietary Connectors** — PDF and CSV/ETL run inside your network. The data never touches a third-party API.
 
-**AST-Level Scope** — Access policies are enforced at the Abstract Syntax Tree level via TreeSitter. No regex. No path traversal bypass. Every access is bounded.
+**AST-Level Scope** — access policies enforced at the Abstract Syntax Tree level. No path traversal bypass. Every access is bounded.
 
-**Verified Creator Pool** — Nodes declare capabilities. The marketplace scores reliability using a rolling exponential moving average. Unreliable nodes are deprioritised automatically.
+**Verified Creator Pool** — node reliability scored via rolling EMA. Underperforming nodes are deprioritised automatically.
 
 ---
 
 ## Technology
 
-- **Runtime**: Node.js 20+ · TypeScript 5 · ESM (NodeNext)
-- **Monorepo**: pnpm workspaces · Turborepo
-- **Protocol**: Model Context Protocol (MCP) — StreamableHTTP transport
-- **Storage**: SQLite WAL mode throughout (audit, billing, registry, tasks)
-- **Testing**: Vitest — 150+ tests across all packages
-- **Zero cloud deps**: every package runs fully offline
+- **Runtime** — Node.js 20+ · TypeScript 5 · ESM (NodeNext)
+- **Monorepo** — pnpm workspaces · Turborepo
+- **Protocol** — Model Context Protocol (MCP) · StreamableHTTP transport
+- **Storage** — SQLite WAL mode (audit, billing, registry, tasks)
+- **Testing** — Vitest · 446 tests · no mocks
 
 ---
 
@@ -174,10 +190,16 @@ batiste config            View / update ~/.batiste/config.json
 
 | Quarter | Milestone |
 |---|---|
-| Q1 2026 *(now)* | Seed + Alpha — marketplace core, CLI, investor demo |
+| Q1 2026 *(now)* | Seed + Alpha — marketplace core, CLI, public beta |
 | Q2 2026 | Public Mainnet V1 — open node registry, creator dashboard |
 | Q3 2026 | Enterprise Auth — SSO, SAML, multi-tenant scoping |
 | Q4 2026 | Global Scale — geo-routing, SLA tiers, compliance exports |
+
+---
+
+## Contributing
+
+We welcome contributions of all kinds. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to get started, open issues, and submit pull requests.
 
 ---
 
