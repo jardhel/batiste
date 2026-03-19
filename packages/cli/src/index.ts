@@ -83,7 +83,7 @@ program
   ${green('The invisible sous-chef that runs your AI stack.')}
 
   Eindhoven, Netherlands
-  ${green('batiste.network')} — investors@batiste.network
+  ${green('batiste.network')} — jardhel@cachola.tech
 
 `);
   });

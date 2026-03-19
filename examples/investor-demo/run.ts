@@ -386,7 +386,7 @@ async function main() {
     println(`  ${(val as string).padEnd(20)}  ${GR(desc as string)}`);
   }
   println();
-  println(`  ${GR('Eindhoven, Netherlands  ·  investors@batiste.network  ·  batiste.network')}`);
+  println(`  ${GR('Eindhoven, Netherlands  ·  jardhel@cachola.tech  ·  batiste.network')}`);
   println();
 
   await marketplace.close();

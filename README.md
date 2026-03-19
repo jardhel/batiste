@@ -184,6 +184,6 @@ batiste config            View / update ~/.batiste/config.json
 ## Company
 
 **Batiste** — Eindhoven, Netherlands
-investors@batiste.network · [batiste.network](https://batiste.network)
+jardhel@cachola.tech · [batiste.network](https://batiste.network)
 
 > *"The best infrastructure is the kind you forget is there — until you need it."*
