@@ -17,6 +17,7 @@ import { Gatekeeper } from '../validation/Gatekeeper.js';
 import { HypothesisEngine } from '../tdd/HypothesisEngine.js';
 import { SymbolResolver } from '../lsp/symbol-resolver.js';
 import { GitAwareIndexer } from '../indexer/git-aware-indexer.js';
+import { FileIndex } from '../indexer/file-index.js';
 import { loadConfig } from '../utils/config.js';
 import { AutoFixer } from '../autofix/AutoFixer.js';
 
@@ -328,6 +329,28 @@ export class ToolHandler {
 
     const plan = await indexer.planIncrementalIndex(includeUncommitted);
 
+    // Execute the plan: update file index entries
+    for (const file of plan.filesToIndex) {
+      indexer.updateFileIndex(file.relativePath, {
+        hash: file.hash,
+        mtime: file.modifiedAt.getTime(),
+        indexedAt: Date.now(),
+        chunkCount: 1,
+      });
+    }
+
+    // Remove deleted files from index
+    for (const removedPath of plan.filesToRemove) {
+      indexer.removeFromFileIndex(removedPath);
+    }
+
+    // Persist the file index and record success
+    await indexer.saveFileIndex();
+    await indexer.recordIndexSuccess(
+      plan.stats.totalFilesInRepo,
+      includeUncommitted
+    );
+
     return {
       mode,
       isFullReindex: plan.isFullReindex,
@@ -351,18 +374,52 @@ export class ToolHandler {
     const adapter = new TreeSitterAdapter();
     const scout = new RecursiveScout(adapter, { maxDepth: 10 });
 
-    const entryPatterns = ['index.ts', 'index.js', 'main.ts', 'main.js', 'app.ts', 'app.js'];
-    const fg = (await import('fast-glob')).default;
-    const entryPoints = await fg(entryPatterns.map(p => join(scopePath, '**', p)), {
-      ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
-    });
-    const limitedEntryPoints = entryPoints.slice(0, 5);
+    // Try loading indexed files first, fall back to glob discovery
+    const fileIndex = new FileIndex(this.dataDir, this.projectRoot);
+    await fileIndex.load();
 
-    if (limitedEntryPoints.length === 0) {
-      const fallbackFiles = await fg([join(scopePath, 'src/**/*.ts'), join(scopePath, '*.ts')], {
-        ignore: ['**/*.test.ts', '**/*.spec.ts', '**/node_modules/**'],
+    let limitedEntryPoints: string[] = [];
+
+    if (fileIndex.size > 0) {
+      // Use indexed files — filter to scope and pick entry points
+      const indexedFiles = fileIndex.getAllFiles()
+        .map(f => join(this.projectRoot, f.relativePath))
+        .filter(p => p.startsWith(scopePath));
+
+      // Look for common entry point names across all languages
+      const entryNames = ['main', 'app', 'index', '__init__', 'mod', 'lib'];
+      const entryFiles = indexedFiles.filter(p => {
+        const base = p.replace(/\.[^.]+$/, '').split('/').pop() ?? '';
+        return entryNames.includes(base);
       });
-      limitedEntryPoints.push(...fallbackFiles.slice(0, 3));
+
+      limitedEntryPoints = (entryFiles.length > 0 ? entryFiles : indexedFiles).slice(0, 5);
+    } else {
+      // Fallback: glob discovery with multi-language entry patterns
+      const entryPatterns = [
+        'index.ts', 'index.js', 'main.ts', 'main.js', 'app.ts', 'app.js',
+        'main.py', 'app.py', '__init__.py',
+        'main.go', 'main.rs', 'lib.rs',
+      ];
+      const fg = (await import('fast-glob')).default;
+      const entryPoints = await fg(entryPatterns.map(p => join(scopePath, '**', p)), {
+        ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/.venv/**', '**/venv/**'],
+      });
+      limitedEntryPoints = entryPoints.slice(0, 5);
+
+      if (limitedEntryPoints.length === 0) {
+        // Broader fallback: any source file
+        const fallbackFiles = await fg([
+          join(scopePath, 'src/**/*.{ts,js,py,rs,go}'),
+          join(scopePath, '**/*.{ts,js,py,rs,go}'),
+        ], {
+          ignore: [
+            '**/*.test.*', '**/*.spec.*', '**/test_*',
+            '**/node_modules/**', '**/.venv/**', '**/venv/**',
+          ],
+        });
+        limitedEntryPoints.push(...fallbackFiles.slice(0, 5));
+      }
     }
 
     const summary: Record<string, unknown> = { scope: scope || '/', depth, focus };

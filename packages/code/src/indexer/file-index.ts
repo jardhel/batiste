@@ -150,6 +150,10 @@ export class FileIndex {
     return this.files.get(relativePath);
   }
 
+  getAllFiles(): IndexedFileInfo[] {
+    return Array.from(this.files.values());
+  }
+
   get size(): number {
     return this.files.size;
   }
