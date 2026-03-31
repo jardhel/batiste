@@ -6,7 +6,7 @@ import { AuditLedger } from '../ledger.js';
 import { KillSwitch } from '../kill-switch.js';
 import { SessionMonitor } from '../session-monitor.js';
 import { AuditedToolHandler } from '../middleware.js';
-import type { ToolHandler } from '@batiste/core/mcp';
+import type { ToolHandler } from '@batiste-aidk/core/mcp';
 
 const mockHandler: ToolHandler = {
   async handleTool(name: string, args: Record<string, unknown>) {

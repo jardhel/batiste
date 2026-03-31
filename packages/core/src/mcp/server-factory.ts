@@ -9,7 +9,7 @@
  *
  * Usage:
  *   const server = createMcpServer({
- *     name: '@batiste/code',
+ *     name: '@batiste-aidk/code',
  *     version: '1.0.0',
  *     tools: MY_TOOLS,
  *     handler: myHandler,

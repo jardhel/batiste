@@ -1,5 +1,5 @@
 /**
- * MCP Tool Handler for @batiste/connectors
+ * MCP Tool Handler for @batiste-aidk/connectors
  */
 
 import { join } from 'path';

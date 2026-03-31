@@ -6,7 +6,13 @@
  * - Automatic scaling and load balancing
  * - Health monitoring and recovery
  *
- * Based on McKinsey ARK patterns.
+ * Worker paradigm improvements:
+ * - Event-driven dispatch: agent idle → immediately pull next queued task
+ * - Priority queue: critical > high > normal > low
+ * - Proper result correlation via correlationId
+ * - Per-task retry with exponential backoff
+ * - Dead letter queue for exhausted tasks
+ * - Graceful drain: waits for in-flight tasks before shutdown
  */
 
 import { randomUUID } from 'crypto';
@@ -21,15 +27,42 @@ import type {
   TaskAssignment,
   AgentMessage,
   AgentIdentity,
+  MessagePriority,
 } from './types.js';
+
+// ============================================================================
+// Internal types
+// ============================================================================
+
+const PRIORITY_ORDER: Record<MessagePriority, number> = {
+  critical: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+};
+
+interface QueuedTask {
+  assignment: TaskAssignment;
+  retries: number;
+  enqueuedAt: number;
+}
+
+export interface DLQEntry {
+  assignment: TaskAssignment;
+  error: string;
+  attempts: number;
+  failedAt: number;
+}
 
 export interface PoolMetrics {
   totalAgents: number;
   availableAgents: number;
   busyAgents: number;
   queuedTasks: number;
+  inFlightTasks: number;
   completedTasks: number;
   failedTasks: number;
+  deadLetterCount: number;
   averageTaskTimeMs: number;
 }
 
@@ -37,14 +70,21 @@ export interface LoadBalancingStrategy {
   type: 'round-robin' | 'least-busy' | 'capability-match' | 'random';
 }
 
+// ============================================================================
+// AgentPool
+// ============================================================================
+
 export class AgentPool extends EventEmitter {
   private agents: Map<string, Agent> = new Map();
-  private taskQueue: TaskAssignment[] = [];
+  private taskQueue: QueuedTask[] = [];
+  private inFlight: Map<string, { agentId: string; startTime: number }> = new Map();
   private taskHistory: Map<string, { success: boolean; timeMs: number }> = new Map();
+  private deadLetterQueue: DLQEntry[] = [];
   private spec: AgentPoolSpec;
   private readonly poolId: string;
   private loadBalancingStrategy: LoadBalancingStrategy = { type: 'capability-match' };
   private isRunning = false;
+  private draining = false;
 
   constructor(spec: AgentPoolSpec) {
     super();
@@ -53,35 +93,70 @@ export class AgentPool extends EventEmitter {
   }
 
   // ============================================================================
+  // Structured Logging
+  // ============================================================================
+
+  private log(
+    level: 'info' | 'warn' | 'error',
+    event: string,
+    data: Record<string, unknown> = {}
+  ): void {
+    const entry = {
+      ts: new Date().toISOString(),
+      level,
+      pool: this.spec.role,
+      poolId: this.poolId.slice(0, 8),
+      event,
+      ...data,
+    };
+    process.stderr.write(JSON.stringify(entry) + '\n');
+  }
+
+  // ============================================================================
   // Lifecycle Management
   // ============================================================================
 
   async start(): Promise<void> {
     if (this.isRunning) return;
-
     this.isRunning = true;
 
-    // Spawn initial replicas
     for (let i = 0; i < this.spec.replicas; i++) {
       await this.spawnAgent();
     }
 
-    // Start task processing loop
-    this.processTaskQueue();
-
+    this.log('info', 'pool.started', { replicas: this.spec.replicas });
     this.emit('started', { poolId: this.poolId, replicas: this.spec.replicas });
   }
 
-  async stop(): Promise<void> {
-    this.isRunning = false;
+  /**
+   * Drain in-flight tasks then shut down all agents.
+   * @param timeoutMs Max time to wait for in-flight tasks (default 30s).
+   */
+  async stop(timeoutMs = 30_000): Promise<void> {
+    this.draining = true;
 
-    // Gracefully terminate all agents
+    this.log('info', 'pool.draining', { inFlight: this.inFlight.size, queued: this.taskQueue.length });
+
+    // Wait for all in-flight tasks to finish, up to timeoutMs
+    const deadline = Date.now() + timeoutMs;
+    while (this.inFlight.size > 0 && Date.now() < deadline) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    }
+
+    if (this.inFlight.size > 0) {
+      this.log('warn', 'pool.drain_timeout', { remaining: this.inFlight.size });
+    }
+
+    this.isRunning = false;
+    this.draining = false;
+
     const terminationPromises = Array.from(this.agents.values()).map((agent) =>
       agent.stop()
     );
     await Promise.all(terminationPromises);
 
     this.agents.clear();
+    this.log('info', 'pool.stopped');
     this.emit('stopped', { poolId: this.poolId });
   }
 
@@ -95,16 +170,21 @@ export class AgentPool extends EventEmitter {
 
     this.agents.set(agent.id, agent);
 
-    // Set up event handlers
-    agent.on('stateChange', (event) => {
+    agent.on('stateChange', (event: { agentId: string; from: string; to: string }) => {
       this.emit('agentStateChange', { poolId: this.poolId, ...event });
       this.checkAutoscaling();
+
+      // Event-driven dispatch: agent became idle → pull next task immediately
+      if (event.to === 'idle') {
+        this.dispatchNext();
+      }
     });
 
     agent.on('messageSent', (message: AgentMessage) => {
       this.routeMessage(message);
     });
 
+    this.log('info', 'agent.spawned', { agentId: agent.id.slice(0, 8), role: this.spec.role });
     this.emit('agentSpawned', { poolId: this.poolId, agentId: agent.id });
     return agent;
   }
@@ -141,34 +221,81 @@ export class AgentPool extends EventEmitter {
   }
 
   // ============================================================================
-  // Task Distribution
+  // Task Submission & Dispatch
   // ============================================================================
 
   async submitTask(assignment: TaskAssignment): Promise<string> {
-    this.taskQueue.push(assignment);
+    if (this.draining) {
+      throw new Error('Pool is draining — not accepting new tasks');
+    }
+
+    this.enqueue({ assignment, retries: 0, enqueuedAt: Date.now() });
+    this.log('info', 'task.queued', {
+      taskId: assignment.taskId,
+      priority: assignment.priority ?? 'normal',
+      queueDepth: this.taskQueue.length,
+    });
     this.emit('taskQueued', { poolId: this.poolId, taskId: assignment.taskId });
 
-    // Trigger immediate processing
-    setImmediate(() => this.processTaskQueue());
+    // Try to dispatch immediately
+    this.dispatchNext();
 
     return assignment.taskId;
   }
 
-  private async processTaskQueue(): Promise<void> {
-    if (!this.isRunning) return;
+  /**
+   * Core dispatch: pick the highest-priority queued task and assign it to an
+   * available agent. Called on every submit and every time an agent goes idle.
+   */
+  private dispatchNext(): void {
+    if (!this.isRunning || this.taskQueue.length === 0) return;
 
-    while (this.taskQueue.length > 0) {
-      const task = this.taskQueue[0]!;
-      const agent = this.selectAgent(task);
+    const task = this.dequeue();
+    if (!task) return;
 
-      if (!agent) {
-        await this.waitForAvailableAgent();
-        continue;
-      }
-
-      this.taskQueue.shift();
-      await this.assignTaskToAgent(agent, task);
+    const agent = this.selectAgent(task.assignment);
+    if (!agent) {
+      // No agent available right now — put back and wait for next idle event
+      this.taskQueue.unshift(task);
+      return;
     }
+
+    this.inFlight.set(task.assignment.taskId, {
+      agentId: agent.id,
+      startTime: Date.now(),
+    });
+
+    this.log('info', 'task.dispatched', {
+      taskId: task.assignment.taskId,
+      agentId: agent.id.slice(0, 8),
+      priority: task.assignment.priority ?? 'normal',
+      attempt: task.retries + 1,
+    });
+
+    this.assignTaskToAgent(agent, task).catch((err) => {
+      this.inFlight.delete(task.assignment.taskId);
+      this.log('error', 'task.dispatch_error', { taskId: task.assignment.taskId, error: String(err) });
+      this.emit('dispatchError', { poolId: this.poolId, taskId: task.assignment.taskId, error: err });
+    });
+  }
+
+  private enqueue(task: QueuedTask): void {
+    this.taskQueue.push(task);
+    this.sortQueue();
+  }
+
+  private dequeue(): QueuedTask | undefined {
+    return this.taskQueue.shift();
+  }
+
+  /** Sort by priority (critical first), then FIFO within the same priority. */
+  private sortQueue(): void {
+    this.taskQueue.sort((a, b) => {
+      const pa = PRIORITY_ORDER[a.assignment.priority ?? 'normal'];
+      const pb = PRIORITY_ORDER[b.assignment.priority ?? 'normal'];
+      if (pa !== pb) return pa - pb;
+      return a.enqueuedAt - b.enqueuedAt;
+    });
   }
 
   private selectAgent(task: TaskAssignment): Agent | null {
@@ -190,10 +317,7 @@ export class AgentPool extends EventEmitter {
           const caps = agent.getIdentity().capabilities;
           const required = task.requiredCapabilities;
           if (!required) return true;
-
-          return (
-            required.languages?.every((l) => caps.languages?.includes(l)) ?? true
-          );
+          return required.languages?.every((l) => caps.languages?.includes(l)) ?? true;
         });
         return exactMatch ?? availableAgents[0] ?? null;
       }
@@ -204,52 +328,87 @@ export class AgentPool extends EventEmitter {
     }
   }
 
-  private async assignTaskToAgent(agent: Agent, task: TaskAssignment): Promise<void> {
-    const message: AgentMessage = {
-      id: randomUUID(),
-      type: 'task_assignment',
-      priority: 'normal',
-      senderId: this.poolId,
-      recipientId: agent.id,
-      timestamp: new Date().toISOString(),
-      payload: task as unknown as Record<string, unknown>,
-    };
-
+  private async assignTaskToAgent(agent: Agent, queued: QueuedTask): Promise<void> {
+    const { assignment, retries } = queued;
+    const messageId = randomUUID();
     const startTime = Date.now();
 
-    agent.once('messageSent', (resultMessage: AgentMessage) => {
-      if (resultMessage.type === 'task_result') {
-        const timeMs = Date.now() - startTime;
-        const result = resultMessage.payload as { success: boolean };
+    // Listen for the result that correlates with this specific message
+    const handler = (resultMessage: AgentMessage) => {
+      if (resultMessage.correlationId !== messageId) return;
+      agent.off('messageSent', handler);
 
-        this.taskHistory.set(task.taskId, { success: result.success, timeMs });
+      const timeMs = Date.now() - startTime;
+      this.inFlight.delete(assignment.taskId);
 
+      const result = resultMessage.payload as { success: boolean; error?: string };
+
+      if (!result.success) {
+        const maxRetries = assignment.retryPolicy?.maxRetries ?? 0;
+        if (retries < maxRetries) {
+          const backoff = (assignment.retryPolicy?.backoffMs ?? 1000) * (retries + 1);
+          this.log('warn', 'task.retrying', {
+            taskId: assignment.taskId,
+            attempt: retries + 1,
+            maxRetries,
+            backoffMs: backoff,
+            error: result.error,
+          });
+          this.emit('taskRetrying', {
+            poolId: this.poolId,
+            taskId: assignment.taskId,
+            attempt: retries + 1,
+            backoffMs: backoff,
+          });
+          setTimeout(() => {
+            this.enqueue({ assignment, retries: retries + 1, enqueuedAt: Date.now() });
+            this.dispatchNext();
+          }, backoff);
+        } else {
+          this.log('error', 'task.dead_letter', {
+            taskId: assignment.taskId,
+            attempts: retries + 1,
+            error: result.error,
+          });
+          this.deadLetterQueue.push({
+            assignment,
+            error: result.error ?? 'Unknown error',
+            attempts: retries + 1,
+            failedAt: Date.now(),
+          });
+          this.taskHistory.set(assignment.taskId, { success: false, timeMs });
+          this.emit('taskFailed', {
+            poolId: this.poolId,
+            taskId: assignment.taskId,
+            error: result.error,
+            attempts: retries + 1,
+          });
+        }
+      } else {
+        this.log('info', 'task.completed', { taskId: assignment.taskId, timeMs });
+        this.taskHistory.set(assignment.taskId, { success: true, timeMs });
         this.emit('taskCompleted', {
           poolId: this.poolId,
-          taskId: task.taskId,
-          success: result.success,
+          taskId: assignment.taskId,
+          success: true,
           timeMs,
         });
       }
-    });
+    };
+
+    agent.on('messageSent', handler);
+
+    const message: AgentMessage = {
+      id: messageId,
+      type: 'task_assignment',
+      priority: assignment.priority ?? 'normal',
+      senderId: this.poolId,
+      recipientId: agent.id,
+      timestamp: new Date().toISOString(),
+      payload: assignment as unknown as Record<string, unknown>,
+    };
 
     await agent.receiveMessage(message);
-  }
-
-  private async waitForAvailableAgent(): Promise<void> {
-    return new Promise((resolve) => {
-      const checkAvailability = () => {
-        const hasAvailable = Array.from(this.agents.values()).some((a) =>
-          a.isAvailable()
-        );
-        if (hasAvailable) {
-          resolve();
-        } else {
-          setTimeout(checkAvailability, 100);
-        }
-      };
-      checkAvailability();
-    });
   }
 
   // ============================================================================
@@ -276,8 +435,7 @@ export class AgentPool extends EventEmitter {
     if (!this.spec.autoscaling?.enabled) return;
 
     const metrics = this.getMetrics();
-    const utilization =
-      metrics.busyAgents / Math.max(metrics.totalAgents, 1) * 100;
+    const utilization = metrics.busyAgents / Math.max(metrics.totalAgents, 1) * 100;
 
     if (
       utilization > this.spec.autoscaling.targetUtilization &&
@@ -290,9 +448,7 @@ export class AgentPool extends EventEmitter {
       utilization < this.spec.autoscaling.targetUtilization / 2 &&
       metrics.totalAgents > this.spec.autoscaling.minReplicas
     ) {
-      const idleAgent = Array.from(this.agents.values()).find((a) =>
-        a.isAvailable()
-      );
+      const idleAgent = Array.from(this.agents.values()).find((a) => a.isAvailable());
       if (idleAgent) {
         this.terminateAgent(idleAgent.id).then(() => {
           this.emit('scaledDown', { poolId: this.poolId, newSize: this.agents.size });
@@ -320,14 +476,20 @@ export class AgentPool extends EventEmitter {
       availableAgents: agents.filter((a) => a.isAvailable()).length,
       busyAgents: agents.filter((a) => a.state === 'busy').length,
       queuedTasks: this.taskQueue.length,
-      completedTasks: history.filter((t) => t.success).length,
+      inFlightTasks: this.inFlight.size,
+      completedTasks: successfulTasks.length,
       failedTasks: history.filter((t) => !t.success).length,
+      deadLetterCount: this.deadLetterQueue.length,
       averageTaskTimeMs: avgTime,
     };
   }
 
   getAgents(): AgentIdentity[] {
     return Array.from(this.agents.values()).map((a) => a.getIdentity());
+  }
+
+  getDeadLetterQueue(): DLQEntry[] {
+    return [...this.deadLetterQueue];
   }
 
   getSpec(): AgentPoolSpec {

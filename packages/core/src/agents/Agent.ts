@@ -141,9 +141,9 @@ export abstract class Agent extends EventEmitter {
 
     try {
       const result = await this.executeTask(assignment);
-      await this.sendResult(message.senderId, result);
+      await this.sendResult(message.senderId, result, message.id);
     } catch (error) {
-      await this.sendError(message.senderId, assignment.taskId, error);
+      await this.sendError(message.senderId, assignment.taskId, error, message.id);
     } finally {
       this.currentTask = null;
       this.setState('idle');
@@ -190,17 +190,17 @@ export abstract class Agent extends EventEmitter {
     return message;
   }
 
-  protected async sendResult(recipientId: string, result: TaskResult): Promise<void> {
-    await this.sendMessage(recipientId, 'task_result', result as unknown as Record<string, unknown>);
+  protected async sendResult(recipientId: string, result: TaskResult, correlationId?: string): Promise<void> {
+    await this.sendMessage(recipientId, 'task_result', result as unknown as Record<string, unknown>, correlationId);
   }
 
-  protected async sendError(recipientId: string, taskId: string, error: unknown): Promise<void> {
+  protected async sendError(recipientId: string, taskId: string, error: unknown, correlationId?: string): Promise<void> {
     await this.sendMessage(recipientId, 'task_result', {
       taskId,
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
       executionTimeMs: 0,
-    });
+    }, correlationId);
   }
 
   // ============================================================================

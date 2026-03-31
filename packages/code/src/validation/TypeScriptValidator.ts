@@ -6,7 +6,7 @@
 
 import { readFile, writeFile, unlink } from 'fs/promises';
 import { join, dirname } from 'path';
-import { ProcessSandbox } from '@batiste/core/sandbox';
+import { ProcessSandbox } from '@batiste-aidk/core/sandbox';
 import type { IValidator, ValidationResult, ValidationOptions } from './types.js';
 import { logger } from '../utils/logger.js';
 

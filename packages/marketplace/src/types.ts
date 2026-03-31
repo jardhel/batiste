@@ -1,5 +1,5 @@
 /**
- * @batiste/marketplace — shared types
+ * @batiste-aidk/marketplace — shared types
  *
  * Node registry, routing, and pricing domain model.
  */

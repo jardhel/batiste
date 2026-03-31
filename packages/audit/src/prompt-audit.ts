@@ -6,7 +6,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { PromptHandler, PromptDefinition, PromptMessageContent } from '@batiste/core/mcp';
+import type { PromptHandler, PromptDefinition, PromptMessageContent } from '@batiste-aidk/core/mcp';
 import { AuditLedger } from './ledger.js';
 
 export interface PromptAuditConfig {

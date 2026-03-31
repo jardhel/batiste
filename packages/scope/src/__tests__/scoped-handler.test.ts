@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ScopedHandler, ScopeError } from '../scoped-handler.js';
-import type { ToolHandler } from '@batiste/core/mcp';
+import type { ToolHandler } from '@batiste-aidk/core/mcp';
 import type { AccessPolicy } from '../types.js';
 
 const mockHandler: ToolHandler = {

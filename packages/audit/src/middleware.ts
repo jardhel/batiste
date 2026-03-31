@@ -5,7 +5,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { ToolHandler } from '@batiste/core/mcp';
+import type { ToolHandler } from '@batiste-aidk/core/mcp';
 import { AuditLedger } from './ledger.js';
 import { KillSwitch } from './kill-switch.js';
 import { SessionMonitor } from './session-monitor.js';

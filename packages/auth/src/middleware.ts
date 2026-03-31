@@ -6,7 +6,7 @@
  * request context, and checks the scope before delegating.
  */
 
-import type { ToolHandler } from '@batiste/core/mcp';
+import type { ToolHandler } from '@batiste-aidk/core/mcp';
 import { TokenVerifier } from './token-verifier.js';
 import { KeyStore } from './key-store.js';
 import { checkScope } from './scope.js';

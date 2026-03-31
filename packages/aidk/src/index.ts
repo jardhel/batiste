@@ -1,5 +1,5 @@
 /**
- * @batiste/aidk — The AI Development Kit
+ * @batiste-aidk/aidk — The AI Development Kit
  *
  * One package that composes all Batiste building blocks:
  * - Transport (StreamableHTTP gateway)
@@ -8,7 +8,7 @@
  * - Audit (logging, kill switch, compliance)
  *
  * Usage:
- *   import { createNode } from '@batiste/aidk';
+ *   import { createNode } from '@batiste-aidk/aidk';
  *   const node = await createNode({ config: { preset: 'network' }, tools, handler });
  */
 

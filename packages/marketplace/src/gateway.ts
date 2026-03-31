@@ -1,7 +1,7 @@
 /**
  * Marketplace Gateway
  *
- * Native Node.js HTTP server — zero framework deps (same pattern as @batiste/transport).
+ * Native Node.js HTTP server — zero framework deps (same pattern as @batiste-aidk/transport).
  *
  * Routes:
  *   POST   /nodes/register          Register a new node

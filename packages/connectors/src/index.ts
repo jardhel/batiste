@@ -1,10 +1,10 @@
 /**
- * @batiste/connectors
+ * @batiste-aidk/connectors
  *
  * Proprietary connectors for Batiste nodes.
  * Built-in parsers for PDFs and CSV data lakes.
  *
- * @dogfood Built using @batiste/code analysis and validation tooling.
+ * @dogfood Built using @batiste-aidk/code analysis and validation tooling.
  */
 
 export { PdfParser } from './pdf/PdfParser.js';

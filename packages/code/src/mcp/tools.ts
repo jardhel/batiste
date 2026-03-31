@@ -1,11 +1,11 @@
 /**
- * MCP Tool Definitions for @batiste/code
+ * MCP Tool Definitions for @batiste-aidk/code
  *
  * Defines all available tools and their input schemas.
  */
 
 import { z } from 'zod';
-import type { ToolDefinition } from '@batiste/core/mcp';
+import type { ToolDefinition } from '@batiste-aidk/core/mcp';
 
 export const AnalyzeDependencyInput = z.object({
   entryPoints: z.array(z.string()).describe('File paths to analyze'),

@@ -35,7 +35,7 @@ async function main() {
       auth: { secretKey: SECRET },
       scope: { defaultPolicy: 'read-only' },
       audit: { killSwitchEnabled: true },
-      label: '@batiste/example',
+      label: '@batiste-aidk/example',
     },
     tools,
     handler,

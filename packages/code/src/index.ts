@@ -1,5 +1,5 @@
 /**
- * @batiste/code
+ * @batiste-aidk/code
  *
  * AI-powered code assistant MCP server.
  * The coding sous-chef - validates, fixes, and organizes your code.

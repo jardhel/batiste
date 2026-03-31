@@ -7,12 +7,12 @@
  */
 
 import { join } from 'node:path';
-import type { ToolHandler, PromptDefinition, PromptMessageContent, ToolDefinition } from '@batiste/core/mcp';
-import { createMcpServer, PromptRegistryImpl, PROMPT_TOOLS, handlePromptTool } from '@batiste/core/mcp';
-import { startTransport, type TransportHandle } from '@batiste/transport';
-import { TokenIssuer, TokenVerifier, createAuthMiddleware } from '@batiste/auth';
-import { AccessPolicyEngine, ScopedHandler } from '@batiste/scope';
-import { AuditLedger, KillSwitch, SessionMonitor, AuditedToolHandler } from '@batiste/audit';
+import type { ToolHandler, PromptDefinition, PromptMessageContent, ToolDefinition } from '@batiste-aidk/core/mcp';
+import { createMcpServer, PromptRegistryImpl, PROMPT_TOOLS, handlePromptTool } from '@batiste-aidk/core/mcp';
+import { startTransport, type TransportHandle, type SessionContext } from '@batiste-aidk/transport';
+import { TokenIssuer, TokenVerifier, createAuthMiddleware } from '@batiste-aidk/auth';
+import { AccessPolicyEngine, ScopedHandler } from '@batiste-aidk/scope';
+import { AuditLedger, KillSwitch, SessionMonitor, AuditedToolHandler } from '@batiste-aidk/audit';
 import { NodeConfigSchema, type NodeConfig } from './types.js';
 import { resolvePreset } from './presets.js';
 
@@ -125,7 +125,7 @@ export async function createNode(options: CreateNodeOptions): Promise<BatistNode
     }
   }
 
-  // Layer 2: Auth (wraps handler)
+  // Auth setup (shared issuer/verifier, per-session middleware)
   if (resolved.authEnabled && config.auth) {
     tokenIssuer = new TokenIssuer({
       secretKey: config.auth.secretKey,
@@ -133,13 +133,9 @@ export async function createNode(options: CreateNodeOptions): Promise<BatistNode
       projectId: config.label ?? 'batiste-node',
     });
     tokenVerifier = new TokenVerifier(config.auth.secretKey);
-
-    handler = createAuthMiddleware(handler, {
-      secretKey: config.auth.secretKey,
-    });
   }
 
-  // Layer 3: Audit (wraps handler)
+  // Audit setup (shared ledger/killSwitch, per-session handler)
   if (resolved.auditEnabled) {
     const dbPath = config.audit?.dbPath ?? join(process.cwd(), '.batiste', 'audit.db');
     auditLedger = new AuditLedger(dbPath);
@@ -148,26 +144,45 @@ export async function createNode(options: CreateNodeOptions): Promise<BatistNode
     if (resolved.killSwitchEnabled) {
       killSwitch = new KillSwitch();
     }
-
-    handler = new AuditedToolHandler(handler, {
-      ledger: auditLedger,
-      killSwitch,
-      monitor: sessionMonitor,
-      sessionId: 'node-default',
-      agentId: 'local',
-    });
   }
 
-  const finalHandler = handler;
+  // The base handler has prompts + scope applied (shared, stateless).
+  // Auth and audit are applied per-session so each session gets its own
+  // auth token and audit context — no race conditions between sessions.
+  const baseHandler = handler;
 
   // Create MCP server factory (for gateway: one per session)
-  const createServer = () => createMcpServer({
-    name: config.label ?? '@batiste/aidk',
-    version: '0.1.0',
-    tools,
-    handler: finalHandler,
-    promptRegistry,
-  });
+  const createServer = (ctx?: SessionContext) => {
+    let sessionHandler = baseHandler;
+
+    // Layer 2: Auth (per-session — each session gets its own token)
+    if (resolved.authEnabled && config.auth) {
+      const authMiddleware = createAuthMiddleware(sessionHandler, {
+        secretKey: config.auth.secretKey,
+      });
+      authMiddleware.authToken = ctx?.authToken;
+      sessionHandler = authMiddleware;
+    }
+
+    // Layer 3: Audit (per-session — proper session/agent IDs)
+    if (resolved.auditEnabled && auditLedger) {
+      sessionHandler = new AuditedToolHandler(sessionHandler, {
+        ledger: auditLedger,
+        killSwitch,
+        monitor: sessionMonitor,
+        sessionId: ctx?.sessionId ?? 'stdio',
+        agentId: ctx?.clientIp ?? 'local',
+      });
+    }
+
+    return createMcpServer({
+      name: config.label ?? '@batiste-aidk/aidk',
+      version: '0.1.0',
+      tools,
+      handler: sessionHandler,
+      promptRegistry,
+    });
+  };
 
   // Start transport
   const transport = await startTransport(

@@ -9,7 +9,7 @@
 
 import { writeFile, mkdir } from 'fs/promises';
 import { dirname } from 'path';
-import { ProcessSandbox } from '@batiste/core/sandbox';
+import { ProcessSandbox } from '@batiste-aidk/core/sandbox';
 import { Gatekeeper } from '../validation/Gatekeeper.js';
 import type { Hypothesis, HypothesisResult, TDDOptions } from './types.js';
 import { logger } from '../utils/logger.js';

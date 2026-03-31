@@ -1,5 +1,5 @@
 {
-  "name": "@batiste/investor-demo",
+  "name": "@batiste-aidk/investor-demo",
   "version": "0.1.0",
   "description": "End-to-end investor demo — marketplace, routing, billing, audit, kill switch",
   "type": "module",

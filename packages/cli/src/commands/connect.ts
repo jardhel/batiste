@@ -9,7 +9,7 @@ import type { Command } from 'commander';
 import { loadConfig } from '../utils/config.js';
 import { httpPost } from '../utils/http.js';
 import { ok, fail, kv, section, bold, green, latencyBadge, statusBadge } from '../utils/output.js';
-import type { RoutedNode } from '@batiste/marketplace';
+import type { RoutedNode } from '@batiste-aidk/marketplace';
 
 export function registerConnect(program: Command): void {
   program

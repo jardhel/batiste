@@ -1,1 +1,1 @@
-export * from '@batiste/transport';
+export * from '@batiste-aidk/transport';

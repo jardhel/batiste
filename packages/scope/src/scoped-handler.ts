@@ -5,7 +5,7 @@
  * Filters file arguments and results so agents never see out-of-scope data.
  */
 
-import type { ToolHandler } from '@batiste/core/mcp';
+import type { ToolHandler } from '@batiste-aidk/core/mcp';
 import type { AccessPolicy } from './types.js';
 import { FileMatcher } from './file-matcher.js';
 

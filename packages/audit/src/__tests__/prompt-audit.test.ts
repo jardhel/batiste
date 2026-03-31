@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { AuditLedger } from '../ledger.js';
 import { AuditedPromptHandler } from '../prompt-audit.js';
-import type { PromptHandler } from '@batiste/core/mcp';
+import type { PromptHandler } from '@batiste-aidk/core/mcp';
 
 const mockPromptHandler: PromptHandler = {
   async listPrompts() {

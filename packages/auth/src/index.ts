@@ -1,5 +1,5 @@
 /**
- * @batiste/auth
+ * @batiste-aidk/auth
  *
  * Zero-trust authentication for Batiste MCP servers.
  *

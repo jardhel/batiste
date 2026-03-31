@@ -1,4 +1,4 @@
-# @batiste/marketplace
+# @batiste-aidk/marketplace
 
 The core of the Batiste compute marketplace. Registers nodes, routes requests to the best candidate, and tracks per-cycle billing — all backed by SQLite WAL with zero cloud dependencies.
 
@@ -15,7 +15,7 @@ The core of the Batiste compute marketplace. Registers nodes, routes requests to
 ## Quick Start
 
 ```typescript
-import { startMarketplace } from '@batiste/marketplace';
+import { startMarketplace } from '@batiste-aidk/marketplace';
 
 const marketplace = await startMarketplace({ port: 3100 });
 
@@ -75,7 +75,7 @@ Latency and reliability are updated per-call using an Exponential Moving Average
 ## In-process Usage
 
 ```typescript
-import { NodeRegistry, NodeDiscovery, RoutingLayer } from '@batiste/marketplace';
+import { NodeRegistry, NodeDiscovery, RoutingLayer } from '@batiste-aidk/marketplace';
 
 const registry = new NodeRegistry(':memory:');
 const discovery = new NodeDiscovery(registry);

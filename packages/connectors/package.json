@@ -1,5 +1,5 @@
 {
-  "name": "@batiste/connectors",
+  "name": "@batiste-aidk/connectors",
   "version": "0.1.0",
   "description": "Proprietary connectors for Batiste nodes — PDF extraction and CSV ETL",
   "type": "module",

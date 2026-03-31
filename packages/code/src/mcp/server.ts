@@ -1,11 +1,11 @@
 /**
- * @batiste/code MCP Server
+ * @batiste-aidk/code MCP Server
  *
- * Entry point for the MCP server. Uses createMcpServer from @batiste/core.
+ * Entry point for the MCP server. Uses createMcpServer from @batiste-aidk/core.
  */
 
 import { join } from 'path';
-import { createMcpServer, startMcpServer } from '@batiste/core/mcp';
+import { createMcpServer, startMcpServer } from '@batiste-aidk/core/mcp';
 import { TOOL_DEFINITIONS } from './tools.js';
 import { ToolHandler } from './handler.js';
 
@@ -16,13 +16,13 @@ export async function start(): Promise<void> {
   const handler = new ToolHandler(PROJECT_ROOT, DATA_DIR);
 
   const server = createMcpServer({
-    name: '@batiste/code',
+    name: '@batiste-aidk/code',
     version: '0.1.0',
     tools: TOOL_DEFINITIONS,
     handler,
   });
 
-  await startMcpServer(server, '@batiste/code');
+  await startMcpServer(server, '@batiste-aidk/code');
 }
 
 // Run if executed directly

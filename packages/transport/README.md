@@ -1,4 +1,4 @@
-# @batiste/transport
+# @batiste-aidk/transport
 
 Secure HTTP gateway for Batiste MCP servers. Native Node.js — zero HTTP framework dependencies.
 
@@ -7,7 +7,7 @@ Features: TLS, rate limiting, session management, IP allowlist, CORS, and a roll
 ## Start a Gateway
 
 ```typescript
-import { startGateway } from '@batiste/transport';
+import { startGateway } from '@batiste-aidk/transport';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 
 const gateway = await startGateway(
@@ -37,7 +37,7 @@ await gateway.close();
 Every MCP request is timed. `PerformanceTracker` maintains a 1-hour rolling window and computes percentiles on demand using linear interpolation.
 
 ```typescript
-import { PerformanceTracker } from '@batiste/transport';
+import { PerformanceTracker } from '@batiste-aidk/transport';
 
 const tracker = new PerformanceTracker(3_600_000); // 1h window
 tracker.record(42, true);   // 42ms, success

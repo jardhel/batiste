@@ -1,5 +1,5 @@
 {
-  "name": "@batiste/core",
+  "name": "@batiste-aidk/core",
   "version": "0.1.0",
   "description": "Core infrastructure for Batiste AI tools - task management, context budgeting, agent orchestration",
   "type": "module",

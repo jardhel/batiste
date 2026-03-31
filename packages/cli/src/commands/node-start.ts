@@ -9,7 +9,7 @@
  */
 
 import type { Command } from 'commander';
-import { createNode } from '@batiste/aidk';
+import { createNode } from '@batiste-aidk/aidk';
 import { ok, fail, info, kv, section, green, bold } from '../utils/output.js';
 
 const ECHO_TOOLS = [

@@ -1,5 +1,5 @@
 {
-  "name": "@batiste/aidk",
+  "name": "@batiste-aidk/aidk",
   "version": "0.1.0",
   "description": "The AI Development Kit — composable building blocks for secure AI agent access to codebases",
   "type": "module",
@@ -37,11 +37,11 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@batiste/core": "workspace:*",
-    "@batiste/transport": "workspace:*",
-    "@batiste/auth": "workspace:*",
-    "@batiste/scope": "workspace:*",
-    "@batiste/audit": "workspace:*",
+    "@batiste-aidk/core": "workspace:*",
+    "@batiste-aidk/transport": "workspace:*",
+    "@batiste-aidk/auth": "workspace:*",
+    "@batiste-aidk/scope": "workspace:*",
+    "@batiste-aidk/audit": "workspace:*",
     "zod": "^3.23.0"
   },
   "devDependencies": {

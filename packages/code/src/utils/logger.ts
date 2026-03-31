@@ -1,5 +1,5 @@
 /**
- * Logger utility for @batiste/code
+ * Logger utility for @batiste-aidk/code
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';

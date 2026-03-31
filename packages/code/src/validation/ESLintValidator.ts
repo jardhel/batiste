@@ -4,7 +4,7 @@
  * Runs ESLint on files and returns structured validation results.
  */
 
-import { ProcessSandbox } from '@batiste/core/sandbox';
+import { ProcessSandbox } from '@batiste-aidk/core/sandbox';
 import type { IValidator, ValidationResult, ValidationOptions } from './types.js';
 import { logger } from '../utils/logger.js';
 

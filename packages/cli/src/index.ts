@@ -1,9 +1,9 @@
 /**
- * @batiste/cli — Batiste Command Line Interface
+ * @batiste-aidk/cli — Batiste Command Line Interface
  *
  * Entry point for the `batiste` command.
  *
- * @dogfood Built using @batiste/code analysis and validation tooling.
+ * @dogfood Built using @batiste-aidk/code analysis and validation tooling.
  */
 
 import { Command } from 'commander';

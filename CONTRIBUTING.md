@@ -111,8 +111,8 @@ git checkout -b fix/the-bug-you-are-fixing
 Each package has its own `src/`, `__tests__/`, and `vitest.config.ts`. Run tests for just that package during development:
 
 ```bash
-pnpm --filter @batiste/marketplace test
-pnpm --filter @batiste/transport test:watch
+pnpm --filter @batiste-aidk/marketplace test
+pnpm --filter @batiste-aidk/transport test:watch
 ```
 
 ### 3. Write or update tests
@@ -121,7 +121,7 @@ All packages use **Vitest** with real SQLite `:memory:` — no mocks for storage
 
 ```bash
 # Run a single package's tests
-pnpm --filter @batiste/<package-name> test
+pnpm --filter @batiste-aidk/<package-name> test
 
 # Run the full suite
 pnpm test
@@ -183,7 +183,7 @@ Open an issue and include:
 2. **Steps to reproduce** — the minimal set of commands that triggers the bug
 3. **Expected behaviour** — what you expected to happen
 4. **Actual behaviour** — what actually happened, including any error output
-5. **Package** — which `@batiste/*` package is affected
+5. **Package** — which `@batiste-aidk/*` package is affected
 
 The more specific your report, the faster we can fix it.
 

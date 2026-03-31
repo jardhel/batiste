@@ -1,4 +1,4 @@
-# @batiste/core
+# @batiste-aidk/core
 
 Core infrastructure for Batiste AI tools. Like a well-organized kitchen -- everything in its place.
 
@@ -10,7 +10,7 @@ Named after Batiste, the sous-chef who keeps the kitchen running. He doesn't coo
 Persistent task DAG with SQLite storage. Tasks survive crashes, organize into hierarchies (goals > subtasks > results), and cache tool outputs to prevent duplicate work.
 
 ```typescript
-import { TaskManager, SQLiteTaskStore } from '@batiste/core/tasks';
+import { TaskManager, SQLiteTaskStore } from '@batiste-aidk/core/tasks';
 
 const store = new SQLiteTaskStore('./tasks.db');
 const manager = new TaskManager(store);
@@ -27,7 +27,7 @@ const tree = await manager.getTree(task.id);
 Token budget monitoring across categories. Know when you're approaching limits before you hit them.
 
 ```typescript
-import { ContextBudgetMonitor } from '@batiste/core/context';
+import { ContextBudgetMonitor } from '@batiste-aidk/core/context';
 
 const budget = new ContextBudgetMonitor({
   totalBudget: 200000,
@@ -42,7 +42,7 @@ const status = budget.getStatus(); // { used, remaining, warnings }
 Multi-agent workflows with Kubernetes-inspired pool management. Create agent pools, submit tasks, run workflows with checkpoint recovery.
 
 ```typescript
-import { Orchestrator, WORKFLOW_TEMPLATES } from '@batiste/core/agents';
+import { Orchestrator, WORKFLOW_TEMPLATES } from '@batiste-aidk/core/agents';
 
 const orch = new Orchestrator();
 await orch.createPool('coder', { replicas: 2 });
@@ -57,7 +57,7 @@ const execution = await orch.executeWorkflow(workflow.id, { task: 'Add auth' });
 Isolated command execution with timeout and resource limits.
 
 ```typescript
-import { ProcessSandbox } from '@batiste/core/sandbox';
+import { ProcessSandbox } from '@batiste-aidk/core/sandbox';
 
 const sandbox = new ProcessSandbox();
 await sandbox.initialize();
@@ -76,7 +76,7 @@ await sandbox.destroy();
 Stand up an MCP server with one function call. Handles tool registration, call dispatch, and error formatting.
 
 ```typescript
-import { createMcpServer, startMcpServer } from '@batiste/core/mcp';
+import { createMcpServer, startMcpServer } from '@batiste-aidk/core/mcp';
 
 const server = createMcpServer({
   name: 'my-tool',
@@ -91,13 +91,13 @@ await startMcpServer(server, 'My Tool');
 ## Install
 
 ```bash
-pnpm add @batiste/core
+pnpm add @batiste-aidk/core
 ```
 
 ## Architecture
 
 ```
-@batiste/core
+@batiste-aidk/core
 ├── tasks/      TaskManager + SQLiteTaskStore
 ├── context/    ContextBudgetMonitor
 ├── agents/     Agent, AgentPool, Orchestrator
@@ -105,7 +105,7 @@ pnpm add @batiste/core
 └── mcp/        createMcpServer factory
 ```
 
-Each module is independently importable via subpath exports (`@batiste/core/tasks`, `@batiste/core/agents`, etc.) or from the main entry point.
+Each module is independently importable via subpath exports (`@batiste-aidk/core/tasks`, `@batiste-aidk/core/agents`, etc.) or from the main entry point.
 
 ## License
 

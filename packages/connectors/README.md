@@ -1,4 +1,4 @@
-# @batiste/connectors
+# @batiste-aidk/connectors
 
 Proprietary data connectors for Batiste nodes. PDF extraction and CSV/ETL as first-class MCP tools — no SaaS, no data egress.
 
@@ -13,7 +13,7 @@ Proprietary data connectors for Batiste nodes. PDF extraction and CSV/ETL as fir
 ## PDF Parser
 
 ```typescript
-import { PdfParser } from '@batiste/connectors';
+import { PdfParser } from '@batiste-aidk/connectors';
 
 const parser = new PdfParser();
 
@@ -32,7 +32,7 @@ const result2 = await parser.parseBuffer(buf, { maxPages: 5 });
 ## CSV ETL
 
 ```typescript
-import { CsvEtl } from '@batiste/connectors';
+import { CsvEtl } from '@batiste-aidk/connectors';
 
 const etl = new CsvEtl();
 
@@ -70,8 +70,8 @@ The CSV parser automatically infers column types from the data:
 Wire the connectors into a Batiste node using `ConnectorHandler`:
 
 ```typescript
-import { ConnectorHandler, CONNECTOR_TOOLS } from '@batiste/connectors';
-import { createNode } from '@batiste/aidk';
+import { ConnectorHandler, CONNECTOR_TOOLS } from '@batiste-aidk/connectors';
+import { createNode } from '@batiste-aidk/aidk';
 
 const node = await createNode({
   config: { preset: 'network', port: 4002 },

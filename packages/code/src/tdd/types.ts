@@ -4,7 +4,7 @@
  * Interfaces for the Hypothesis Engine that runs Red-Green-Refactor cycles.
  */
 
-import type { ExecutionResult } from '@batiste/core/sandbox';
+import type { ExecutionResult } from '@batiste-aidk/core/sandbox';
 import type { ValidationResult } from '../validation/types.js';
 
 export interface Hypothesis {

@@ -1,5 +1,5 @@
 /**
- * Shared types for @batiste/connectors
+ * Shared types for @batiste-aidk/connectors
  */
 
 // ─── PDF ───────────────────────────────────────────────────────────────────

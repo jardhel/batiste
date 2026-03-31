@@ -1,1 +1,1 @@
-export * from '@batiste/auth';
+export * from '@batiste-aidk/auth';

@@ -1,5 +1,5 @@
 /**
- * @batiste/transport
+ * @batiste-aidk/transport
  *
  * Secure gateway transport for Batiste MCP servers.
  *
@@ -11,7 +11,7 @@
  * - RequestValidator — Request size, IP, content-type validation
  */
 
-export { startGateway, type GatewayHandle, type McpServerFactory } from './secure-gateway.js';
+export { startGateway, type GatewayHandle, type McpServerFactory, type SessionContext } from './secure-gateway.js';
 export { PerformanceTracker, type PerformanceMetrics } from './performance-tracker.js';
 export { startTransport, type TransportHandle, type StdioHandle } from './transport-factory.js';
 export { RateLimiter } from './rate-limiter.js';

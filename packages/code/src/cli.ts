@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * @batiste/code CLI entry point
+ * @batiste-aidk/code CLI entry point
  */
 
 import { start } from './mcp/server.js';
 
 start().catch((err) => {
-  console.error('Failed to start @batiste/code:', err);
+  console.error('Failed to start @batiste-aidk/code:', err);
   process.exit(1);
 });

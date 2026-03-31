@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { TokenIssuer } from '../token-issuer.js';
 import { createAuthMiddleware, extractBearerToken, AuthError } from '../middleware.js';
-import type { ToolHandler } from '@batiste/core/mcp';
+import type { ToolHandler } from '@batiste-aidk/core/mcp';
 
 const SECRET = 'test-secret-key-that-is-at-least-32-characters-long';
 

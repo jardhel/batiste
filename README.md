@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./assets/logo.png" width="120" alt="Batiste" />
+
 # BATISTE
 
 ### The Autonomous Agent Compute Marketplace
@@ -13,7 +15,7 @@
 
 **Zero-trust infrastructure for AI agents. Route, bill, audit, and kill-switch every agent call — on your own network, with zero cloud dependencies.**
 
-[Quick Start](#quick-start) · [Architecture](#architecture) · [CLI](#cli) · [Packages](#packages) · [Contributing](./CONTRIBUTING.md)
+[Quick Start](#quick-start) · [Architecture](#architecture) · [CLI](#cli) · [Packages](#packages) · [Our Story](./HISTORY.md) · [Contributing](./CONTRIBUTING.md)
 
 ---
 
@@ -111,16 +113,16 @@ Batiste is a **monorepo** of composable packages. Every agent call passes throug
 
 | Package | Description |
 |---|---|
-| [`@batiste/marketplace`](./packages/marketplace) | Node registry · capability routing · per-cycle billing |
-| [`@batiste/transport`](./packages/transport) | Secure StreamableHTTP gateway · session management · `PerformanceTracker` |
-| [`@batiste/connectors`](./packages/connectors) | **Proprietary connectors** — PDF extraction + RFC 4180 CSV/ETL as MCP tools |
-| [`@batiste/code`](./packages/code) | 10 MCP tools: AST analysis · TDD · AutoFix · LSP · codebase summarisation |
-| [`@batiste/audit`](./packages/audit) | Append-only audit ledger · KillSwitch · SessionMonitor |
-| [`@batiste/auth`](./packages/auth) | JWT token issuance and verification |
-| [`@batiste/scope`](./packages/scope) | AST-level access policy enforcement |
-| [`@batiste/aidk`](./packages/aidk) | `createNode()` factory — composes all zero-trust layers |
-| [`@batiste/cli`](./packages/cli) | `batiste` binary — full **cli-tool** for node and marketplace management |
-| [`@batiste/core`](./packages/core) | Shared MCP primitives · agent orchestration · prompt registry |
+| [`@batiste-aidk/marketplace`](./packages/marketplace) | Node registry · capability routing · per-cycle billing |
+| [`@batiste-aidk/transport`](./packages/transport) | Secure StreamableHTTP gateway · session management · `PerformanceTracker` |
+| [`@batiste-aidk/connectors`](./packages/connectors) | **Proprietary connectors** — PDF extraction + RFC 4180 CSV/ETL as MCP tools |
+| [`@batiste-aidk/code`](./packages/code) | 10 MCP tools: AST analysis · TDD · AutoFix · LSP · codebase summarisation |
+| [`@batiste-aidk/audit`](./packages/audit) | Append-only audit ledger · KillSwitch · SessionMonitor |
+| [`@batiste-aidk/auth`](./packages/auth) | JWT token issuance and verification |
+| [`@batiste-aidk/scope`](./packages/scope) | AST-level access policy enforcement |
+| [`@batiste-aidk/aidk`](./packages/aidk) | `createNode()` factory — composes all zero-trust layers |
+| [`@batiste-aidk/cli`](./packages/cli) | `batiste` binary — full **cli-tool** for node and marketplace management |
+| [`@batiste-aidk/core`](./packages/core) | Shared MCP primitives · agent orchestration · prompt registry |
 
 ---
 
@@ -194,6 +196,14 @@ batiste audit tail --follow
 | Q2 2026 | Public Mainnet V1 — open node registry, creator dashboard |
 | Q3 2026 | Enterprise Auth — SSO, SAML, multi-tenant scoping |
 | Q4 2026 | Global Scale — geo-routing, SLA tiers, compliance exports |
+
+---
+
+## Our Story
+
+Batiste grew out of **[seu-claude](https://github.com/jardhel/seu-claude)** — a local RAG MCP server that gave Claude Code semantic awareness of codebases. The insight that a single specialised node could make an AI assistant dramatically more capable led directly to the question: *what happens when you have a network of them?*
+
+The full origin story — the problem, the naming, the vision — is in **[HISTORY.md](./HISTORY.md)**.
 
 ---
 

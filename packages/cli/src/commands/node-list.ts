@@ -8,7 +8,7 @@ import type { Command } from 'commander';
 import { loadConfig } from '../utils/config.js';
 import { httpGet } from '../utils/http.js';
 import { fail, section, table, statusBadge, latencyBadge, br, info } from '../utils/output.js';
-import type { NodeRecord } from '@batiste/marketplace';
+import type { NodeRecord } from '@batiste-aidk/marketplace';
 
 export function registerNodeList(nodeCmd: Command): void {
   nodeCmd

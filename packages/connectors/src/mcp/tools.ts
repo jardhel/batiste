@@ -1,5 +1,5 @@
 /**
- * MCP tool definitions for @batiste/connectors
+ * MCP tool definitions for @batiste-aidk/connectors
  */
 
 export const CONNECTOR_TOOLS = [

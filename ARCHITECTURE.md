@@ -7,23 +7,23 @@ Technical reference for the Batiste Autonomous Agent Compute Marketplace.
 ## Package Dependency Graph
 
 ```
-@batiste/cli
-  ├── @batiste/aidk
-  │     ├── @batiste/core
-  │     ├── @batiste/transport
-  │     ├── @batiste/auth
-  │     ├── @batiste/scope
-  │     └── @batiste/audit
-  ├── @batiste/marketplace
-  └── @batiste/transport
+@batiste-aidk/cli
+  ├── @batiste-aidk/aidk
+  │     ├── @batiste-aidk/core
+  │     ├── @batiste-aidk/transport
+  │     ├── @batiste-aidk/auth
+  │     ├── @batiste-aidk/scope
+  │     └── @batiste-aidk/audit
+  ├── @batiste-aidk/marketplace
+  └── @batiste-aidk/transport
 
-@batiste/marketplace     (no workspace deps)
-@batiste/connectors      (no workspace deps)
-@batiste/transport
-  └── @batiste/core
+@batiste-aidk/marketplace     (no workspace deps)
+@batiste-aidk/connectors      (no workspace deps)
+@batiste-aidk/transport
+  └── @batiste-aidk/core
 ```
 
-Packages at the bottom of the graph (`@batiste/marketplace`, `@batiste/connectors`) are intentionally zero-dependency within the monorepo. They can be published and used standalone.
+Packages at the bottom of the graph (`@batiste-aidk/marketplace`, `@batiste-aidk/connectors`) are intentionally zero-dependency within the monorepo. They can be published and used standalone.
 
 ---
 
@@ -64,7 +64,7 @@ Incoming tool call
 
 ### SQLite WAL Pattern
 
-Every stateful package (`@batiste/audit`, `@batiste/marketplace`, `@batiste/auth`) opens its own SQLite database in WAL mode:
+Every stateful package (`@batiste-aidk/audit`, `@batiste-aidk/marketplace`, `@batiste-aidk/auth`) opens its own SQLite database in WAL mode:
 
 ```typescript
 this.db = new Database(dbPath);
@@ -160,7 +160,7 @@ The `MarketplaceGateway` exposes a REST API (native Node.js `http`, no framework
 
 ## Connector Architecture
 
-`@batiste/connectors` exposes three MCP tools:
+`@batiste-aidk/connectors` exposes three MCP tools:
 
 | Tool | Implementation | Notes |
 |---|---|---|

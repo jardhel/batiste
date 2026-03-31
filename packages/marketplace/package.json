@@ -1,5 +1,5 @@
 {
-  "name": "@batiste/marketplace",
+  "name": "@batiste-aidk/marketplace",
   "version": "0.1.0",
   "description": "Autonomous Agent Compute Marketplace — node registry, routing, pricing, and discovery",
   "type": "module",

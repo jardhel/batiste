@@ -1,5 +1,5 @@
 /**
- * @batiste/core
+ * @batiste-aidk/core
  *
  * Core infrastructure for Batiste AI tools.
  * Like a well-organized kitchen - everything in its place.

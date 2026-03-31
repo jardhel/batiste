@@ -37,8 +37,18 @@ export interface GatewayHandle {
   metrics: PerformanceTracker;
 }
 
+/** Context passed to the server factory when a new session is created */
+export interface SessionContext {
+  /** Bearer token extracted from the Authorization header */
+  authToken?: string;
+  /** Client IP address */
+  clientIp: string;
+  /** Unique session ID */
+  sessionId: string;
+}
+
 /** Factory that creates a fresh MCP Server for each session */
-export type McpServerFactory = () => Server;
+export type McpServerFactory = (ctx?: SessionContext) => Server;
 
 export async function startGateway(
   serverFactory: McpServerFactory,
@@ -181,8 +191,17 @@ export async function startGateway(
           return;
         }
 
+        // Extract Bearer token from Authorization header
+        const authHeader = req.headers.authorization;
+        const authToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : undefined;
+        const newSessionId = randomUUID();
+
         // New session — create a fresh Server + Transport pair
-        const mcpServer = serverFactory();
+        const mcpServer = serverFactory({
+          authToken,
+          clientIp,
+          sessionId: newSessionId,
+        });
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (id) => {

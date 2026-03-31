@@ -1,4 +1,4 @@
-# @batiste/cli
+# @batiste-aidk/cli
 
 The `batiste` command-line interface. Manage nodes, the marketplace, audit logs, and gateway metrics from your terminal.
 
@@ -10,7 +10,7 @@ pnpm build
 node packages/cli/bin/batiste.js --help
 
 # Or link globally
-pnpm --filter @batiste/cli link --global
+pnpm --filter @batiste-aidk/cli link --global
 batiste --help
 ```
 

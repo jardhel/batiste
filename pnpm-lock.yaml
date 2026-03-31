@@ -23,19 +23,19 @@ importers:
 
   packages/aidk:
     dependencies:
-      '@batiste/audit':
+      '@batiste-aidk/audit':
         specifier: workspace:*
         version: link:../audit
-      '@batiste/auth':
+      '@batiste-aidk/auth':
         specifier: workspace:*
         version: link:../auth
-      '@batiste/core':
+      '@batiste-aidk/core':
         specifier: workspace:*
         version: link:../core
-      '@batiste/scope':
+      '@batiste-aidk/scope':
         specifier: workspace:*
         version: link:../scope
-      '@batiste/transport':
+      '@batiste-aidk/transport':
         specifier: workspace:*
         version: link:../transport
       typescript:
@@ -54,7 +54,7 @@ importers:
 
   packages/audit:
     dependencies:
-      '@batiste/core':
+      '@batiste-aidk/core':
         specifier: workspace:*
         version: link:../core
       better-sqlite3:
@@ -79,7 +79,7 @@ importers:
 
   packages/auth:
     dependencies:
-      '@batiste/core':
+      '@batiste-aidk/core':
         specifier: workspace:*
         version: link:../core
       better-sqlite3:
@@ -107,16 +107,16 @@ importers:
 
   packages/cli:
     dependencies:
-      '@batiste/aidk':
+      '@batiste-aidk/aidk':
         specifier: workspace:*
         version: link:../aidk
-      '@batiste/audit':
+      '@batiste-aidk/audit':
         specifier: workspace:*
         version: link:../audit
-      '@batiste/marketplace':
+      '@batiste-aidk/marketplace':
         specifier: workspace:*
         version: link:../marketplace
-      '@batiste/transport':
+      '@batiste-aidk/transport':
         specifier: workspace:*
         version: link:../transport
       commander:
@@ -138,7 +138,7 @@ importers:
 
   packages/code:
     dependencies:
-      '@batiste/core':
+      '@batiste-aidk/core':
         specifier: workspace:*
         version: link:../core
       fast-glob:
@@ -247,7 +247,7 @@ importers:
 
   packages/scope:
     dependencies:
-      '@batiste/core':
+      '@batiste-aidk/core':
         specifier: workspace:*
         version: link:../core
       micromatch:
@@ -272,7 +272,7 @@ importers:
 
   packages/transport:
     dependencies:
-      '@batiste/core':
+      '@batiste-aidk/core':
         specifier: workspace:*
         version: link:../core
       '@modelcontextprotocol/sdk':

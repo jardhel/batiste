@@ -1,5 +1,5 @@
 /**
- * Configuration utilities for @batiste/code
+ * Configuration utilities for @batiste-aidk/code
  */
 
 import { join } from 'path';

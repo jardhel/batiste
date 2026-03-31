@@ -7,7 +7,7 @@
 
 import type { Command } from 'commander';
 import { loadConfig } from '../utils/config.js';
-import { AuditLedger } from '@batiste/audit';
+import { AuditLedger } from '@batiste-aidk/audit';
 import {
   fail, section, table, statusBadge, bold, info, gray, green,
 } from '../utils/output.js';

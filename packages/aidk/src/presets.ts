@@ -35,7 +35,7 @@ export function resolvePreset(config: NodeConfig): ResolvedConfig {
         port: config.port ?? 3100,
         host: config.host ?? '127.0.0.1',
         authEnabled: !!config.auth,
-        scopeEnabled: false,
+        scopeEnabled: !!config.scope,
         auditEnabled: !!config.audit,
         killSwitchEnabled: config.audit?.killSwitchEnabled ?? false,
       };

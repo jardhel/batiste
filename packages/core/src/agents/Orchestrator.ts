@@ -223,6 +223,7 @@ export class Orchestrator extends EventEmitter {
         taskId: randomUUID(),
         description: `Stage: ${stage.name}`,
         context: currentInput,
+        priority: 'normal',
       };
 
       await pool.submitTask(task);
@@ -246,6 +247,7 @@ export class Orchestrator extends EventEmitter {
         taskId: randomUUID(),
         description: `Stage: ${stage.name} (parallel)`,
         context: input,
+        priority: 'normal',
       };
       return pool.submitTask(task);
     });
@@ -293,6 +295,7 @@ export class Orchestrator extends EventEmitter {
       taskId: randomUUID(),
       description: `Review output from stage: ${stage.name}`,
       context: { result },
+      priority: 'normal',
     };
 
     await reviewerPool.submitTask(reviewTask);

@@ -1,16 +1,17 @@
 /**
- * MCP Tool Handler for @batiste/code
+ * MCP Tool Handler for @batiste-aidk/code
  *
  * Implements the logic for each MCP tool.
- * Uses @batiste/core for tasks, context, sandbox, and agents.
+ * Uses @batiste-aidk/core for tasks, context, sandbox, and agents.
  */
 
-import { join } from 'path';
+import { join, isAbsolute } from 'path';
 import { mkdir } from 'fs/promises';
 import type { ToolName } from './tools.js';
-import { SQLiteTaskStore, TaskManager, type TaskNode } from '@batiste/core/tasks';
-import { ContextBudgetMonitor, type BudgetCategory, type BudgetConfig } from '@batiste/core/context';
-import { ProcessSandbox } from '@batiste/core/sandbox';
+import { SQLiteTaskStore, TaskManager, type TaskNode } from '@batiste-aidk/core/tasks';
+import { ContextBudgetMonitor, type BudgetCategory, type BudgetConfig } from '@batiste-aidk/core/context';
+import { ProcessSandbox } from '@batiste-aidk/core/sandbox';
+import { Orchestrator } from '@batiste-aidk/core/agents';
 import { RecursiveScout } from '../analysis/RecursiveScout.js';
 import { TreeSitterAdapter } from '../parsers/TreeSitterAdapter.js';
 import { Gatekeeper } from '../validation/Gatekeeper.js';
@@ -38,6 +39,7 @@ export class ToolHandler {
   private store: SQLiteTaskStore | null = null;
   private symbolResolver: SymbolResolver | null = null;
   private contextBudget: ContextBudgetMonitor | null = null;
+  private orchestrator: Orchestrator | null = null;
 
   constructor(projectRoot: string, dataDir: string) {
     this.projectRoot = projectRoot;
@@ -56,6 +58,7 @@ export class ToolHandler {
       case 'summarize_codebase': return this.summarizeCodebase(args);
       case 'context_budget': return this.contextBudgetAction(args);
       case 'auto_fix': return this.autoFix(args);
+      case 'orchestrate_agents': return this.orchestrateAgents(args);
       default: throw new Error(`Unknown tool: ${name}`);
     }
   }
@@ -226,14 +229,19 @@ export class ToolHandler {
     }));
   }
 
+  /** Resolve a path relative to projectRoot, or return it unchanged if already absolute. */
+  private resolvePath(p: string): string {
+    return isAbsolute(p) ? p : join(this.projectRoot, p);
+  }
+
   private async runTDD(args: Record<string, unknown>): Promise<unknown> {
     const engine = new HypothesisEngine();
     const hypothesis = engine.createHypothesis(
       args.description as string,
       args.testCode as string,
       args.implementationCode as string,
-      join(this.projectRoot, args.testFilePath as string),
-      join(this.projectRoot, args.implementationFilePath as string)
+      this.resolvePath(args.testFilePath as string),
+      this.resolvePath(args.implementationFilePath as string)
     );
 
     const options = {
@@ -581,6 +589,91 @@ export class ToolHandler {
     };
   }
 
+  private getOrchestrator(): Orchestrator {
+    if (!this.orchestrator) {
+      this.orchestrator = new Orchestrator();
+    }
+    return this.orchestrator;
+  }
+
+  private async orchestrateAgents(args: Record<string, unknown>): Promise<unknown> {
+    const action = args.action as string;
+    const orch = this.getOrchestrator();
+
+    switch (action) {
+      case 'create_pool': {
+        const role = args.role as Parameters<Orchestrator['createPool']>[0];
+        const poolSpec = (args.poolSpec ?? {}) as Parameters<Orchestrator['createPool']>[1];
+        await orch.createPool(role, poolSpec);
+        return { created: true, role };
+      }
+      case 'remove_pool': {
+        const role = args.role as Parameters<Orchestrator['createPool']>[0];
+        const removed = await orch.removePool(role);
+        return { removed, role };
+      }
+      case 'submit_task': {
+        const role = args.role as Parameters<Orchestrator['createPool']>[0];
+        const task = args.task as {
+          description: string;
+          context?: Record<string, unknown>;
+          files?: string[];
+          priority?: 'low' | 'normal' | 'high' | 'critical';
+          retryPolicy?: { maxRetries: number; backoffMs: number };
+        };
+        const pool = orch.getPool(role);
+        if (!pool) throw new Error(`No pool for role: ${role}. Create a pool first.`);
+        const taskId = await pool.submitTask({
+          taskId: `task-${Date.now()}`,
+          description: task.description,
+          context: task.context,
+          priority: task.priority ?? 'normal',
+          retryPolicy: task.retryPolicy,
+        });
+        return { submitted: true, taskId };
+      }
+      case 'get_status': {
+        return orch.getStatus();
+      }
+      case 'get_dead_letter_queue': {
+        const role = args.role as Parameters<Orchestrator['createPool']>[0];
+        const pool = orch.getPool(role);
+        if (!pool) throw new Error(`No pool for role: ${role}`);
+        return { deadLetterQueue: pool.getDeadLetterQueue() };
+      }
+      case 'execute_workflow': {
+        const workflowId = args.workflowId as string;
+        const workflowInput = (args.workflowInput ?? {}) as Record<string, unknown>;
+        const execution = await orch.executeWorkflow(workflowId, workflowInput);
+        return {
+          executionId: execution.id,
+          status: execution.status,
+          currentStage: execution.currentStage,
+          completedAt: execution.completedAt,
+          error: execution.error,
+        };
+      }
+      case 'create_checkpoint': {
+        const executionId = args.executionId as string;
+        const checkpoint = orch.createCheckpoint(executionId);
+        return { checkpointId: checkpoint.id, phase: checkpoint.phase, timestamp: checkpoint.timestamp };
+      }
+      case 'restore_checkpoint': {
+        const executionId = args.executionId as string;
+        const checkpointId = args.checkpointId as string;
+        await orch.restoreFromCheckpoint(executionId, checkpointId);
+        return { restored: true, executionId, checkpointId };
+      }
+      case 'shutdown': {
+        await orch.shutdown();
+        this.orchestrator = null;
+        return { shutdown: true };
+      }
+      default:
+        throw new Error(`Unknown orchestrate_agents action: ${action}`);
+    }
+  }
+
   async close(): Promise<void> {
     if (this.store) {
       this.store.close();
@@ -590,6 +683,10 @@ export class ToolHandler {
     if (this.symbolResolver) {
       await this.symbolResolver.stop();
       this.symbolResolver = null;
+    }
+    if (this.orchestrator) {
+      await this.orchestrator.shutdown();
+      this.orchestrator = null;
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@batiste/auth",
+  "name": "@batiste-aidk/auth",
   "version": "0.1.0",
   "description": "Zero-trust authentication for Batiste MCP servers - JWT tokens, scoped API keys, middleware",
   "type": "module",
@@ -31,7 +31,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@batiste/core": "workspace:*",
+    "@batiste-aidk/core": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "jose": "^6.1.3",
     "zod": "^3.23.0"

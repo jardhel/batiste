@@ -1,5 +1,5 @@
 /**
- * Task types and interfaces for @batiste/core
+ * Task types and interfaces for @batiste-aidk/core
  */
 
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed';

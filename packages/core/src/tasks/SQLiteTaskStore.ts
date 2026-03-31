@@ -63,7 +63,7 @@ export class SQLiteTaskStore implements ITaskStore {
     try {
       if (existsSync(dbPath)) {
         renameSync(dbPath, backupPath);
-        console.warn(`[@batiste/core] Database was readonly, backed up to: ${backupPath}`);
+        console.warn(`[@batiste-aidk/core] Database was readonly, backed up to: ${backupPath}`);
       }
 
       // Remove any stale lock files
@@ -74,7 +74,7 @@ export class SQLiteTaskStore implements ITaskStore {
 
       // Create fresh database
       const db = new Database(dbPath);
-      console.warn('[@batiste/core] Created fresh database after readonly recovery');
+      console.warn('[@batiste-aidk/core] Created fresh database after readonly recovery');
       return db;
     } catch (recoveryError: unknown) {
       const recErr = recoveryError as Error;

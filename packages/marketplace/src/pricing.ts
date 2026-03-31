@@ -2,7 +2,7 @@
  * Pricing Meter
  *
  * Tracks compute cycles per session and generates billing reports.
- * Backed by SQLite — same WAL pattern as @batiste/audit.
+ * Backed by SQLite — same WAL pattern as @batiste-aidk/audit.
  */
 
 import Database from 'better-sqlite3';

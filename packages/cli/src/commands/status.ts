@@ -8,7 +8,7 @@ import type { Command } from 'commander';
 import { loadConfig } from '../utils/config.js';
 import { httpGet } from '../utils/http.js';
 import { ok, fail, kv, section, bold, green, latencyBadge, statusBadge, warn } from '../utils/output.js';
-import type { PerformanceMetrics } from '@batiste/transport';
+import type { PerformanceMetrics } from '@batiste-aidk/transport';
 
 interface HealthResponse {
   status: string;

@@ -1,5 +1,5 @@
 {
-  "name": "@batiste/audit",
+  "name": "@batiste-aidk/audit",
   "version": "0.1.0",
   "description": "Audit logging, kill switch, and compliance for Batiste MCP servers",
   "type": "module",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@batiste/core": "workspace:*",
+    "@batiste-aidk/core": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "zod": "^3.23.0"
   },

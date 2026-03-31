@@ -1,5 +1,5 @@
 {
-  "name": "@batiste/scope",
+  "name": "@batiste-aidk/scope",
   "version": "0.1.0",
   "description": "AST-level access control for Batiste MCP servers - file/node ACLs, policy engine",
   "type": "module",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@batiste/core": "workspace:*",
+    "@batiste-aidk/core": "workspace:*",
     "micromatch": "^4.0.0",
     "zod": "^3.23.0"
   },

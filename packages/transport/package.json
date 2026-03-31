@@ -1,5 +1,5 @@
 {
-  "name": "@batiste/transport",
+  "name": "@batiste-aidk/transport",
   "version": "0.1.0",
   "description": "Secure gateway transport for Batiste MCP servers - StreamableHTTP, rate limiting, session management",
   "type": "module",
@@ -35,7 +35,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@batiste/core": "workspace:*",
+    "@batiste-aidk/core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "zod": "^3.23.0"
   },

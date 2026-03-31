@@ -1,1 +1,1 @@
-export * from '@batiste/scope';
+export * from '@batiste-aidk/scope';

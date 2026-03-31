@@ -104,6 +104,11 @@ export const TaskAssignmentSchema = z.object({
   deadline: z.string().datetime().optional(),
   parentTaskId: z.string().uuid().optional(),
   requiredCapabilities: AgentCapabilitySchema.partial().optional(),
+  priority: MessagePrioritySchema.default('normal'),
+  retryPolicy: z.object({
+    maxRetries: z.number().min(0).default(0),
+    backoffMs: z.number().min(0).default(1000),
+  }).optional(),
 });
 
 export type TaskAssignment = z.infer<typeof TaskAssignmentSchema>;
