@@ -7,7 +7,24 @@
 
 import { join, isAbsolute } from 'path';
 import { mkdir } from 'fs/promises';
-import type { ToolName } from './tools.js';
+import { z } from 'zod';
+import {
+  type ToolName,
+  AnalyzeDependencyInput,
+  ValidateCodeInput,
+  ExecuteSandboxInput,
+  ManageTaskInput,
+  RunTDDInput,
+  FindSymbolInput,
+  IndexCodebaseInput,
+  SummarizeCodebaseInput,
+  ContextBudgetInput,
+  AutoFixInput,
+  OrchestrateAgentsInput,
+  VaultValidateInput,
+  VaultIndexInput,
+} from './tools.js';
+import { loadVault, validateVault, AXES, type Axis } from '@batiste-aidk/gvs';
 import { SQLiteTaskStore, TaskManager, type TaskNode } from '@batiste-aidk/core/tasks';
 import { ContextBudgetMonitor, type BudgetCategory, type BudgetConfig } from '@batiste-aidk/core/context';
 import { ProcessSandbox } from '@batiste-aidk/core/sandbox';
@@ -21,6 +38,62 @@ import { GitAwareIndexer } from '../indexer/git-aware-indexer.js';
 import { FileIndex } from '../indexer/file-index.js';
 import { loadConfig } from '../utils/config.js';
 import { AutoFixer } from '../autofix/AutoFixer.js';
+
+/**
+ * Per-tool input schemas, enforced at `handleTool` dispatch time.
+ *
+ * Every MCP tool call traverses this map before reaching the handler
+ * body: if the args fail validation, the call is rejected with a
+ * structured error and never touches the underlying analyser. This is
+ * the "Validate" step that complements the zero-trust chain
+ * (Scope → Auth → Audit) at the protocol boundary — see E3-B05 and
+ * `compliance/policies/ai-governance-policy.md` §4 ("input validation
+ * is a first-class control").
+ *
+ * Design:
+ *   - Schemas are imported from `./tools.ts` so the MCP advertised
+ *     schema and the runtime validator are the **same source**.
+ *   - Errors are wrapped in `ValidationError` with a stable error code
+ *     so callers (and the audit layer) can distinguish an input-shape
+ *     failure from a handler failure.
+ *   - Validation happens **before** any side effect (no partial mutation).
+ */
+export class ValidationError extends Error {
+  public readonly code = 'INPUT_VALIDATION_FAILED';
+  constructor(public readonly tool: string, public readonly issues: z.ZodIssue[]) {
+    super(`Input validation failed for tool '${tool}': ${issues.map(i => `${i.path.join('.') || '(root)'} ${i.message}`).join('; ')}`);
+    this.name = 'ValidationError';
+  }
+}
+
+const INPUT_SCHEMAS: Record<ToolName, z.ZodTypeAny> = {
+  analyze_dependency: AnalyzeDependencyInput,
+  validate_code: ValidateCodeInput,
+  execute_sandbox: ExecuteSandboxInput,
+  manage_task: ManageTaskInput,
+  run_tdd: RunTDDInput,
+  find_symbol: FindSymbolInput,
+  index_codebase: IndexCodebaseInput,
+  summarize_codebase: SummarizeCodebaseInput,
+  context_budget: ContextBudgetInput,
+  auto_fix: AutoFixInput,
+  orchestrate_agents: OrchestrateAgentsInput,
+  vault_validate: VaultValidateInput,
+  vault_index: VaultIndexInput,
+};
+
+function validateInput(name: ToolName, args: unknown): Record<string, unknown> {
+  const schema = INPUT_SCHEMAS[name];
+  if (!schema) throw new Error(`Unknown tool: ${String(name)}`);
+  const parsed = schema.safeParse(args);
+  if (!parsed.success) {
+    throw new ValidationError(name, parsed.error.issues);
+  }
+  // Zod returns the narrowed type; we hand back Record<string, unknown>
+  // because downstream handlers still take the un-typed bag. The type
+  // system here is a boundary, not a rewrite.
+  return parsed.data as Record<string, unknown>;
+}
 
 const DEFAULT_BUDGET_CONFIG: BudgetConfig = {
   totalBudget: 150000,
@@ -47,23 +120,33 @@ export class ToolHandler {
   }
 
   async handleTool(name: ToolName, args: Record<string, unknown>): Promise<unknown> {
+    // E3-B05: validate every tool invocation at the MCP dispatch
+    // boundary. If the input shape is wrong we fail **before** any
+    // side effect, so the audit ledger sees a single tamper-evident
+    // INPUT_VALIDATION_FAILED entry instead of a half-applied handler.
+    const validated = validateInput(name, args);
     switch (name) {
-      case 'analyze_dependency': return this.analyzeDependency(args);
-      case 'validate_code': return this.validateCode(args);
-      case 'execute_sandbox': return this.executeSandbox(args);
-      case 'manage_task': return this.manageTask(args);
-      case 'run_tdd': return this.runTDD(args);
-      case 'find_symbol': return this.findSymbol(args);
-      case 'index_codebase': return this.indexCodebase(args);
-      case 'summarize_codebase': return this.summarizeCodebase(args);
-      case 'context_budget': return this.contextBudgetAction(args);
-      case 'auto_fix': return this.autoFix(args);
-      case 'orchestrate_agents': return this.orchestrateAgents(args);
+      case 'analyze_dependency': return this.analyzeDependency(validated);
+      case 'validate_code': return this.validateCode(validated);
+      case 'execute_sandbox': return this.executeSandbox(validated);
+      case 'manage_task': return this.manageTask(validated);
+      case 'run_tdd': return this.runTDD(validated);
+      case 'find_symbol': return this.findSymbol(validated);
+      case 'index_codebase': return this.indexCodebase(validated);
+      case 'summarize_codebase': return this.summarizeCodebase(validated);
+      case 'context_budget': return this.contextBudgetAction(validated);
+      case 'auto_fix': return this.autoFix(validated);
+      case 'orchestrate_agents': return this.orchestrateAgents(validated);
+      case 'vault_validate': return this.vaultValidate(validated);
+      case 'vault_index': return this.vaultIndex(validated);
       default: throw new Error(`Unknown tool: ${name}`);
     }
   }
 
   private async analyzeDependency(args: Record<string, unknown>): Promise<unknown> {
+    if (!Array.isArray(args.entryPoints) || args.entryPoints.length === 0) {
+      throw new Error('analyze_dependency requires entryPoints: a non-empty array of file paths');
+    }
     const entryPoints = (args.entryPoints as string[]).map(p =>
       p.startsWith('/') ? p : join(this.projectRoot, p)
     );
@@ -387,21 +470,22 @@ export class ToolHandler {
     await fileIndex.load();
 
     let limitedEntryPoints: string[] = [];
+    let allIndexedFiles: string[] = [];
 
     if (fileIndex.size > 0) {
       // Use indexed files — filter to scope and pick entry points
-      const indexedFiles = fileIndex.getAllFiles()
+      allIndexedFiles = fileIndex.getAllFiles()
         .map(f => join(this.projectRoot, f.relativePath))
         .filter(p => p.startsWith(scopePath));
 
       // Look for common entry point names across all languages
       const entryNames = ['main', 'app', 'index', '__init__', 'mod', 'lib'];
-      const entryFiles = indexedFiles.filter(p => {
+      const entryFiles = allIndexedFiles.filter(p => {
         const base = p.replace(/\.[^.]+$/, '').split('/').pop() ?? '';
         return entryNames.includes(base);
       });
 
-      limitedEntryPoints = (entryFiles.length > 0 ? entryFiles : indexedFiles).slice(0, 5);
+      limitedEntryPoints = (entryFiles.length > 0 ? entryFiles : allIndexedFiles).slice(0, 5);
     } else {
       // Fallback: glob discovery with multi-language entry patterns
       const entryPatterns = [
@@ -433,8 +517,17 @@ export class ToolHandler {
     const summary: Record<string, unknown> = { scope: scope || '/', depth, focus };
 
     if (limitedEntryPoints.length > 0) {
-      const graph = await scout.buildDependencyGraph(limitedEntryPoints);
-      const stats = scout.getGraphStats(graph);
+      let graph = await scout.buildDependencyGraph(limitedEntryPoints);
+      let stats = scout.getGraphStats(graph);
+
+      // Coverage fallback: if entry-name files (e.g., __init__.py in Python) didn't
+      // import their siblings, the graph misses most of the indexed corpus.
+      // Retry with all indexed files as roots, capped for performance.
+      if (allIndexedFiles.length > 5 && stats.totalFiles < allIndexedFiles.length * 0.5) {
+        const allRoots = allIndexedFiles.slice(0, 50);
+        graph = await scout.buildDependencyGraph(allRoots);
+        stats = scout.getGraphStats(graph);
+      }
 
       summary.architecture = {
         totalFiles: stats.totalFiles,
@@ -688,5 +781,66 @@ export class ToolHandler {
       await this.orchestrator.shutdown();
       this.orchestrator = null;
     }
+  }
+
+  private async vaultValidate(args: Record<string, unknown>): Promise<unknown> {
+    const vaultPath = this.resolvePath(args['path'] as string);
+    const repoRootArg = args['repoRoot'] as string | undefined;
+    const skipCanonical = (args['skipCanonical'] as boolean | undefined) ?? false;
+    const maxIssues = (args['maxIssues'] as number | undefined) ?? 50;
+
+    const vault = await loadVault(vaultPath);
+    const report = await validateVault(vault, {
+      repoRoot: repoRootArg ? this.resolvePath(repoRootArg) : undefined,
+      skipCanonical,
+    });
+
+    const errors = report.issues.filter((i) => i.severity === 'error').slice(0, maxIssues);
+    const warnings = report.issues.filter((i) => i.severity === 'warning').slice(0, maxIssues);
+
+    return {
+      vault: report.vault,
+      gvsVersion: report.gvsVersion,
+      conforming: report.conforming,
+      counts: report.counts,
+      truncated: {
+        errors: report.counts.errors > errors.length,
+        warnings: report.counts.warnings > warnings.length,
+      },
+      errors,
+      warnings,
+    };
+  }
+
+  private async vaultIndex(args: Record<string, unknown>): Promise<unknown> {
+    const vaultPath = this.resolvePath(args['path'] as string);
+    const axisFilter = args['axis'] as Axis | undefined;
+
+    const vault = await loadVault(vaultPath);
+    const axesToReturn = axisFilter ? [axisFilter] : [...AXES];
+
+    const byAxis: Record<string, unknown[]> = {};
+    for (const axis of axesToReturn) {
+      byAxis[axis] = vault.notesByAxis[axis].map((n) => ({
+        title: n.title,
+        path: n.relativePath,
+        status: n.frontmatter['status'] ?? null,
+        tags: n.frontmatter['tags'] ?? [],
+        canonical: n.frontmatter['canonical'] ?? null,
+        wikilinks: n.wikilinks,
+      }));
+    }
+
+    return {
+      root: vault.root,
+      gvsVersion: vault.gvsVersion,
+      home: vault.home?.relativePath ?? null,
+      totals: {
+        notes: vault.all.length,
+        templates: vault.templates.length,
+        attachments: vault.attachments.length,
+      },
+      byAxis,
+    };
   }
 }

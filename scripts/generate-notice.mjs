@@ -1,0 +1,122 @@
+#!/usr/bin/env node
+/**
+ * generate-notice.mjs
+ *
+ * Produces an aggregated NOTICE file by concatenating every LICENSE /
+ * NOTICE / COPYING file shipped by our production dependencies, with a
+ * deterministic header block per package. Required for:
+ *   - Apache-2.0 §4(d) — NOTICE attribution propagation
+ *   - BSD-2/3 — retain copyright notice
+ *   - MIT — keep copyright & permission notice
+ *
+ * Flags:
+ *   --write   write ./NOTICE in the repo root (default: dry-run to stdout)
+ *   --verify  exit 1 if ./NOTICE on disk differs from what would be generated
+ *             (release gate uses this to keep the file authoritative)
+ *
+ * E6-DD-26. Complements generate-license-report.mjs.
+ */
+
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(__dirname, '..');
+const OUT = join(ROOT, 'NOTICE');
+
+const argv = new Set(process.argv.slice(2));
+const WRITE = argv.has('--write');
+const VERIFY = argv.has('--verify');
+
+const NOTICE_FILE_NAMES = new Set([
+  'LICENSE', 'LICENSE.md', 'LICENSE.txt',
+  'LICENCE', 'LICENCE.md', 'LICENCE.txt',
+  'NOTICE', 'NOTICE.md', 'NOTICE.txt',
+  'COPYING', 'COPYING.md', 'COPYING.txt',
+]);
+
+function pnpmLicenses() {
+  const raw = execSync('pnpm licenses list --prod --json', {
+    cwd: ROOT,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return JSON.parse(raw);
+}
+
+function collectFiles(pkgPath) {
+  if (!existsSync(pkgPath)) return [];
+  const out = [];
+  for (const name of readdirSync(pkgPath)) {
+    const abs = join(pkgPath, name);
+    try {
+      if (!statSync(abs).isFile()) continue;
+    } catch { continue; }
+    if (NOTICE_FILE_NAMES.has(name) || NOTICE_FILE_NAMES.has(name.toUpperCase())) {
+      const body = readFileSync(abs, 'utf8').trim();
+      if (body) out.push({ name, body });
+    }
+  }
+  return out;
+}
+
+const rows = [];
+for (const [license, entries] of Object.entries(pnpmLicenses())) {
+  for (const e of entries) {
+    rows.push({ name: e.name, version: e.version, license, path: e.path });
+  }
+}
+// Dedup by name — ship one NOTICE block per package, not per version.
+const byName = new Map();
+for (const r of rows) {
+  const cur = byName.get(r.name);
+  if (!cur || cur.version < r.version) byName.set(r.name, r);
+}
+const unique = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+const header = `NOTICE
+
+This product, Batiste ("the Software"), includes code distributed under
+open-source licences. The sections below reproduce the licence / notice /
+copying files declared by each production dependency, as required by
+Apache-2.0 §4(d), BSD, MIT, and similar licences.
+
+Generated at ${new Date().toISOString()} — see scripts/generate-notice.mjs.
+
+--------------------------------------------------------------------------------
+`;
+
+const blocks = [];
+for (const r of unique) {
+  const files = collectFiles(r.path);
+  const label = `## ${r.name}@${r.version}  (${r.license})`;
+  const body = files.length
+    ? files.map(f => `[${f.name}]\n${f.body}`).join('\n\n')
+    : '(no LICENSE / NOTICE file shipped; see package metadata)';
+  blocks.push(`${label}\n\n${body}\n\n${'-'.repeat(80)}\n`);
+}
+
+const generated = header + '\n' + blocks.join('\n');
+
+if (VERIFY) {
+  const current = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
+  const gh = createHash('sha256').update(generated).digest('hex');
+  const ch = createHash('sha256').update(current).digest('hex');
+  if (gh !== ch) {
+    process.stderr.write(`✖ NOTICE drift: on-disk sha256=${ch.slice(0, 12)} generated=${gh.slice(0, 12)}\n`);
+    process.stderr.write('  Run: node scripts/generate-notice.mjs --write\n');
+    process.exit(1);
+  }
+  process.stderr.write('✔ NOTICE verified\n');
+  process.exit(0);
+}
+
+if (WRITE) {
+  writeFileSync(OUT, generated);
+  process.stderr.write(`✔ NOTICE written (${unique.length} packages, ${generated.length} bytes)\n`);
+} else {
+  process.stdout.write(generated);
+}

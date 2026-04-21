@@ -4,7 +4,7 @@
  * One package that composes all Batiste building blocks:
  * - Transport (StreamableHTTP gateway)
  * - Auth (JWT tokens, scoped access)
- * - Scope (AST-level access control)
+ * - Scope (path-based access control; AST-level via @batiste-aidk/graph in progress)
  * - Audit (logging, kill switch, compliance)
  *
  * Usage:

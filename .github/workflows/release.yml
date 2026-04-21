@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+  id-token: write   # needed for sigstore keyless signing
+  attestations: write
+
+jobs:
+  build-sign-publish:
+    name: build · sbom · sign · publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag matches CHANGELOG
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if ! grep -q "^## \[${TAG_VERSION}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md missing entry for ${TAG_VERSION}"
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      - name: Test (release gate)
+        run: pnpm -r test
+
+      - name: Generate SBOM (SPDX + CycloneDX)
+        run: bash scripts/generate-sbom.sh
+
+      - name: Generate license report + NOTICE
+        run: |
+          node scripts/generate-license-report.mjs --strict
+          node scripts/generate-notice.mjs --write
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign SBOMs (keyless)
+        run: |
+          cosign sign-blob --yes \
+            --output-signature reports/sbom.spdx.json.sig \
+            --output-certificate reports/sbom.spdx.json.pem \
+            reports/sbom.spdx.json
+          cosign sign-blob --yes \
+            --output-signature reports/sbom.cdx.json.sig \
+            --output-certificate reports/sbom.cdx.json.pem \
+            reports/sbom.cdx.json
+
+      - name: Pack release tarball
+        id: pack
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          TARBALL="batiste-${VERSION}.tar.gz"
+          tar --exclude='./node_modules' --exclude='./.git' \
+              -czf "${TARBALL}" .
+          sha256sum "${TARBALL}" > "${TARBALL}.sha256"
+          echo "tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+
+      - name: Sign tarball (keyless)
+        run: |
+          cosign sign-blob --yes \
+            --output-signature ${{ steps.pack.outputs.tarball }}.sig \
+            --output-certificate ${{ steps.pack.outputs.tarball }}.pem \
+            ${{ steps.pack.outputs.tarball }}
+
+      - name: Attest provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.pack.outputs.tarball }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            ${{ steps.pack.outputs.tarball }}
+            ${{ steps.pack.outputs.tarball }}.sha256
+            ${{ steps.pack.outputs.tarball }}.sig
+            ${{ steps.pack.outputs.tarball }}.pem
+            reports/sbom.spdx.json
+            reports/sbom.spdx.json.sig
+            reports/sbom.spdx.json.pem
+            reports/sbom.cdx.json
+            reports/sbom.cdx.json.sig
+            reports/sbom.cdx.json.pem
+            reports/licenses.json
+            reports/licenses.html
+            NOTICE

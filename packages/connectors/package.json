@@ -21,12 +21,11 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^4.5.136",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/pdf-parse": "^1.1.4",
     "vitest": "^2.0.0"
   },
   "peerDependencies": { "typescript": "^5.0.0" },

@@ -26,6 +26,18 @@ describe('ToolHandler', () => {
   });
 
   describe('analyze_dependency', () => {
+    it('throws clear error when entryPoints missing', async () => {
+      await expect(handler.handleTool('analyze_dependency', {})).rejects.toThrow(
+        /analyze_dependency requires entryPoints/
+      );
+    });
+
+    it('throws clear error when entryPoints is empty', async () => {
+      await expect(
+        handler.handleTool('analyze_dependency', { entryPoints: [] }),
+      ).rejects.toThrow(/analyze_dependency requires entryPoints/);
+    });
+
     it('analyzes file dependencies', async () => {
       const file1 = join(testDir, 'main.ts');
       const file2 = join(testDir, 'utils.ts');
@@ -255,6 +267,160 @@ describe('ToolHandler', () => {
 
       expect(result.symbolName).toBe('myHelper');
       expect(result.definitionCount).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describeWithSQLite('summarize_codebase', () => {
+    it('falls back to all indexed files when entry-name files yield low coverage', async () => {
+      // Simulate a Python-style project where __init__.py files don't import siblings.
+      // Without the coverage fallback, summarize_codebase walked only the __init__ files
+      // (2 files / 4 symbols on a 78-file repo). With the fallback, it walks the corpus.
+      const pkgDir = join(testDir, 'pkg');
+      await mkdir(pkgDir, { recursive: true });
+      await writeFile(join(pkgDir, '__init__.py'), '# empty package init\n');
+      const moduleNames = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta', 'iota', 'kappa'];
+      for (const name of moduleNames) {
+        await writeFile(
+          join(pkgDir, `${name}.py`),
+          `def ${name}_func():\n    return "${name}"\n\nclass ${name.toUpperCase()}Class:\n    pass\n`,
+        );
+      }
+
+      // Build a minimal file-index entry pointing at all files so summarize_codebase
+      // takes the indexed-files branch (otherwise it falls back to fast-glob).
+      const indexedFiles = [
+        { relativePath: 'pkg/__init__.py' },
+        ...moduleNames.map(n => ({ relativePath: `pkg/${n}.py` })),
+      ];
+      await writeFile(
+        join(dataDir, 'file-index.json'),
+        JSON.stringify({
+          version: 1,
+          projectRoot: testDir,
+          files: indexedFiles.map(f => ({
+            relativePath: f.relativePath,
+            sha256: 'x'.repeat(64),
+            sizeBytes: 100,
+            modifiedAtMs: Date.now(),
+            language: 'python',
+          })),
+        }),
+      );
+
+      const result = (await handler.handleTool('summarize_codebase', {})) as Record<string, unknown>;
+      const arch = result.architecture as Record<string, unknown>;
+
+      // Without fallback: totalFiles would be 1 (only __init__.py walked).
+      // With fallback: graph rebuilt from all indexed files → multiple files visible.
+      expect(arch.totalFiles).toBeGreaterThan(2);
+      expect(arch.totalSymbols).toBeGreaterThan(4);
+    });
+  });
+
+  describe('vault_validate + vault_index (GVS 0.1)', () => {
+    async function scaffoldMinimalVault(root: string) {
+      await mkdir(root, { recursive: true });
+      await writeFile(
+        join(root, '00 Home.md'),
+        '---\ntitle: Home\ngvs_version: 0.1-draft\naxis: policy\nupdated: 2026-04-21\nstatus: active\ntags: []\n---\n\n# Home\n',
+      );
+
+      for (const [folder, name, fm] of [
+        ['01 Identity', 'Acme Corp.md', { title: 'Acme Corp', axis: 'identity' }],
+        ['02 Policy', 'Principles.md', { title: 'Principles', axis: 'policy' }],
+        [
+          '03 Roles',
+          'Jane Doe.md',
+          { title: 'Jane Doe', axis: 'roles', principal_type: 'human' },
+        ],
+        [
+          '04 Decision',
+          '2026-04-20 — Adopt GVS.md',
+          {
+            title: '2026-04-20 — Adopt GVS',
+            axis: 'decision',
+            decided_on: '2026-04-20',
+            authority: 'Jane Doe',
+          },
+        ],
+        ['05 Memory', 'Q2 fundraise.md', { title: 'Q2 fundraise', axis: 'memory' }],
+        [
+          '06 Audit',
+          '2026-04-20-AC-LEG-001.md',
+          {
+            title: '2026-04-20-AC-LEG-001',
+            axis: 'audit',
+            ref: 'AC-LEG-001',
+            manifest: 'manifests/AC-LEG-001.json',
+            stamp_hash: 'a'.repeat(64),
+            stamped_on: '2026-04-20T10:00:00Z',
+          },
+        ],
+      ] as const) {
+        const full: Record<string, unknown> = {
+          ...fm,
+          updated: '2026-04-21',
+          status: 'active',
+          tags: [],
+        };
+        const folderPath = join(root, folder);
+        await mkdir(folderPath, { recursive: true });
+        const lines = ['---'];
+        for (const [k, v] of Object.entries(full)) lines.push(`${k}: ${JSON.stringify(v)}`);
+        lines.push('---', '');
+        await writeFile(join(folderPath, name), lines.join('\n'));
+      }
+
+      const tpl = join(root, '_templates');
+      await mkdir(tpl, { recursive: true });
+      for (const t of [
+        '00-home.md',
+        '01-identity.md',
+        '02-policy.md',
+        '03-roles.md',
+        '04-decision.md',
+        '05-memory.md',
+        '06-audit.md',
+      ]) {
+        await writeFile(join(tpl, t), '---\ntitle: "{{title}}"\n---\n');
+      }
+    }
+
+    it('vault_validate reports a minimal vault as conforming', async () => {
+      const vaultPath = join(testDir, 'vault');
+      await scaffoldMinimalVault(vaultPath);
+
+      const result = (await handler.handleTool('vault_validate', {
+        path: vaultPath,
+        skipCanonical: true,
+      })) as Record<string, unknown>;
+
+      expect(result.conforming).toBe(true);
+      expect(result.gvsVersion).toBe('0.1-draft');
+      const counts = result.counts as Record<string, unknown>;
+      expect(counts.errors).toBe(0);
+      expect((counts.byAxis as Record<string, number>).audit).toBe(1);
+    });
+
+    it('vault_index returns notes grouped by axis', async () => {
+      const vaultPath = join(testDir, 'vault');
+      await scaffoldMinimalVault(vaultPath);
+
+      const result = (await handler.handleTool('vault_index', {
+        path: vaultPath,
+      })) as Record<string, unknown>;
+
+      expect(result.gvsVersion).toBe('0.1-draft');
+      const byAxis = result.byAxis as Record<string, unknown[]>;
+      expect(byAxis.decision).toHaveLength(1);
+      expect(byAxis.audit).toHaveLength(1);
+      expect(byAxis.identity).toHaveLength(1);
+    });
+
+    it('vault_validate rejects missing path arg', async () => {
+      await expect(handler.handleTool('vault_validate', {})).rejects.toThrow(
+        /Input validation failed/,
+      );
     });
   });
 });

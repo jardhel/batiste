@@ -1,0 +1,64 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.{mjs,js,ts,sh}"],
+      "project": ["scripts/**/*.{mjs,js,ts}"]
+    },
+    "packages/aidk": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/audit": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/auth": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/cli": {
+      "entry": ["src/index.ts", "src/bin/batiste.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/code": {
+      "entry": ["src/index.ts", "src/mcp/server.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/connectors": {
+      "entry": ["src/index.ts", "src/pdf/index.ts", "src/csv/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/core": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/marketplace": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/scope": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/transport": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/web": {
+      "entry": ["src/index.ts", "src/server.ts"],
+      "project": ["src/**/*.ts"]
+    }
+  },
+  "ignore": [
+    "**/dist/**",
+    "**/coverage/**",
+    "**/__tests__/fixtures/**",
+    "examples/**"
+  ],
+  "ignoreDependencies": [
+    "@changesets/cli",
+    "prettier",
+    "turbo"
+  ]
+}

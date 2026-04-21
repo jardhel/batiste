@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@batiste-aidk/core": "workspace:*",
+    "@batiste-aidk/gvs": "workspace:*",
     "fast-glob": "^3.3.0",
     "ignore": "^5.3.0",
     "micromatch": "^4.0.0",

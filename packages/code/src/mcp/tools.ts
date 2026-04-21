@@ -101,6 +101,18 @@ export const AutoFixInput = z.object({
   confidence: z.enum(['high', 'medium', 'low']).optional().describe('Minimum confidence (default: high)'),
 });
 
+export const VaultValidateInput = z.object({
+  path: z.string().describe('Absolute or relative path to the GVS vault root'),
+  repoRoot: z.string().optional().describe('Repository root for resolving canonical paths (defaults to vault parent)'),
+  skipCanonical: z.boolean().optional().describe('Skip canonical-path resolution (default: false)'),
+  maxIssues: z.number().optional().describe('Max issues to return per severity (default: 50)'),
+});
+
+export const VaultIndexInput = z.object({
+  path: z.string().describe('Absolute or relative path to the GVS vault root'),
+  axis: z.enum(['identity', 'policy', 'roles', 'decision', 'memory', 'audit']).optional().describe('Limit index to a single axis'),
+});
+
 export const ContextBudgetInput = z.object({
   action: z.enum(['status', 'add', 'reset', 'configure']).describe('Action to perform'),
   category: z.enum(['code', 'summary', 'messages', 'other']).optional(),
@@ -279,6 +291,32 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       required: ['action'],
     },
   },
+  {
+    name: 'vault_validate',
+    description: 'Validate a GVS 0.1 Governance Vault (see specs/gvs-0.1.md). Runs §10 rules — frontmatter completeness, axis consistency, wikilink resolution, canonical-path resolution, audit ref uniqueness, status consistency — and reports conformance with by-axis counts.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Path to the vault root' },
+        repoRoot: { type: 'string', description: 'Repo root for canonical path resolution' },
+        skipCanonical: { type: 'boolean', description: 'Skip canonical path resolution (default: false)' },
+        maxIssues: { type: 'number', description: 'Max issues to return per severity (default: 50)' },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'vault_index',
+    description: 'Index a GVS 0.1 Governance Vault and return the note inventory grouped by axis (identity, policy, roles, decision, memory, audit). Each note carries its title, relative path, status, and outbound wikilinks — enabling downstream agents to reason over the governance graph.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Path to the vault root' },
+        axis: { type: 'string', enum: ['identity', 'policy', 'roles', 'decision', 'memory', 'audit'], description: 'Limit index to a single axis' },
+      },
+      required: ['path'],
+    },
+  },
 ];
 
 export type ToolName =
@@ -292,4 +330,6 @@ export type ToolName =
   | 'index_codebase'
   | 'summarize_codebase'
   | 'auto_fix'
-  | 'context_budget';
+  | 'context_budget'
+  | 'vault_validate'
+  | 'vault_index';

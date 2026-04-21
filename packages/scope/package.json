@@ -1,7 +1,7 @@
 {
   "name": "@batiste-aidk/scope",
   "version": "0.1.0",
-  "description": "AST-level access control for Batiste MCP servers - file/node ACLs, policy engine",
+  "description": "Path-based access control for Batiste MCP servers — glob deny-lists, depth caps, symbol-type filters; AST-level enforcement landing via @batiste-aidk/graph",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

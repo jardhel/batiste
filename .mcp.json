@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "batiste": {
+      "command": "node",
+      "args": [
+        "/Users/jardhel/Documents/git/batiste/packages/code/dist/mcp/server.js"
+      ],
+      "env": {
+        "PROJECT_ROOT": "/Users/jardhel/Documents/git/batiste",
+        "DATA_DIR": "/Users/jardhel/Documents/git/batiste/.batiste"
+      }
+    }
+  }
+}

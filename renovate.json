@@ -1,0 +1,69 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":semanticCommits",
+    ":separatePatchReleases",
+    ":dependencyDashboard",
+    "helpers:pinGitHubActionDigests",
+    "group:allNonMajor",
+    "group:monorepos",
+    "mergeConfidence:all-badges"
+  ],
+  "timezone": "Europe/Amsterdam",
+  "schedule": ["before 6am on Monday"],
+  "labels": ["deps", "renovate"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "bump",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "vulnerabilityAlerts": {
+    "labels": ["security", "deps"],
+    "schedule": ["at any time"],
+    "prCreation": "immediate",
+    "minimumReleaseAge": "0 days"
+  },
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboardTitle": "Renovate — Batiste dependency dashboard",
+  "dependencyDashboardHeader": "Dependency updates. Security-sensitive packages require Security Lead review (see `compliance/policies/vendor-management-policy.md`).",
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "groupName": "github-actions"
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "devDependencies (non-major)",
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": false
+    },
+    {
+      "matchPackageNames": [
+        "better-sqlite3",
+        "jsonwebtoken",
+        "jose",
+        "@sigstore/sign",
+        "sigstore",
+        "cosign",
+        "tree-sitter",
+        "tree-sitter-*",
+        "node-gyp",
+        "node-gyp-build"
+      ],
+      "labels": ["security", "deps", "security-sensitive"],
+      "reviewers": ["team:security"],
+      "automerge": false,
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

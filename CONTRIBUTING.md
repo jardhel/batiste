@@ -159,6 +159,28 @@ test: add regression for kill switch after heartbeat timeout
 
 ---
 
+## Developer Certificate of Origin (DCO)
+
+All contributions are accepted under the [Developer Certificate of Origin 1.1](https://developercertificate.org). Sign off every commit:
+
+```bash
+git commit -s -m "feat: your change"
+```
+
+By signing off you certify that you have the right to submit the contribution under the project's licence. We do not require CLAs — the DCO is sufficient and keeps authorship with the contributor.
+
+---
+
+## Security-sensitive changes
+
+Changes that touch `packages/auth`, `packages/scope`, `packages/audit`, cryptography primitives, the kill switch, or anything under `compliance/` require a **second reviewer** with the `security` team role. Label the PR `security` so the right reviewers get notified.
+
+If your change modifies a control surface, update [`compliance/mappings/batiste-to-controls.md`](./compliance/mappings/batiste-to-controls.md) in the same PR so the auditor-facing matrix stays in sync with reality.
+
+Security issues — **do not open a public PR or issue**. Follow [`SECURITY.md`](./SECURITY.md).
+
+---
+
 ## Commit Convention
 
 We use [Conventional Commits](https://www.conventionalcommits.org/):

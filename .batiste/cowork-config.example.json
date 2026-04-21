@@ -1,0 +1,16 @@
+{
+  "_comment": "Cole este bloco em ~/Library/Application Support/Claude/claude_desktop_config.json dentro de mcpServers. Se o arquivo já existir, faça o merge do objeto batiste em mcpServers.",
+  "mcpServers": {
+    "batiste": {
+      "command": "node",
+      "args": [
+        "/Users/jardhel/Documents/git/batiste/packages/code/dist/mcp/server.js"
+      ],
+      "env": {
+        "PROJECT_ROOT": "/Users/jardhel/Documents/git/batiste",
+        "DATA_DIR": "/Users/jardhel/Documents/git/batiste/.batiste",
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}

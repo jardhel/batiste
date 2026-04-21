@@ -131,8 +131,11 @@ export async function startGateway(
       return;
     }
 
-    // Rate limiting
-    const clientIp = getClientIp(req);
+    // Rate limiting. `getClientIp` honours XFF only when the TCP peer
+    // is in the operator's trusted-proxies list (E3-B10); otherwise it
+    // pins to `socket.remoteAddress` so a remote attacker cannot spoof
+    // by setting the header.
+    const clientIp = getClientIp(req, security.proxy);
     if (!rateLimiter.consume(clientIp)) {
       res.writeHead(429, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({

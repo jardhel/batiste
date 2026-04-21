@@ -15,6 +15,7 @@ import { registerNodeList } from './commands/node-list.js';
 import { registerConnect } from './commands/connect.js';
 import { registerStatus } from './commands/status.js';
 import { registerAuditTail } from './commands/audit-tail.js';
+import { registerVault } from './commands/vault.js';
 
 const program = new Command();
 
@@ -38,6 +39,7 @@ registerNodeList(nodeCmd);
 registerConnect(program);
 registerStatus(program);
 registerAuditTail(program);
+registerVault(program);
 
 // ─── config command ───────────────────────────────────────────────────────────
 

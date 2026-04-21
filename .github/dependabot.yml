@@ -1,0 +1,57 @@
+version: 2
+
+# Fallback in case Renovate is not enabled on the repository.
+# Primary configuration is `renovate.json` at the repo root.
+# If both are active, Renovate wins; Dependabot here only groups security alerts
+# to keep GitHub's native UI functional for reviewers who prefer it.
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 5
+    labels:
+      - deps
+      - dependabot
+    commit-message:
+      prefix: chore(deps)
+      include: scope
+    groups:
+      production-minor-patch:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development-minor-patch:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Security-sensitive: pinned and reviewed manually.
+      # Renovate handles these with Security Lead approval.
+      - dependency-name: "better-sqlite3"
+      - dependency-name: "jsonwebtoken"
+      - dependency-name: "jose"
+      - dependency-name: "tree-sitter"
+      - dependency-name: "tree-sitter-*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 3
+    labels:
+      - deps
+      - dependabot
+      - github-actions
+    commit-message:
+      prefix: chore(ci)
+      include: scope

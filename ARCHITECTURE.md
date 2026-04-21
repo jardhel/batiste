@@ -36,15 +36,16 @@ Incoming tool call
        │
        ▼
 ┌──────────────┐
-│    Scope     │  AccessPolicyEngine (TreeSitter AST)
+│    Scope     │  AccessPolicyEngine (glob via micromatch)
 │              │  — Checks path patterns against policy
-│              │  — Denies **/*.env, **/*.secret by default
+│              │  — Denies **/*.env, **/*.secret, **/.ssh/** by default
 │              │  — Enforces maxDepth on directory traversal
+│              │  — AST-level enforcement landing via @batiste-aidk/graph
 └──────┬───────┘
        │ pass
        ▼
 ┌──────────────┐
-│     Auth     │  TokenVerifier (JWT RS256 / HS256)
+│     Auth     │  TokenVerifier (JWT HS256; RS256 on roadmap)
 │              │  — Verifies signature and expiry
 │              │  — Checks tool scope claim
 │              │  — Header: Authorization: Bearer <jwt>
@@ -204,7 +205,8 @@ batiste/
 │   ├── connectors/     PDF + CSV MCP connectors
 │   ├── core/           Shared MCP primitives + orchestration
 │   ├── marketplace/    Node registry, routing, billing
-│   ├── scope/          AST-level access policy
+│   ├── scope/          Path-based access policy (glob deny-lists)
+│   ├── web/            Dashboard UI (HTML/CSS/JS, no framework)
 │   ├── transport/      Secure HTTP gateway + metrics
 │   └── web/            Dashboard UI (HTML/CSS/JS)
 ├── examples/

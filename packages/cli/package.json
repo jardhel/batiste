@@ -27,6 +27,7 @@
   "dependencies": {
     "@batiste-aidk/aidk": "workspace:*",
     "@batiste-aidk/audit": "workspace:*",
+    "@batiste-aidk/gvs": "workspace:*",
     "@batiste-aidk/marketplace": "workspace:*",
     "@batiste-aidk/transport": "workspace:*",
     "commander": "^12.0.0",

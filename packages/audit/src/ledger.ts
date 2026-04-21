@@ -7,6 +7,7 @@
 
 import Database from 'better-sqlite3';
 import type { AuditEntry } from './types.js';
+import { initRedactionTable, redactEntry, listRedactions, type RedactionRequest, type RedactionResult } from './redaction.js';
 
 export interface LedgerQuery {
   sessionId?: string;
@@ -44,6 +45,25 @@ export class AuditLedger {
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(timestamp)');
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_audit_session ON audit_log(session_id)');
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_audit_agent ON audit_log(agent_id)');
+    // E3-B07: sibling table records every GDPR Art. 17 redaction so
+    // erasure is itself auditable.
+    initRedactionTable(this.db);
+  }
+
+  /**
+   * Redact a single audit entry in-place (GDPR Art. 17).
+   *
+   * Preserves the entry's metadata and records a SHA-256 witness of
+   * the original payload so the ledger's integrity chain survives.
+   * See `redaction.ts` for the full data model.
+   */
+  redact(request: RedactionRequest): RedactionResult {
+    return redactEntry(this.db, request);
+  }
+
+  /** List redactions for DSR evidence packs. */
+  redactions(opts: { since?: string; requestId?: string } = {}): RedactionResult[] {
+    return listRedactions(this.db, opts);
   }
 
   /** Append an audit entry. */

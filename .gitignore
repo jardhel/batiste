@@ -35,3 +35,8 @@ coverage/
 # Misc
 *.db
 *.sqlite
+
+# Batiste local state (machine-specific; not portable)
+.batiste/file-index.json
+.batiste/index-state.json
+.batiste/tasks.db

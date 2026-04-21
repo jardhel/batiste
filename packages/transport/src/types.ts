@@ -50,6 +50,32 @@ export const CorsConfigSchema = z.object({
 });
 export type CorsConfig = z.infer<typeof CorsConfigSchema>;
 
+// --- Proxy Trust (E3-B10) ---
+
+/**
+ * X-Forwarded-For handling. `trustProxy` is OFF by default: when the
+ * gateway is exposed directly to the network, XFF is attacker-
+ * controlled and must never drive rate-limiting, IP allowlisting, or
+ * audit logging. Operators running Batiste behind a reverse proxy
+ * (nginx, HAProxy, an ingress controller) opt into XFF by setting
+ * `trustProxy: true` and listing the trusted upstream CIDRs.
+ *
+ * Only requests whose socket.remoteAddress is inside `trustedProxies`
+ * will have their XFF header honoured. All other requests — including
+ * requests from outside the allow-list that happen to set the header —
+ * fall back to the TCP peer address. This matches Express's "trust
+ * proxy" semantics but is explicit and on-by-default-off.
+ *
+ * Compliance: SOC 2 CC6.6 (network-layer controls), NIS2 Art. 21(2)(e)
+ * (supply-chain security & correct use of middleboxes), ISO 27001
+ * A.8.20/A.8.21 (network controls).
+ */
+export const ProxyTrustSchema = z.object({
+  trustProxy: z.boolean().default(false),
+  trustedProxies: z.array(z.string()).default([]),
+});
+export type ProxyTrust = z.infer<typeof ProxyTrustSchema>;
+
 // --- Gateway Security ---
 
 export const GatewaySecuritySchema = z.object({
@@ -58,6 +84,7 @@ export const GatewaySecuritySchema = z.object({
   ipAllowList: z.array(z.string()).optional(),
   maxRequestBodyBytes: z.number().default(1_048_576),
   cors: CorsConfigSchema.optional(),
+  proxy: ProxyTrustSchema.default({}),
 });
 export type GatewaySecurity = z.infer<typeof GatewaySecuritySchema>;
 

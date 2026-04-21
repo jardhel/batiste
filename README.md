@@ -11,7 +11,16 @@
 [![pnpm](https://img.shields.io/badge/pnpm-%3E%3D9.0.0-orange)](https://pnpm.io)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#)
 [![Tests](https://img.shields.io/badge/tests-446%20passing-brightgreen)](#)
-[![Beta](https://img.shields.io/badge/release-v0.1.0--beta.1-blue)](https://github.com/jardhel/batiste/releases/tag/v0.1.0-beta.1)
+[![Release](https://img.shields.io/badge/release-v1.1.0-brightgreen)](https://github.com/jardhel/batiste/releases/tag/v1.1.0)
+[![GVS](https://img.shields.io/badge/GVS-0.1--draft-blue)](./specs/gvs-0.1.md)
+[![Audit-Ready](https://img.shields.io/badge/audit--ready-yes-2E7D32)](./compliance/README.md)
+[![Runs in Cowork](https://img.shields.io/badge/runs%20in-Cowork-000)](./docs/COWORK.md)
+[![GDPR](https://img.shields.io/badge/GDPR-ready-2E7D32)](./compliance/policies/data-protection-policy.md)
+[![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-ready-2E7D32)](./compliance/frameworks/eu-ai-act-annex-iv.md)
+[![NIS2](https://img.shields.io/badge/NIS2-Art.21%20mapped-2E7D32)](./compliance/frameworks/nis2-art21-measures.md)
+[![DORA](https://img.shields.io/badge/DORA-mapped-2E7D32)](./compliance/frameworks/dora-ict-risk.md)
+[![SOC 2](https://img.shields.io/badge/SOC%202-TSC%20mapped-2E7D32)](./compliance/frameworks/soc2-tsc-mapping.md)
+[![ISO 27001](https://img.shields.io/badge/ISO%2027001-Annex%20A-2E7D32)](./compliance/frameworks/iso27001-annex-a.md)
 
 **Zero-trust infrastructure for AI agents. Route, bill, audit, and kill-switch every agent call — on your own network, with zero cloud dependencies.**
 
@@ -29,7 +38,7 @@
 
 Enterprise AI projects die in pilot for the same four reasons every time: no audit trail, no access control, no cost visibility, and no way to shut everything down instantly. Batiste is the **developer-experience layer** that removes all four blockers — a production-grade **cli-tool** and compute marketplace that gives your AI agents the same governance guarantees you'd expect from any other enterprise system.
 
-Every tool call is scoped at the AST level, verified by JWT, billed per compute cycle, and written to an append-only ledger. The kill switch revokes everything in under 1ms. Nothing leaves your network.
+Every tool call is path-scoped, verified by JWT, billed per compute cycle, and written to an append-only ledger. The kill switch revokes everything in under 1ms. Nothing leaves your network.
 
 Think of it as the **automation** backbone for agentic workflows — the invisible sous-chef that orchestrates, audits, and routes without ever cluttering the workspace.
 
@@ -103,7 +112,7 @@ Batiste is a **monorepo** of composable packages. Every agent call passes throug
 
 | Layer | What it does |
 |---|---|
-| **Scope** | AST-level path enforcement via TreeSitter — deny-listed patterns never reach the handler |
+| **Scope** | Glob-based path enforcement — deny-listed patterns never reach the handler · AST-level enforcement landing via `@batiste-aidk/graph` |
 | **Auth** | JWT verification — expired or tampered tokens rejected before execution |
 | **Audit** | Append-only SQLite WAL write — every call, result, and timing recorded permanently |
 
@@ -116,10 +125,12 @@ Batiste is a **monorepo** of composable packages. Every agent call passes throug
 | [`@batiste-aidk/marketplace`](./packages/marketplace) | Node registry · capability routing · per-cycle billing |
 | [`@batiste-aidk/transport`](./packages/transport) | Secure StreamableHTTP gateway · session management · `PerformanceTracker` |
 | [`@batiste-aidk/connectors`](./packages/connectors) | **Proprietary connectors** — PDF extraction + RFC 4180 CSV/ETL as MCP tools |
-| [`@batiste-aidk/code`](./packages/code) | 10 MCP tools: AST analysis · TDD · AutoFix · LSP · codebase summarisation |
+| [`@batiste-aidk/code`](./packages/code) | 13 MCP tools: AST analysis · TDD · AutoFix · LSP · codebase summarisation · context budgeting · **GVS vault validate / index** |
+| [`@batiste-aidk/gvs`](./packages/gvs) | **[GVS 0.1](./specs/gvs-0.1.md) reference implementation** — loader and validator for Governance Vault Specification |
 | [`@batiste-aidk/audit`](./packages/audit) | Append-only audit ledger · KillSwitch · SessionMonitor |
 | [`@batiste-aidk/auth`](./packages/auth) | JWT token issuance and verification |
-| [`@batiste-aidk/scope`](./packages/scope) | AST-level access policy enforcement |
+| [`@batiste-aidk/scope`](./packages/scope) | Path-based access policy enforcement (glob deny-lists, depth caps) |
+| [`@batiste-aidk/web`](./packages/web) | Dashboard UI — live metrics, audit feed, kill switch (HTML/CSS/JS, no framework) |
 | [`@batiste-aidk/aidk`](./packages/aidk) | `createNode()` factory — composes all zero-trust layers |
 | [`@batiste-aidk/cli`](./packages/cli) | `batiste` binary — full **cli-tool** for node and marketplace management |
 | [`@batiste-aidk/core`](./packages/core) | Shared MCP primitives · agent orchestration · prompt registry |
@@ -149,6 +160,10 @@ batiste status --watch
 
 # Follow the audit ledger in real time
 batiste audit tail --follow
+
+# Validate a GVS 0.1 governance vault (spec: ./specs/gvs-0.1.md)
+batiste vault validate ./obs_vault/my-firm
+batiste vault index ./obs_vault/my-firm --axis decision
 ```
 
 ---
@@ -158,7 +173,7 @@ batiste audit tail --follow
 - **Zero-trust by default** — Scope, Auth, and Audit are the call path, not optional middleware
 - **On-premise** — zero cloud dependencies; runs fully air-gapped
 - **Proprietary connectors** — PDF extraction and CSV/ETL as native MCP tools; data never leaves your network
-- **AST-level scope** — TreeSitter-powered path enforcement; no regex, no bypass
+- **Path-scoped enforcement** — glob deny-lists evaluated before the handler; no bypass · AST-level scope landing via `@batiste-aidk/graph`
 - **Kill switch** — revoke all agent access across all nodes in < 1ms
 - **Per-cycle billing** — every compute cycle tracked and reportable per session
 - **Live metrics** — rolling 1h p50/p95/p99 latency histogram exposed at `GET /metrics`
@@ -172,7 +187,7 @@ batiste audit tail --follow
 
 **Proprietary Connectors** — PDF and CSV/ETL run inside your network. The data never touches a third-party API.
 
-**AST-Level Scope** — access policies enforced at the Abstract Syntax Tree level. No path traversal bypass. Every access is bounded.
+**Path-Scoped Access** — policies evaluated before any handler runs. Glob deny-lists, depth caps, symbol-type filters. AST-level enforcement landing via `@batiste-aidk/graph`.
 
 **Verified Creator Pool** — node reliability scored via rolling EMA. Underperforming nodes are deprioritised automatically.
 
@@ -196,6 +211,20 @@ batiste audit tail --follow
 | Q2 2026 | Public Mainnet V1 — open node registry, creator dashboard |
 | Q3 2026 | Enterprise Auth — SSO, SAML, multi-tenant scoping |
 | Q4 2026 | Global Scale — geo-routing, SLA tiers, compliance exports |
+
+---
+
+## Compliance & Audit-Ready
+
+Batiste is designed for regulated environments from day one. The air-gapped on-prem posture means data never leaves the customer's network, and every agent action is captured in a tamper-evident ledger ready for auditor inspection.
+
+The [`compliance/`](./compliance) folder is the data room: master index, technical control mapping, policies, runbooks, and framework-specific documents (GDPR, EU AI Act, NIS2, DORA, SOC 2, ISO 27001). The single document an auditor will ask for first is [`compliance/mappings/batiste-to-controls.md`](./compliance/mappings/batiste-to-controls.md) — every Batiste feature matched to every control ID it satisfies. Start with [`compliance/README.md`](./compliance/README.md) for the guided tour.
+
+---
+
+## Dogfooding — Batiste dentro do Cowork
+
+O servidor MCP do `@batiste-aidk/code` é carregado como conector do Claude Desktop em **Cowork mode**: toda chamada agentica do nosso próprio dev loop (AST, TDD, AutoFix, codebase summarise) passa pelo caminho zero-trust Scope → Auth → Audit do próprio Batiste. Instale em um comando com `bash scripts/install-cowork.sh` — detalhes em [`docs/COWORK.md`](./docs/COWORK.md).
 
 ---
 
