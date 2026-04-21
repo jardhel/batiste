@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] — 2026-04-21
+
+**Policy patch — foundation-model vendor exposure is now documented, not implicit.** After the v1.1.0 release, a legal-IP audit surfaced that the compliance pack covered nine policies but had no dedicated discipline for the firm's dependency on third-party foundation models (Anthropic, OpenAI, Google). The gap is closed in this patch.
+
+### Added
+
+- `compliance/policies/ai-vendor-policy.md` — governs tier discipline (no consumer tiers for firm work), output provenance, competitive posture, multi-vendor continuity, and contractual posture with clients regarding AI-vendor discontinuity.
+- `compliance/declarations/ai-vendor-deviations.md` — deviation log seeded with the two open items: Anthropic DPA pending execution (D1) and secondary AI-vendor account selection (D2), both with 30-day expiry.
+
+### Changed
+
+- `compliance/vendors.md` — Anthropic PBC added as vendor V9 (Tier 1, processor, DPA pending).
+- `compliance/README.md` — policy index updated to include `ai-vendor-policy.md`.
+
 ## [1.1.0] — 2026-04-21
 
 **GVS 0.1 reference implementation — the ledger and the graph are the same substance.** Batiste now ingests and validates any GVS-conforming governance vault out of the box. This is the dogfood² cut: the firm's own Obsidian vault is the first vault Batiste ingests.
@@ -75,6 +89,7 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 Initial public beta. 446 tests passing, marketplace core, CLI, Cowork-adjacent tooling.
 
+[1.1.1]: https://github.com/jardhel/batiste/releases/tag/v1.1.1
 [1.1.0]: https://github.com/jardhel/batiste/releases/tag/v1.1.0
 [1.0.0]: https://github.com/jardhel/batiste/releases/tag/v1.0.0
 [0.1.0-beta.1]: https://github.com/jardhel/batiste/releases/tag/v0.1.0-beta.1

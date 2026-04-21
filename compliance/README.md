@@ -34,6 +34,7 @@ compliance/
 │   ├── information-security-policy.md      ← ISO 27001 cl. 5.2, SOC 2 CC1
 │   ├── data-protection-policy.md           ← GDPR Art. 5, 24, 25
 │   ├── ai-governance-policy.md             ← EU AI Act Art. 9-15, 17
+│   ├── ai-vendor-policy.md                 ← EU AI Act Arts. 25, 53-55 (GPAI), DORA Art. 28-30, GDPR Art. 28
 │   ├── access-control-policy.md            ← ISO 27001 A.5.15-18, SOC 2 CC6
 │   ├── cryptography-policy.md              ← ISO 27001 A.8.24, SOC 2 CC6.1
 │   ├── incident-response-policy.md         ← ISO 27001 A.5.24-26

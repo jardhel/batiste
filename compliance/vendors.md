@@ -25,6 +25,7 @@
 | V6 | 1Password | CA | Secrets vault (non-production) | 2 | custodian | limited | yes | 2026-04-20 | export + HSM custody for production secrets |
 | V7 | Tax adviser (KPMG NL) | NL | Accounting, payroll | 2 | processor | yes (HR data) | yes | 2026-04-20 | substitute adviser retained as backup |
 | V8 | Stripe | IE/US | Future payments (not yet active) | 3 | processor | yes (when active) | yes, SCCs | — | not active; will re-tier when enabled |
+| V9 | Anthropic PBC | US | Foundation model API (Claude) | 1 | processor | limited (prompt content may carry PD) | **pending** — execute before Radaz Phase 1 execution | 2026-04-21 | secondary AI vendor account to be contracted within 30 days (see `policies/ai-vendor-policy.md` §3.4) |
 
 ## Sub-processor policy
 
