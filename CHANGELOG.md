@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0-alpha.1] — 2026-04-22
+
+**Batiste v2 thesis scaffold — AI Vendor Shield (F5 + F6).** v1.x blindou o *call path* (scope, auth, audit, kill switch). v2 blinda o *dependency path*: the firm's IP lives in its own deployment (Firm Memory), and every foundation-model call enforces the DPA by code (DPA-compliant gateway). This alpha scaffolds the package surfaces and contracts; full delivery lands across alpha.2 → beta → 2.0.0.
+
+### Added
+
+- **`@batiste-aidk/memory`** — new package. Private prompt + fact store for a Batiste deployment. Contracts: `PromptStore`, `FactStore`, `FirmMemory`. v0.1 ships `InMemoryFirmMemory` as the reference implementation; SQLite + `sqlite-vec` backing lands in v1.2.0-alpha.3. Zod schemas (`PromptEntrySchema`, `FactEntrySchema`) are normative — any backing store must conform.
+- **`packages/transport/src/dpa-guard.ts`** — F6 scaffold. `decideOutbound()` is a pure-function decision for an outbound foundation-model call given a `DpaProfile`. Enforces:
+  - Residency (calls into regions not listed in `allowed_regions` are rejected).
+  - Sub-processor allowlist (rejects calls whose regional sub-processor is not declared).
+  - GDPR Art. 9 special-category gate (requires explicit `art9-*` legal basis + profile opt-in).
+  - RoPA emission (every allowed call produces a `RopaEntry` ready for the audit ledger).
+- 15 new passing tests (8 memory + 7 dpa-guard).
+
+### Changed
+
+- `@batiste-aidk/transport` re-exports the F6 types.
+
+### Notes
+
+- F5 (Firm Memory) and F6 (DPA-compliant gateway) are the two structural additions that convert Batiste's "your-Claude" promise from marketing to architecture. The v2 thesis ADR lives in the Cachola Tech vault: `04 Decision/2026-04-22 — Batiste v2 thesis — Firm Memory + DPA-compliant gateway.md`.
+- Implementation is deliberately scaffold-first: public API is committed, substrate (sqlite-vec, residency router wiring, redactor) arrives across alpha.2 and alpha.3.
+- The public repo `jardhel/batiste-prompts` is reference material only. Firm-specific prompts belong in `@batiste-aidk/memory` — never in a public repo.
+
 ## [1.1.1] — 2026-04-21
 
 **Policy patch — foundation-model vendor exposure is now documented, not implicit.** After the v1.1.0 release, a legal-IP audit surfaced that the compliance pack covered nine policies but had no dedicated discipline for the firm's dependency on third-party foundation models (Anthropic, OpenAI, Google). The gap is closed in this patch.
@@ -89,6 +113,7 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 Initial public beta. 446 tests passing, marketplace core, CLI, Cowork-adjacent tooling.
 
+[1.2.0-alpha.1]: https://github.com/jardhel/batiste/releases/tag/v1.2.0-alpha.1
 [1.1.1]: https://github.com/jardhel/batiste/releases/tag/v1.1.1
 [1.1.0]: https://github.com/jardhel/batiste/releases/tag/v1.1.0
 [1.0.0]: https://github.com/jardhel/batiste/releases/tag/v1.0.0

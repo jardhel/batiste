@@ -19,6 +19,24 @@ export { SessionManager, type SessionManagerConfig } from './session-manager.js'
 export { RequestValidator, getClientIp, type ValidationResult } from './request-validator.js';
 export { TlsManager } from './tls-manager.js';
 export {
+  decideOutbound,
+  loadDpaProfile,
+  DpaProfileSchema,
+  SubProcessorSchema,
+  DATA_REGION,
+  DATA_CATEGORY,
+  LEGAL_BASIS,
+  SPECIAL_CATEGORIES,
+  type DpaProfile,
+  type SubProcessor,
+  type DataRegion,
+  type DataCategory,
+  type LegalBasis,
+  type OutboundCall,
+  type GuardDecision,
+  type RopaEntry,
+} from './dpa-guard.js';
+export {
   TransportModeSchema,
   SessionInfoSchema,
   RateLimitConfigSchema,

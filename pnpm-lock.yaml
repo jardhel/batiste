@@ -270,6 +270,22 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.30)
 
+  packages/memory:
+    dependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.30)
+
   packages/scope:
     dependencies:
       '@batiste-aidk/core':

@@ -11,8 +11,9 @@
 [![pnpm](https://img.shields.io/badge/pnpm-%3E%3D9.0.0-orange)](https://pnpm.io)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#)
 [![Tests](https://img.shields.io/badge/tests-446%20passing-brightgreen)](#)
-[![Release](https://img.shields.io/badge/release-v1.1.0-brightgreen)](https://github.com/jardhel/batiste/releases/tag/v1.1.0)
+[![Release](https://img.shields.io/badge/release-v1.2.0--alpha.1-brightgreen)](https://github.com/jardhel/batiste/releases/tag/v1.2.0-alpha.1)
 [![GVS](https://img.shields.io/badge/GVS-0.1--draft-blue)](./specs/gvs-0.1.md)
+[![AI Vendor Shield](https://img.shields.io/badge/v2%20thesis-AI%20Vendor%20Shield-blueviolet)](./CHANGELOG.md#120-alpha1--2026-04-22)
 [![Audit-Ready](https://img.shields.io/badge/audit--ready-yes-2E7D32)](./compliance/README.md)
 [![Runs in Cowork](https://img.shields.io/badge/runs%20in-Cowork-000)](./docs/COWORK.md)
 [![GDPR](https://img.shields.io/badge/GDPR-ready-2E7D32)](./compliance/policies/data-protection-policy.md)
@@ -127,6 +128,7 @@ Batiste is a **monorepo** of composable packages. Every agent call passes throug
 | [`@batiste-aidk/connectors`](./packages/connectors) | **Proprietary connectors** — PDF extraction + RFC 4180 CSV/ETL as MCP tools |
 | [`@batiste-aidk/code`](./packages/code) | 13 MCP tools: AST analysis · TDD · AutoFix · LSP · codebase summarisation · context budgeting · **GVS vault validate / index** |
 | [`@batiste-aidk/gvs`](./packages/gvs) | **[GVS 0.1](./specs/gvs-0.1.md) reference implementation** — loader and validator for Governance Vault Specification |
+| [`@batiste-aidk/memory`](./packages/memory) | **Firm Memory (F5, v2 scaffold)** — private prompt + fact store; the firm's IP lives here, never in a public repo |
 | [`@batiste-aidk/audit`](./packages/audit) | Append-only audit ledger · KillSwitch · SessionMonitor |
 | [`@batiste-aidk/auth`](./packages/auth) | JWT token issuance and verification |
 | [`@batiste-aidk/scope`](./packages/scope) | Path-based access policy enforcement (glob deny-lists, depth caps) |
