@@ -15,6 +15,10 @@ import { registerNodeList } from './commands/node-list.js';
 import { registerConnect } from './commands/connect.js';
 import { registerStatus } from './commands/status.js';
 import { registerAuditTail } from './commands/audit-tail.js';
+import { registerAuditEmit } from './commands/audit-emit.js';
+import { registerAuditEvents } from './commands/audit-events.js';
+import { registerAuditKillswitch } from './commands/audit-killswitch.js';
+import { registerTask } from './commands/task.js';
 import { registerVault } from './commands/vault.js';
 
 const program = new Command();
@@ -38,7 +42,21 @@ registerNodeList(nodeCmd);
 
 registerConnect(program);
 registerStatus(program);
-registerAuditTail(program);
+
+// ─── audit subcommand group ───────────────────────────────────────────────────
+// Audit covers: tool-call ledger (tail), operational event log (emit/events),
+// and cross-process kill switch for multi-agent sessions.
+
+const auditCmd = program
+  .command('audit')
+  .description('Audit ledger, event log, and kill switch');
+
+registerAuditTail(auditCmd);
+registerAuditEmit(auditCmd);
+registerAuditEvents(auditCmd);
+registerAuditKillswitch(auditCmd);
+
+registerTask(program);
 registerVault(program);
 
 // ─── config command ───────────────────────────────────────────────────────────

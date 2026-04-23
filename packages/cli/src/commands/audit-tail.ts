@@ -16,12 +16,10 @@ function formatTs(iso: string): string {
   return iso.replace('T', ' ').replace(/\.\d+Z$/, 'Z');
 }
 
-export function registerAuditTail(program: Command): void {
-  program
-    .command('audit')
-    .description('Tail the audit ledger')
+export function registerAuditTail(audit: Command): void {
+  audit
     .command('tail')
-    .description('Print recent audit entries')
+    .description('Print recent audit entries (tool-call ledger)')
     .option('--db <path>', 'Audit DB path (overrides config)')
     .option('-n, --limit <number>', 'Number of entries to show', '20')
     .option('-f, --follow', 'Poll for new entries every 2s')
