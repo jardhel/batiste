@@ -1,0 +1,34 @@
+{
+  "name": "@batiste-aidk/rls",
+  "version": "0.1.0-alpha.1",
+  "description": "Row-Level Security primitives for Batiste — per-asset access control, classification labels, and PII routing for AI-orchestrated governance.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "rls",
+    "row-level-security",
+    "access-control",
+    "audit",
+    "pii",
+    "ai-governance",
+    "batiste",
+    "gvs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jardhel/batiste"
+  },
+  "author": "Cachola Tech Holding B.V."
+}
