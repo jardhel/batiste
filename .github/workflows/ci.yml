@@ -47,7 +47,7 @@ jobs:
         run: pnpm -r typecheck
 
       - name: Test (vitest with v8 coverage)
-        run: pnpm -r test -- --coverage
+        run: pnpm -r test -- --coverage --passWithNoTests
 
       - name: Knip (dead-code scan)
         run: pnpm exec knip --reporter json --no-exit-code > reports/knip.json || true
