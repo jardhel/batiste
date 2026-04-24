@@ -40,3 +40,4 @@ coverage/
 .batiste/file-index.json
 .batiste/index-state.json
 .batiste/tasks.db
+reports/
