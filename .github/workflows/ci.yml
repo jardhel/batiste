@@ -38,6 +38,7 @@ jobs:
 
       - name: Lint (ESLint → SARIF)
         run: |
+          mkdir -p reports
           pnpm exec eslint . \
             --format @microsoft/eslint-formatter-sarif \
             --output-file reports/eslint.sarif || true
