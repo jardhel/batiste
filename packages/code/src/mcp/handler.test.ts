@@ -27,15 +27,18 @@ describe('ToolHandler', () => {
 
   describe('analyze_dependency', () => {
     it('throws clear error when entryPoints missing', async () => {
+      // Zod validation (Input validation failed for tool 'analyze_dependency':
+      // entryPoints Required) now fires before the manual check in
+      // handler.ts; both messages mention the missing field.
       await expect(handler.handleTool('analyze_dependency', {})).rejects.toThrow(
-        /analyze_dependency requires entryPoints/
+        /entryPoints/
       );
     });
 
     it('throws clear error when entryPoints is empty', async () => {
       await expect(
         handler.handleTool('analyze_dependency', { entryPoints: [] }),
-      ).rejects.toThrow(/analyze_dependency requires entryPoints/);
+      ).rejects.toThrow(/entryPoints/);
     });
 
     it('analyzes file dependencies', async () => {
