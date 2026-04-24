@@ -67,9 +67,21 @@ function collectFiles(pkgPath) {
   return out;
 }
 
+// Platform-specific packages (optionalDependencies with os/cpu constraints)
+// resolve differently per runner OS: e.g. on macOS we get
+// @rollup/rollup-darwin-arm64, on Linux CI we get @rollup/rollup-linux-x64-gnu.
+// Their parent packages (rollup, esbuild, etc.) are already covered by the
+// aggregated NOTICE, so excluding the binary variants makes NOTICE cross-
+// platform deterministic without loss of license compliance.
+const PLATFORM_SPECIFIC = /(-|\/)((?:darwin|linux|win32|freebsd|openbsd|android|sunos|netbsd|aix)(?:-|_|$)|(?:arm64|x64|ia32|armv7|arm)$|musl$|gnueabihf$)/i;
+function isPlatformSpecific(name) {
+  return PLATFORM_SPECIFIC.test(name);
+}
+
 const rows = [];
 for (const [license, entries] of Object.entries(pnpmLicenses())) {
   for (const e of entries) {
+    if (isPlatformSpecific(e.name)) continue;
     rows.push({ name: e.name, version: e.version, license, path: e.path });
   }
 }
