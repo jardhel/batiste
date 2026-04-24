@@ -92,10 +92,10 @@ export class NotImplementedError extends Error {
  *   - When ALLOW_REDACTED, the matched rule's redactSpec is propagated
  */
 export function evaluate(
-  principal: Principal,
-  asset: Asset,
-  action: Action,
-  policy: AccessPolicy
+  _principal: Principal,
+  _asset: Asset,
+  _action: Action,
+  _policy: AccessPolicy
 ): AccessDecision {
   throw new NotImplementedError("evaluate(principal, asset, action, policy)");
 }
@@ -109,7 +109,7 @@ export function evaluate(
  *   - hash: replace spans with sha256:<first-12-hex>
  *   - null: delete spans entirely
  */
-export function redact(content: string, spec: RedactSpec): string {
+export function redact(_content: string, _spec: RedactSpec): string {
   throw new NotImplementedError("redact(content, spec)");
 }
 
