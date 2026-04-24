@@ -50,7 +50,11 @@ function pnpmLicenses() {
 function collectFiles(pkgPath) {
   if (!existsSync(pkgPath)) return [];
   const out = [];
-  for (const name of readdirSync(pkgPath)) {
+  // Sort readdir for cross-platform determinism: readdirSync ordering
+  // differs between macOS HFS+/APFS and Linux ext4, breaking --verify
+  // when NOTICE is written on one OS and verified on another.
+  const names = readdirSync(pkgPath).sort((a, b) => a.localeCompare(b));
+  for (const name of names) {
     const abs = join(pkgPath, name);
     try {
       if (!statSync(abs).isFile()) continue;
