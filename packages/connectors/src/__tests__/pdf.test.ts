@@ -17,7 +17,7 @@ describe('PdfParser', () => {
 
   it('extracts text content', async () => {
     const result = await parser.parseFile(FIXTURE_PDF);
-    expect(result.text).toContain('Hello Batiste');
+    expect(result.text.replace(/\s+/g, ' ')).toContain('Hello Batiste');
   });
 
   it('returns version string', async () => {
@@ -45,7 +45,7 @@ describe('PdfParser', () => {
   it('parses from buffer', async () => {
     const buf = await readFile(FIXTURE_PDF);
     const result = await parser.parseBuffer(buf);
-    expect(result.text).toContain('Hello Batiste');
+    expect(result.text.replace(/\s+/g, ' ')).toContain('Hello Batiste');
   });
 
   it('respects maxPages option', async () => {

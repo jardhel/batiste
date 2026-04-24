@@ -29,11 +29,18 @@ let _pdfjs: PdfJs | undefined;
 async function loadPdfJs(): Promise<PdfJs> {
   if (_pdfjs) return _pdfjs;
   _pdfjs = (await import('pdfjs-dist/legacy/build/pdf.mjs')) as PdfJs;
-  // Disable the worker — we run in Node and the main-thread build is fine
-  // for our file sizes. Keeping a separate worker would add a fork and an
-  // additional trusted-code boundary for no meaningful latency win.
+  // Point GlobalWorkerOptions.workerSrc at the worker file resolved via
+  // createRequire — modern pdfjs treats empty workerSrc as "not specified"
+  // and throws even when disableWorker:true is passed to getDocument. The
+  // resolved file URL lets pdfjs's fake-worker path load the worker
+  // module on the main thread without spawning a real worker.
+  const { createRequire } = await import('node:module');
+  const { pathToFileURL } = await import('node:url');
+  const req = createRequire(import.meta.url);
+  const workerPath = req.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (_pdfjs as unknown as { GlobalWorkerOptions: { workerSrc: string } }).GlobalWorkerOptions.workerSrc = '';
+  (_pdfjs as unknown as { GlobalWorkerOptions: { workerSrc: string } })
+    .GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).href;
   return _pdfjs;
 }
 
@@ -55,12 +62,17 @@ export class PdfParser {
 
     // `isEvalSupported: false` disables runtime eval() inside the parser —
     // belt-and-braces for a library that handles untrusted input.
+    // `disableWorker: true` forces main-thread parsing — we run in Node
+    // and the worker would otherwise fail with "No GlobalWorkerOptions.workerSrc
+    // specified" since setting workerSrc='' doesn't actually disable it in
+    // modern pdfjs. See loadPdfJs() for the partial workaround.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const doc = await (pdfjs as any).getDocument({
       data,
       isEvalSupported: false,
       disableFontFace: true,
       useSystemFonts: false,
+      disableWorker: true,
     }).promise;
 
     const pageCount: number = doc.numPages;
