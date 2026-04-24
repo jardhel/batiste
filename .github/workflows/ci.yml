@@ -12,6 +12,7 @@ concurrency:
 
 permissions:
   contents: read
+  security-events: write  # github/codeql-action/upload-sarif needs this to post ESLint findings to Code Scanning
 
 jobs:
   lint-typecheck-test:
