@@ -1,0 +1,952 @@
+NOTICE
+
+This product, Batiste ("the Software"), includes code distributed under
+open-source licences. The sections below reproduce the licence / notice /
+copying files declared by each production dependency, as required by
+Apache-2.0 §4(d), BSD, MIT, and similar licences.
+
+Generated at 2026-04-24T01:44:40.497Z — see scripts/generate-notice.mjs.
+
+--------------------------------------------------------------------------------
+
+## @hono/node-server@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @modelcontextprotocol/sdk@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @napi-rs/canvas@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @napi-rs/canvas-darwin-arm64@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @nodelib/fs.scandir@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @nodelib/fs.stat@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @nodelib/fs.walk@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## accepts@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ajv@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ajv-formats@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## argparse@undefined  (Python-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## base64-js@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## better-sqlite3@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## bindings@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## bl@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## body-parser@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## braces@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## buffer@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## bytes@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## call-bind-apply-helpers@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## call-bound@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## chownr@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## commander@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## content-disposition@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## content-type@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## cookie@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## cookie-signature@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## cors@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## cross-spawn@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## debug@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## decompress-response@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## deep-extend@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## depd@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## detect-libc@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## dunder-proto@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ee-first@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## encodeurl@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## end-of-stream@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## es-define-property@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## es-errors@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## es-object-atoms@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## escape-html@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## etag@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## eventsource@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## eventsource-parser@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## expand-template@undefined  ((MIT OR WTFPL))
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## express@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## express-rate-limit@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## fast-deep-equal@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## fast-glob@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## fast-uri@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## fastq@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## file-uri-to-path@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## fill-range@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## finalhandler@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## forwarded@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## fresh@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## fs-constants@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## function-bind@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## get-intrinsic@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## get-proto@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## github-from-package@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## glob-parent@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## gopd@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## has-symbols@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## hasown@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## hono@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## http-errors@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## iconv-lite@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ieee754@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ignore@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## inherits@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ini@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ip-address@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ipaddr.js@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## is-extglob@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## is-glob@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## is-number@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## is-promise@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## isexe@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## jose@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## js-yaml@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## json-schema-traverse@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## json-schema-typed@undefined  (BSD-2-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## math-intrinsics@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## media-typer@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## merge-descriptors@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## merge2@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## micromatch@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## mime-db@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## mime-types@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## mimic-response@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## minimist@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## mkdirp-classic@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ms@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## napi-build-utils@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## negotiator@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## node-abi@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## node-addon-api@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## node-gyp-build@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## object-assign@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## object-inspect@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## on-finished@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## once@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## parseurl@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## path-key@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## path-to-regexp@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## pdfjs-dist@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## picomatch@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## pkce-challenge@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## prebuild-install@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## proxy-addr@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## pump@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## qs@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## queue-microtask@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## range-parser@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## raw-body@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## rc@undefined  ((BSD-2-Clause OR MIT OR Apache-2.0))
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## readable-stream@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## require-from-string@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## reusify@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## router@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## run-parallel@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## safe-buffer@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## safer-buffer@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## semver@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## send@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## serve-static@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## setprototypeof@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## shebang-command@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## shebang-regex@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## side-channel@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## side-channel-list@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## side-channel-map@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## side-channel-weakmap@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## simple-concat@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## simple-get@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## statuses@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## string_decoder@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## strip-json-comments@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## tar-fs@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## tar-stream@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## to-regex-range@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## toidentifier@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## tree-sitter@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## tree-sitter-python@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## tree-sitter-typescript@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## tunnel-agent@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## type-is@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## typescript@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## unpipe@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## util-deprecate@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## vary@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## which@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## wrappy@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## zod@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## zod-to-json-schema@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
