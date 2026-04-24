@@ -30,5 +30,9 @@
     "type": "git",
     "url": "https://github.com/jardhel/batiste"
   },
-  "author": "Cachola Tech Holding B.V."
+  "author": "Cachola Tech Holding B.V.",
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
 }
