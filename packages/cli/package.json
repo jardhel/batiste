@@ -30,7 +30,7 @@
     "@batiste-aidk/gvs": "workspace:*",
     "@batiste-aidk/marketplace": "workspace:*",
     "@batiste-aidk/transport": "workspace:*",
-    "commander": "^12.0.0",
+    "commander": "^14.0.3",
     "zod": "^3.23.0"
   },
   "devDependencies": {
