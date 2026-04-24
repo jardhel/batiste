@@ -19,37 +19,62 @@ function runPermissionsAudit() {
     .concat(CONFIG.DESIGNER_EMAILS)
     .concat(CONFIG.EXTERNAL_COLLABORATORS);
 
-  // Walk every folder in the overlay
+  // Walk every folder in the overlay (SD-aware via listAllPermissions)
   const stack = [overlay];
+  const inSD = isSharedDriveFolder(overlay.getId());
   while (stack.length) {
     const f = stack.pop();
     const subIt = f.getFolders();
     while (subIt.hasNext()) stack.push(subIt.next());
 
-    const editors = f.getEditors().map(u => u.getEmail());
-    const viewers = f.getViewers().map(u => u.getEmail());
+    const perms = listAllPermissions(f.getId());
+    const principals = perms.map(p => p.emailAddress).filter(Boolean);
 
     // Rule 1: _keys/, _governance/ → only gestora
     if (f.getName() === CONFIG.KEYS_HINT_DIR || f.getName() === CONFIG.GOVERNANCE_DIR) {
-      const unauthorized = editors.concat(viewers).filter(e => e !== CONFIG.GESTORA_EMAIL);
-      unauthorized.forEach(u => findings.push({
-        severity: "critical",
-        rule: "R1-gestora-only",
-        folder: f.getName(),
-        principal: u
-      }));
+      perms.forEach(p => {
+        if (p.emailAddress && p.emailAddress !== CONFIG.GESTORA_EMAIL) {
+          findings.push({
+            severity: "critical",
+            rule: "R1-gestora-only",
+            folder: f.getName(),
+            principal: p.emailAddress,
+            role: p.role,
+            source: p.source
+          });
+        }
+      });
     }
 
     // Rule 2: any folder shared with someone outside the allowlist
-    editors.concat(viewers).forEach(u => {
-      if (!allowlist.includes(u)) {
-        findings.push({ severity: "high", rule: "R2-allowlist", folder: f.getName(), principal: u });
+    perms.forEach(p => {
+      if (!p.emailAddress) return;
+      if (!allowlist.includes(p.emailAddress)) {
+        findings.push({
+          severity: "high",
+          rule: "R2-allowlist",
+          folder: f.getName(),
+          principal: p.emailAddress,
+          role: p.role,
+          source: p.source
+        });
       }
     });
 
-    // Rule 3: any folder with public sharing
-    if (f.getSharingAccess() !== DriveApp.Access.PRIVATE) {
-      findings.push({ severity: "critical", rule: "R3-no-public", folder: f.getName(), access: String(f.getSharingAccess()) });
+    // Rule 3: any folder with public sharing (MyDrive only — SD has no link sharing per folder)
+    if (!inSD) {
+      try {
+        if (f.getSharingAccess() !== DriveApp.Access.PRIVATE) {
+          findings.push({
+            severity: "critical",
+            rule: "R3-no-public",
+            folder: f.getName(),
+            access: String(f.getSharingAccess())
+          });
+        }
+      } catch (e) {
+        // some MyDrive items may not expose sharing; skip
+      }
     }
   }
 

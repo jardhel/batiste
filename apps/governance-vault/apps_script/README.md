@@ -1,23 +1,27 @@
 # Apps Script — installation
 
-Three files matter; one config file you edit; two scripts you run.
+Five files matter; one config file you edit; two scripts you run. Supports MyDrive and Shared Drive parents (auto-detected).
 
 ## Order of operations (90 minutes for the gestora, one time)
 
 1. **Open Apps Script editor.** From the gestora's Drive UI: **+ New → More → Google Apps Script**.
 2. **Create a new project.** Name it `Governance Vault — <agency slug>`.
-3. **Paste the four files** from this folder, in this order, each as its own .gs file:
+3. **Paste the five files** from this folder, in this order, each as its own .gs file:
    - `00_config.gs`
+   - `00a_drive_compat.gs`  *(MyDrive vs Shared Drive helpers — required v0.1.1+)*
    - `01_setup_overlay.gs`
    - `02_audit_emitter.gs`
    - `03_permissions_audit.gs`
 4. **Replace the contents of `appsscript.json`** (Project Settings → "Show appsscript.json manifest in editor") with the file in this folder.
-5. **Edit `00_config.gs`.** Replace every value tagged `REPLACE_WITH_…`. Save.
+5. **Edit `00_config.gs`.** Replace every value tagged `REPLACE_WITH_…`. Save. `PARENT_FOLDER_ID` can point to a MyDrive folder, an SD folder, or an SD root — auto-detected.
 6. **Run `validateConfig`** (function selector → `validateConfig` → ▶). Should print `✓ Config valid for agency: <name>`.
-7. **Approve OAuth scopes** when prompted: Drive (read/write), send_mail, scriptapp, userinfo.email. The script runs in the gestora's auth context — never escalates beyond what the gestora already has.
-8. **Run `setupOverlay`.** Creates the overlay folder, six axes, IAM, templates, bootstrap audit note. Idempotent — safe to re-run.
-9. **Run `installAuditTriggers`.** Schedules the 15-min poll. From now on, every file change in the overlay generates a ledger entry + (for deliverables) a vault audit note.
-10. **Schedule a quarterly reminder** to run `runPermissionsAudit` manually. (Or wire it into `Triggers` if you prefer auto.)
+7. **(Recommended) Run `describeParentFolder`** to confirm topology — prints whether the parent is MyDrive or Shared Drive (and the SD name/id). Catches a wrong PARENT_FOLDER_ID before any folder is created.
+8. **Approve OAuth scopes** when prompted: Drive (read/write), send_mail, scriptapp, userinfo.email. The script runs in the gestora's auth context — never escalates beyond what the gestora already has.
+9. **Run `setupOverlay`.** Creates the overlay folder, six axes, IAM, templates, bootstrap audit note. Idempotent — safe to re-run.
+   - **Shared Drive**: per-folder ACLs are skipped (SD membership governs); the script logs the expected member roster — provision SD members manually in Drive UI (Manage members).
+   - **MyDrive**: per-folder ACLs applied (gestora=Editor, analysts=Reader, _keys/_governance=gestora-only).
+10. **Run `installAuditTriggers`.** Schedules the 15-min poll. From now on, every file change in the overlay generates a ledger entry + (for deliverables) a vault audit note.
+11. **Schedule a quarterly reminder** to run `runPermissionsAudit` manually. (Or wire it into `Triggers` if you prefer auto.)
 
 ## What the gestora can verify after step 9
 

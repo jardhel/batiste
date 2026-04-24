@@ -183,10 +183,13 @@ function maybeEmitVaultAuditNote(overlay, ev) {
 
 function checkPermissionDrift(overlay, auditDir, sinceMs) {
   // Walk the overlay; flag files shared with anyone outside the allowlist.
+  // SD-aware: uses listAllPermissions which queries SD members + file ACL via
+  // Advanced Drive Service when in Shared Drive. MyDrive falls back to DriveApp.
   const allowlist = [CONFIG.GESTORA_EMAIL]
     .concat(CONFIG.ANALYST_EMAILS)
     .concat(CONFIG.DESIGNER_EMAILS)
     .concat(CONFIG.EXTERNAL_COLLABORATORS);
+  const selfEmail = Session.getActiveUser().getEmail();
 
   const violations = [];
   const stack = [overlay];
@@ -195,18 +198,22 @@ function checkPermissionDrift(overlay, auditDir, sinceMs) {
     if (f.getName() === ".audit") continue;
     const subIt = f.getFolders();
     while (subIt.hasNext()) stack.push(subIt.next());
-    const viewers = f.getViewers().concat(f.getEditors());
-    viewers.forEach(u => {
-      const email = u.getEmail();
-      if (!allowlist.includes(email) && email !== Session.getActiveUser().getEmail()) {
-        violations.push({
-          ts: new Date().toISOString(),
-          event: "permission.drift",
-          path: f.getName(),
-          unauthorized_principal: email,
-          severity: "high",
-        });
-      }
+
+    const perms = listAllPermissions(f.getId());
+    perms.forEach(p => {
+      const email = p.emailAddress;
+      if (!email) return;
+      if (allowlist.includes(email)) return;
+      if (email === selfEmail) return;
+      violations.push({
+        ts: new Date().toISOString(),
+        event: "permission.drift",
+        path: f.getName(),
+        unauthorized_principal: email,
+        role: p.role,
+        source: p.source,  // 'member' (SD) vs 'file' (per-folder ACL)
+        severity: "high",
+      });
     });
   }
 
@@ -215,7 +222,10 @@ function checkPermissionDrift(overlay, auditDir, sinceMs) {
     MailApp.sendEmail({
       to: CONFIG.GESTORA_EMAIL,
       subject: "[Governance Vault] " + violations.length + " permission drift(s) detected",
-      body: violations.map(v => v.path + " → " + v.unauthorized_principal).join("\n"),
+      body: violations.map(v =>
+        v.path + " → " + v.unauthorized_principal +
+        " (" + v.role + " via " + v.source + ")"
+      ).join("\n"),
     });
   }
 }

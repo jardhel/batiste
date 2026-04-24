@@ -37,28 +37,31 @@ function setupOverlay() {
   validateConfig();
 
   const parent = DriveApp.getFolderById(CONFIG.PARENT_FOLDER_ID);
-  Logger.log("✓ Parent folder located: " + parent.getName());
+  const inSD = isSharedDriveFolder(CONFIG.PARENT_FOLDER_ID);
+  const sdId = inSD ? getSharedDriveId(CONFIG.PARENT_FOLDER_ID) : null;
+  Logger.log("✓ Parent folder located: " + parent.getName() +
+             (inSD ? " (Shared Drive: " + sdId + ")" : " (MyDrive)"));
 
   // 1. Find or create the overlay folder
-  const overlay = findOrCreateChild(parent, CONFIG.OVERLAY_FOLDER_NAME);
+  const overlay = findOrCreateChildCompat(parent, CONFIG.OVERLAY_FOLDER_NAME);
   Logger.log("✓ Overlay folder ready: " + overlay.getName());
 
   // 2. Six-axis subtree
-  SIX_AXES.forEach(axis => findOrCreateChild(overlay, axis));
+  SIX_AXES.forEach(axis => findOrCreateChildCompat(overlay, axis));
   Logger.log("✓ Six axes ready");
 
   // 3. Public-to-team subsystems
-  SUBSYSTEM_DIRS.forEach(d => findOrCreateChild(overlay, d));
+  SUBSYSTEM_DIRS.forEach(d => findOrCreateChildCompat(overlay, d));
 
   // 4. Gestora-only subsystems
-  const governance = findOrCreateChild(overlay, CONFIG.GOVERNANCE_DIR);
-  const keysHints = findOrCreateChild(overlay, CONFIG.KEYS_HINT_DIR);
+  const governance = findOrCreateChildCompat(overlay, CONFIG.GOVERNANCE_DIR);
+  const keysHints = findOrCreateChildCompat(overlay, CONFIG.KEYS_HINT_DIR);
   // .audit is a special case — Drive doesn't support hidden folders, but the
   // leading dot in the name still hides it from Obsidian's indexer when the
   // vault is opened locally.
-  const auditDir = findOrCreateChild(overlay, ".audit");
+  const auditDir = findOrCreateChildCompat(overlay, ".audit");
 
-  // 5. Apply IAM
+  // 5. Apply IAM (branches MyDrive vs Shared Drive)
   applyOverlayPermissions(overlay);
   applyGestoraOnlyPermissions(governance);
   applyGestoraOnlyPermissions(keysHints);
@@ -95,32 +98,44 @@ function setupOverlay() {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────
 
-function findOrCreateChild(parent, childName) {
-  const it = parent.getFoldersByName(childName);
-  if (it.hasNext()) return it.next();
-  return parent.createFolder(childName);
-}
-
 function applyOverlayPermissions(overlay) {
-  // Gestora is owner; analysts + designers get Viewer (Reader).
-  // Owner is whoever runs the script — typically the gestora. We only adjust
-  // SHARING to add the team; we never change ownership.
+  if (isSharedDriveFolder(overlay.getId())) {
+    // SHARED DRIVE: per-folder ACLs are not the access-control surface.
+    // SD membership governs. The script logs the expected member roster
+    // for the gestora to provision via Drive UI; it does NOT silently
+    // attempt setSharing/addViewer (which throw on SD).
+    Logger.log("ℹ Shared Drive — per-folder sharing skipped. Configure SD members in Drive UI:");
+    Logger.log("    - " + CONFIG.GESTORA_EMAIL + " : Manager");
+    CONFIG.ANALYST_EMAILS.forEach(e => Logger.log("    - " + e + " : Content Manager (Editor)"));
+    CONFIG.DESIGNER_EMAILS.forEach(e => Logger.log("    - " + e + " : Commenter"));
+    return;
+  }
+  // MyDrive: per-folder ACL semantics
   overlay.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
   CONFIG.ANALYST_EMAILS.forEach(email => safeAddViewer(overlay, email));
   CONFIG.DESIGNER_EMAILS.forEach(email => safeAddViewer(overlay, email));
-  // Six axes inherit. _attachments and _templates inherit. Special-case folders
-  // are tightened in the next two helpers.
 }
 
 function applyGestoraOnlyPermissions(folder) {
-  // Strip down to gestora-only. Remove any inherited viewers from this folder
-  // by creating it as PRIVATE.
+  if (isSharedDriveFolder(folder.getId())) {
+    // SHARED DRIVE: gestora-only enforcement at folder level requires
+    // SD-level "Folder restrictions" (paid Workspace plans). Document
+    // the requirement instead of silently failing.
+    Logger.log("ℹ Shared Drive — gestora-only requested for '" + folder.getName() +
+               "'. SD does not support per-folder ACL restriction below SD-membership level. " +
+               "Either: (a) Move " + folder.getName() + " out of SD into gestora's MyDrive, " +
+               "or (b) enable Folder Restrictions on the SD (Workspace Business+) and configure manually.");
+    return;
+  }
   folder.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
-  // We don't add anyone — the gestora is the script-runner / owner.
 }
 
 function applyAuditPermissions(folder) {
-  // Audit dir: gestora=Editor (write); analysts=Reader (read-only).
+  if (isSharedDriveFolder(folder.getId())) {
+    Logger.log("ℹ Shared Drive — audit dir read access governed by SD membership. " +
+               "Analysts who are SD Content Managers will see .audit/ by default.");
+    return;
+  }
   folder.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
   CONFIG.ANALYST_EMAILS.forEach(email => safeAddViewer(folder, email));
 }
@@ -356,6 +371,11 @@ function writeBootstrapAuditNote(overlay) {
   const auditAxis = overlay.getFoldersByName("06 Audit").next();
   const filename = ymd() + "-OVERLAY-SETUP.md";
   if (auditAxis.getFilesByName(filename).hasNext()) return;
+  const inSD = isSharedDriveFolder(overlay.getId());
+  const sdId = inSD ? getSharedDriveId(overlay.getId()) : null;
+  const iamLine = inSD
+    ? "- IAM: governed by Shared Drive membership (SD id: " + sdId + "). Per-folder ACLs not applied; configure SD members in Drive UI."
+    : "- IAM: gestora=Editor; analistas=Reader; _keys/_governance=gestora-only (per-folder ACL)";
   const content = [
     "---",
     `title: "Overlay setup — ${CONFIG.AGENCY_NAME}"`,
@@ -365,6 +385,8 @@ function writeBootstrapAuditNote(overlay) {
     'event: "overlay.setup"',
     `actor: "${Session.getActiveUser().getEmail()}"`,
     `overlay_id: "${overlay.getId()}"`,
+    `topology: "${inSD ? 'shared_drive' : 'my_drive'}"`,
+    inSD ? `shared_drive_id: "${sdId}"` : null,
     "tags: [axis/audit, event/overlay.setup]",
     "---",
     "",
@@ -372,19 +394,23 @@ function writeBootstrapAuditNote(overlay) {
     "",
     `Setup do vault de governança executado em **${new Date().toISOString()}** por **${Session.getActiveUser().getEmail()}**.`,
     "",
+    `**Topologia:** ${inSD ? 'Shared Drive (' + sdId + ')' : 'MyDrive'}`,
+    "",
     "Aplicado:",
     "",
     "- Pasta overlay criada (ou pré-existente, idempotente)",
     "- Seis eixos GVS instanciados",
-    "- IAM: gestora=Editor; analistas=Reader; _keys/_governance=gestora-only",
+    iamLine,
     "- Templates seedados em `_templates/`",
     `- Inventory ${CONFIG.RUN_INVENTORY_ON_SETUP ? "executado (read-only)" : "pulado"}`,
     "",
     "## Próximo passo",
     "",
-    "Configurar Obsidian + Meld Encrypt — ver `obsidian/meld_encrypt_setup.md` no app `apps/governance-vault/`.",
+    inSD
+      ? "Configurar SD members em Drive UI (Manage members) — ver roster logado pelo setupOverlay. Depois configurar Obsidian + Meld Encrypt — ver `obsidian/meld_encrypt_setup.md`."
+      : "Configurar Obsidian + Meld Encrypt — ver `obsidian/meld_encrypt_setup.md` no app `apps/governance-vault/`.",
     ""
-  ].join("\n");
+  ].filter(l => l !== null).join("\n");
   auditAxis.createFile(filename, content, MimeType.PLAIN_TEXT);
 }
 
