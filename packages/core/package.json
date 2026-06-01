@@ -44,7 +44,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "better-sqlite3": "^11.0.0",
     "zod": "^3.23.0"
   },
