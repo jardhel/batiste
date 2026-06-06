@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cachola Tech · Firm Cockpit</title>
+  <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/cockpit.css" />
+</head>
+<body class="cockpit-body">
+  <main class="ledger cockpit">
+    <header class="ledger__header cockpit__header">
+      <a class="ledger__brand" href="/">
+        <img src="/brand/symbol-head.svg" alt="Cachola Tech" />
+        <span class="ledger__wordmark italic">cachola<span class="ledger__dot">·</span>tech</span>
+      </a>
+      <nav class="cockpit__nav" aria-label="Primary">
+        <a class="cockpit__nav-link cockpit__nav-link--active" href="/cockpit">Cockpit</a>
+        <a class="cockpit__nav-link" href="/">Sources</a>
+        <a class="cockpit__nav-link cockpit__nav-link--muted" href="#" data-stub="settings" title="Settings panel arrives in v1.5">Settings</a>
+      </nav>
+      <button id="kill-all" class="kill-all" type="button" aria-label="Stop all running operations">
+        <span class="kill-all__label">Kill all</span>
+      </button>
+    </header>
+
+    <section class="cockpit__intro">
+      <div>
+        <div class="caps section-eyebrow">Operator cockpit</div>
+        <h1 class="italic cockpit__title">Live audit, scope, in-flight, and memory.</h1>
+        <p class="cockpit__lede">
+          Four panels over the same ledger and Firm Memory the wizard wrote.
+          Read-only by design. The KILL ALL control above is the single mutating
+          surface — it stops every running operation and pauses the global gate.
+        </p>
+      </div>
+      <dl class="cockpit__meta" id="cockpit-meta">
+        <div><dt class="caps">Namespace</dt><dd class="cockpit__meta-value italic" data-meta="namespace">…</dd></div>
+        <div><dt class="caps">FM root</dt><dd class="cockpit__meta-value cockpit__meta-mono" data-meta="fmRoot">…</dd></div>
+      </dl>
+    </section>
+
+    <section id="panel-running" class="panel" aria-labelledby="panel-running-title">
+      <div class="panel__header">
+        <div>
+          <div class="caps section-eyebrow">Panel 01</div>
+          <h2 id="panel-running-title" class="italic panel__title">Running</h2>
+        </div>
+        <span class="caps panel__meta" data-meta="running-count">0 ops</span>
+      </div>
+      <div class="panel__body" data-region="running">
+        <p class="panel__empty italic" data-empty="running">No operations running. Atrium is idle.</p>
+      </div>
+    </section>
+
+    <section id="panel-scope" class="panel" aria-labelledby="panel-scope-title">
+      <div class="panel__header">
+        <div>
+          <div class="caps section-eyebrow">Panel 02</div>
+          <h2 id="panel-scope-title" class="italic panel__title">Permitted</h2>
+        </div>
+        <a class="caps panel__meta panel__meta-link" href="#" data-stub="tighten">Tighten scope · v1.5</a>
+      </div>
+      <div class="panel__body" data-region="scope">
+        <p class="panel__empty italic">Loading scope…</p>
+      </div>
+    </section>
+
+    <section id="panel-audit" class="panel" aria-labelledby="panel-audit-title">
+      <div class="panel__header">
+        <div>
+          <div class="caps section-eyebrow">Panel 03</div>
+          <h2 id="panel-audit-title" class="italic panel__title">Activity log</h2>
+        </div>
+        <div class="panel__filter">
+          <label for="audit-filter" class="caps">Filter</label>
+          <select id="audit-filter" class="select">
+            <option value="all">All</option>
+            <option value="error">Errors only</option>
+            <option value="denied">Denials only</option>
+          </select>
+        </div>
+      </div>
+      <div class="panel__body" data-region="audit">
+        <p class="panel__empty italic" data-empty="audit">Listening for ledger entries…</p>
+        <ol class="audit-list" data-list="audit"></ol>
+      </div>
+    </section>
+
+    <section id="panel-fm" class="panel" aria-labelledby="panel-fm-title">
+      <div class="panel__header">
+        <div>
+          <div class="caps section-eyebrow">Panel 04</div>
+          <h2 id="panel-fm-title" class="italic panel__title">Memory</h2>
+        </div>
+        <div class="panel__search">
+          <input id="fm-search" class="search" type="search" placeholder="Search title or body…" autocomplete="off" />
+          <select id="fm-type" class="select">
+            <option value="fact">Facts</option>
+            <option value="prompt">Prompts</option>
+          </select>
+        </div>
+      </div>
+      <div class="panel__body" data-region="fm">
+        <p class="panel__empty italic" data-empty="fm">Loading entries…</p>
+        <ul class="fm-list" data-list="fm"></ul>
+        <div class="fm-pager" data-pager hidden>
+          <button class="btn fm-pager__btn" data-pager-action="prev" type="button">Previous</button>
+          <span class="caps fm-pager__meta" data-pager-meta></span>
+          <button class="btn fm-pager__btn" data-pager-action="next" type="button">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="ledger__footer">
+      <span>Cachola Tech · Eindhoven · MMXXVI</span>
+      <span class="footer__powered">Powered by Batiste · v1.4-alpha</span>
+    </footer>
+  </main>
+
+  <div id="modal-kill" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-kill-title">
+    <div class="modal__panel">
+      <div class="caps section-eyebrow">Confirm</div>
+      <h2 id="modal-kill-title" class="italic modal__title">Stop all running operations now?</h2>
+      <p class="modal__copy">
+        This terminates in-flight ingestion subprocesses and pauses the global
+        gate so any agent session bound to this server is denied entry until
+        you resume it manually.
+      </p>
+      <div class="modal__actions">
+        <button class="btn" id="modal-kill-cancel" type="button">Cancel</button>
+        <button class="btn modal__confirm" id="modal-kill-confirm" type="button">Confirm kill</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-fm" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-fm-title">
+    <div class="modal__panel modal__panel--wide">
+      <div class="modal__head">
+        <div>
+          <div class="caps section-eyebrow" data-detail="kind">Memory entry</div>
+          <h2 id="modal-fm-title" class="italic modal__title" data-detail="title">…</h2>
+        </div>
+        <button class="modal__close" id="modal-fm-close" type="button" aria-label="Close">×</button>
+      </div>
+      <dl class="detail-meta" data-detail="meta"></dl>
+      <pre class="detail-body" data-detail="body"></pre>
+      <div class="modal__actions modal__actions--split">
+        <button class="btn" id="modal-fm-forget" type="button" title="Will be wired to GDPR Art.17 redaction in v1.5" data-stub="forget">Forget this · v1.5</button>
+        <button class="btn modal__confirm" id="modal-fm-done" type="button">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/static/cockpit.js"></script>
+</body>
+</html>

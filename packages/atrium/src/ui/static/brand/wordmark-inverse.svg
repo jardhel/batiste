@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Cachola Tech · Wordmark (inverse / dark mode)
+     Cream-on-navy for cover slides, posters, dark backgrounds.
+     Background is part of the file so it renders with proper contrast. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 220" role="img" aria-label="Cachola Tech — The firm, on the record.">
+  <defs>
+    <style>
+      .bg{fill:#1F2B3D}
+      .wordmark{font-family:"EB Garamond","Libertinus Serif","Times New Roman",serif;font-size:76px;fill:#FAF6ED;font-style:italic;letter-spacing:-0.01em}
+      .dot{fill:#FAF6ED}
+      .tagline{font-family:"EB Garamond","Libertinus Serif","Times New Roman",serif;font-size:22px;fill:#FAF6ED;font-style:italic;letter-spacing:0}
+      .meta{font-family:"Inter","Helvetica Neue",sans-serif;font-size:10px;fill:#D8D2C4;letter-spacing:0.5em;text-transform:uppercase}
+      .rule{stroke:#D8D2C4;stroke-width:0.4}
+    </style>
+  </defs>
+  <rect class="bg" width="600" height="220"/>
+  <text class="wordmark" x="40" y="96">cachola</text>
+  <circle class="dot" cx="316" cy="90" r="2.6"/>
+  <text class="wordmark" x="330" y="96">tech</text>
+  <line class="rule" x1="40" y1="120" x2="560" y2="120"/>
+  <text class="tagline" x="40" y="152">The firm, on the record.</text>
+  <text class="meta" x="40" y="188">Eindhoven · Estd MMXXVI</text>
+</svg>
