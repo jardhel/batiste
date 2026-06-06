@@ -16,6 +16,36 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## @huggingface/jinja@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @huggingface/transformers@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @img/colour@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @isaacs/fs-minipass@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @lancedb/lancedb@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## @modelcontextprotocol/sdk@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -46,7 +76,103 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## @protobufjs/aspromise@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @protobufjs/base64@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @protobufjs/codegen@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @protobufjs/eventemitter@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @protobufjs/fetch@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @protobufjs/float@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @protobufjs/inquire@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @protobufjs/path@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @protobufjs/pool@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @protobufjs/utf8@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @swc/helpers@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @types/base64-js@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @types/command-line-args@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @types/command-line-usage@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## @types/node@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## accepts@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## ag-psd@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -64,7 +190,25 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## ansi-styles@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## apache-arrow@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## argparse@undefined  (Python-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## array-back@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -100,6 +244,12 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## boolean@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## braces@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -130,7 +280,43 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## chalk@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## chalk-template@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## chownr@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## color-convert@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## color-name@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## command-line-args@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## command-line-usage@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -196,6 +382,18 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## define-data-property@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## define-properties@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## depd@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -203,6 +401,12 @@ git commit history is authoritative for the timestamp of each regeneration.
 --------------------------------------------------------------------------------
 
 ## detect-libc@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## detect-node@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -250,13 +454,31 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## es6-error@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## escape-html@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
 --------------------------------------------------------------------------------
 
+## escape-string-regexp@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## etag@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## events@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -334,6 +556,18 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## find-replace@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## flatbuffers@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## forwarded@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -382,7 +616,67 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## global-agent@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## globalthis@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## gopd@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## graphology@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## graphology-communities-louvain@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## graphology-indices@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## graphology-types@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## graphology-utils@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## guid-typescript@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## has-flag@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## has-property-descriptors@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -496,6 +790,12 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## json-bignum@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## json-schema-traverse@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -503,6 +803,30 @@ git commit history is authoritative for the timestamp of each regeneration.
 --------------------------------------------------------------------------------
 
 ## json-schema-typed@undefined  (BSD-2-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## json-stringify-safe@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## lodash.camelcase@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## long@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## matcher@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -562,7 +886,25 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## minipass@undefined  (BlueOak-1.0.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## minizlib@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## mkdirp-classic@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## mnemonist@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -616,6 +958,18 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## object-keys@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## obliterator@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## on-finished@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -623,6 +977,36 @@ git commit history is authoritative for the timestamp of each regeneration.
 --------------------------------------------------------------------------------
 
 ## once@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## onnxruntime-common@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## onnxruntime-node@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## onnxruntime-web@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## pako@undefined  ((MIT AND Zlib))
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## pandemonium@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -664,7 +1048,19 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## platform@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## prebuild-install@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## protobufjs@undefined  (BSD-3-Clause)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -718,6 +1114,12 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## reflect-metadata@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## require-from-string@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -725,6 +1127,12 @@ git commit history is authoritative for the timestamp of each regeneration.
 --------------------------------------------------------------------------------
 
 ## reusify@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## roarr@undefined  (BSD-3-Clause)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -760,7 +1168,19 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## semver-compare@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## send@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## serialize-error@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -773,6 +1193,12 @@ git commit history is authoritative for the timestamp of each regeneration.
 --------------------------------------------------------------------------------
 
 ## setprototypeof@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## sharp@undefined  (Apache-2.0)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -826,6 +1252,12 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## sprintf-js@undefined  (BSD-3-Clause)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## statuses@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -839,6 +1271,24 @@ git commit history is authoritative for the timestamp of each regeneration.
 --------------------------------------------------------------------------------
 
 ## strip-json-comments@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## supports-color@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## table-layout@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## tar@undefined  (BlueOak-1.0.0)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -874,7 +1324,25 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## tree-sitter-go@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## tree-sitter-javascript@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## tree-sitter-python@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## tree-sitter-rust@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -886,7 +1354,19 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## tslib@undefined  (0BSD)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## tunnel-agent@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## type-fest@undefined  ((MIT OR CC0-1.0))
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -899,6 +1379,18 @@ git commit history is authoritative for the timestamp of each regeneration.
 --------------------------------------------------------------------------------
 
 ## typescript@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## typical@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## undici-types@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
@@ -928,7 +1420,19 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## wordwrapjs@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## wrappy@undefined  (ISC)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## yallist@undefined  (BlueOak-1.0.0)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 

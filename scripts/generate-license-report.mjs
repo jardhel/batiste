@@ -93,7 +93,9 @@ for (const [licenseKey, entries] of Object.entries(raw)) {
     const status = exception ? 'exception' : classify(license);
     rows.push({
       name: e.name,
-      version: e.version,
+      // pnpm may report `versions` (array) instead of a scalar `version`;
+      // fall back so a missing field can't crash the sort or the report.
+      version: e.version ?? (Array.isArray(e.versions) ? e.versions.join(', ') : 'unknown'),
       license,
       status,
       path: e.path,
@@ -102,7 +104,7 @@ for (const [licenseKey, entries] of Object.entries(raw)) {
     });
   }
 }
-rows.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
+rows.sort((a, b) => (a.name || '').localeCompare(b.name || '') || (a.version || '').localeCompare(b.version || ''));
 
 const summary = {
   generatedAt: new Date().toISOString(),

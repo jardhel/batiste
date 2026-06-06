@@ -27,11 +27,13 @@
       "import": "./dist/re-export-audit.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc --build",
     "dev": "tsc --build --watch",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo"
@@ -48,7 +50,15 @@
     "@types/node": "^20.0.0",
     "vitest": "^2.0.0"
   },
-  "peerDependencies": { "typescript": "^5.0.0" },
-  "keywords": ["ai", "mcp", "aidk", "batiste", "agent"],
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "ai",
+    "mcp",
+    "aidk",
+    "batiste",
+    "agent"
+  ],
   "license": "MIT"
 }

@@ -24,6 +24,9 @@ pnpm-debug.log*
 # Test coverage
 coverage/
 
+# Scratch — local dogfood/experiments, not part of the distribution
+.scratch/
+
 # Turbo
 .turbo/
 

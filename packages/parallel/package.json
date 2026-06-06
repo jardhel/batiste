@@ -1,7 +1,7 @@
 {
-  "name": "@batiste-aidk/marketplace",
+  "name": "@batiste-aidk/parallel",
   "version": "0.1.0",
-  "description": "Autonomous Agent Compute Marketplace — node registry, routing, pricing, and discovery",
+  "description": "Spark-inspired DAG executor for Batiste — make every subcommand parallel-by-default. v1.4 ships the Promise-based abstraction; v1.4.1 adds worker_threads behind the same API.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./gateway": {
-      "types": "./dist/gateway.d.ts",
-      "import": "./dist/gateway.js"
     }
   },
   "files": [
@@ -26,12 +22,8 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
-  "dependencies": {
-    "better-sqlite3": "^11.0.0",
-    "zod": "^3.23.0"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.0.0",
     "vitest": "^2.0.0"
   },
@@ -39,17 +31,17 @@
     "typescript": "^5.0.0"
   },
   "keywords": [
-    "ai",
-    "marketplace",
-    "mcp",
-    "agent",
-    "registry",
-    "routing"
+    "batiste",
+    "dag",
+    "executor",
+    "parallel",
+    "scheduler",
+    "concurrency"
   ],
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "https://github.com/jardhel/batiste",
-    "directory": "packages/marketplace"
+    "directory": "packages/parallel"
   }
 }

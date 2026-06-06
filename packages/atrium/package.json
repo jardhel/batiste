@@ -1,29 +1,21 @@
 {
-  "name": "@batiste-aidk/transport",
+  "name": "@batiste-aidk/atrium",
   "version": "0.1.0",
-  "description": "Secure gateway transport for Batiste MCP servers - StreamableHTTP, rate limiting, session management",
+  "description": "Atrium — the entry hall to a Batiste deployment's Firm Memory. Ingestion (Claude Code memory + sessions, vault, Drive, Trello) and retrieval CLI. Every mutation is audit-emitted before commit per ADR-0002.",
   "type": "module",
+  "bin": {
+    "batiste-fm": "./bin/batiste-fm.js"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./gateway": {
-      "types": "./dist/secure-gateway.d.ts",
-      "import": "./dist/secure-gateway.js"
-    },
-    "./sessions": {
-      "types": "./dist/session-manager.d.ts",
-      "import": "./dist/session-manager.js"
-    },
-    "./rate-limiter": {
-      "types": "./dist/rate-limiter.d.ts",
-      "import": "./dist/rate-limiter.js"
     }
   },
   "files": [
+    "bin",
     "dist"
   ],
   "scripts": {
@@ -35,11 +27,16 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@batiste-aidk/core": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@batiste-aidk/audit": "workspace:*",
+    "@batiste-aidk/memory": "workspace:*",
+    "@batiste-aidk/parallel": "workspace:*",
+    "ag-psd": "^25.0.0",
+    "better-sqlite3": "^11.0.0",
+    "commander": "^12.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^20.0.0",
     "vitest": "^2.0.0"
   },
@@ -49,14 +46,16 @@
   "keywords": [
     "ai",
     "mcp",
-    "transport",
-    "gateway",
-    "streamable-http"
+    "cli",
+    "firm-memory",
+    "ingestion",
+    "rag",
+    "batiste"
   ],
-  "license": "MIT",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "https://github.com/jardhel/batiste",
-    "directory": "packages/transport"
+    "directory": "packages/atrium"
   }
 }

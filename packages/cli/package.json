@@ -19,7 +19,7 @@
   "scripts": {
     "build": "tsc --build",
     "dev": "tsc --build --watch",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo"
@@ -40,7 +40,13 @@
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
-  "keywords": ["ai", "mcp", "cli", "agent", "batiste"],
+  "keywords": [
+    "ai",
+    "mcp",
+    "cli",
+    "agent",
+    "batiste"
+  ],
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
