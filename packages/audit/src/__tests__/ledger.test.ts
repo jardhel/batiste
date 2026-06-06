@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
+import Database from 'better-sqlite3';
 import { AuditLedger } from '../ledger.js';
 
 describe('AuditLedger', () => {
@@ -95,5 +96,75 @@ describe('AuditLedger', () => {
   it('should respect limit', () => {
     for (let i = 0; i < 10; i++) ledger.append(entry());
     expect(ledger.query({ limit: 3 })).toHaveLength(3);
+  });
+
+  it('should round-trip measured token usage', () => {
+    ledger.append({
+      ...entry(),
+      usage: {
+        inputTokens: 1200,
+        outputTokens: 340,
+        cachedTokens: 800,
+        modelId: 'claude-opus-4-8',
+        provider: 'anthropic',
+        source: 'api_usage',
+      },
+    });
+    const [row] = ledger.query();
+    expect(row!.usage).toEqual({
+      inputTokens: 1200,
+      outputTokens: 340,
+      cachedTokens: 800,
+      modelId: 'claude-opus-4-8',
+      provider: 'anthropic',
+      source: 'api_usage',
+    });
+  });
+
+  it('should leave usage absent for non-inference tool calls', () => {
+    ledger.append(entry());
+    expect(ledger.query()[0]!.usage).toBeUndefined();
+  });
+
+  it('should sum token totals only over measured rows', () => {
+    const usage = (i: number, o: number) => ({
+      inputTokens: i, outputTokens: o, modelId: 'claude-opus-4-8',
+      provider: 'anthropic', source: 'api_usage' as const,
+    });
+    ledger.append({ ...entry(), usage: usage(1000, 200) });
+    ledger.append({ ...entry(), usage: usage(500, 100) });
+    ledger.append(entry()); // no usage — must not count
+    const totals = ledger.tokenTotals();
+    expect(totals).toEqual({ inferences: 2, inputTokens: 1500, outputTokens: 300, cachedTokens: 0 });
+  });
+
+  it('should add token columns to a ledger created before instrumentation', () => {
+    // Build a real pre-instrumentation table (the exact schema the old code
+    // emitted, with no token columns) and seed a row, so the migration is
+    // genuinely exercised rather than masked by a fresh CREATE TABLE.
+    const dbPath = join(tmpDir, 'legacy.db');
+    const raw = new Database(dbPath);
+    raw.exec(`
+      CREATE TABLE audit_log (
+        id TEXT PRIMARY KEY, timestamp TEXT NOT NULL, session_id TEXT NOT NULL,
+        agent_id TEXT NOT NULL, tool TEXT NOT NULL, args_json TEXT NOT NULL,
+        result TEXT NOT NULL, duration_ms REAL NOT NULL,
+        ast_nodes_accessed INTEGER, bytes_transferred INTEGER
+      )
+    `);
+    raw.prepare(
+      'INSERT INTO audit_log (id, timestamp, session_id, agent_id, tool, args_json, result, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    ).run(randomUUID(), new Date().toISOString(), 'sess-old', 'agent-old', 'find_symbol', '{}', 'success', 7);
+    raw.close();
+
+    // Opening through AuditLedger triggers migrateTokenColumns().
+    const reopened = new AuditLedger(dbPath);
+    reopened.append({
+      ...entry(),
+      usage: { inputTokens: 10, outputTokens: 5, modelId: 'claude-opus-4-8', provider: 'anthropic', source: 'api_usage' },
+    });
+    expect(reopened.count()).toBe(2); // legacy row preserved + new row
+    expect(reopened.tokenTotals()).toEqual({ inferences: 1, inputTokens: 10, outputTokens: 5, cachedTokens: 0 });
+    reopened.close();
   });
 });
