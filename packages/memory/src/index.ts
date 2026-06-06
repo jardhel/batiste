@@ -34,3 +34,11 @@ export {
   InMemoryFactStore,
   InMemoryFirmMemory,
 } from './in-memory-store.js';
+
+export {
+  SqlitePromptStore,
+  SqliteFactStore,
+  SqliteFirmMemory,
+  openFirmMemory,
+} from './sqlite-store.js';
+export type { SqliteFirmMemoryOptions } from './sqlite-store.js';
