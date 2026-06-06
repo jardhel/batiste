@@ -3,3 +3,4 @@ export { GitTracker, type GitFileInfo, type GitDiffResult, type GitStatus } from
 export { FileIndex, type IndexedFileInfo } from './file-index.js';
 export { Crawler, type FileInfo, type CrawlResult } from './crawler.js';
 export { FileWatcher, type FileWatcherOptions } from './file-watcher.js';
+export { chunkSource, type Chunk, type CastOptions } from './cast-chunker.js';

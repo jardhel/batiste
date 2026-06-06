@@ -51,6 +51,18 @@ export const RunTDDInput = z.object({
 export const FindSymbolInput = z.object({
   symbolName: z.string().describe('Symbol name to find'),
   entryPoints: z.array(z.string()).describe('Entry points for search'),
+  language: z
+    .string()
+    .optional()
+    .describe(
+      'Filter results to a single tree-sitter language ID (typescript, python, javascript, go, rust, ...). When omitted, all languages are returned.'
+    ),
+  cluster: z
+    .string()
+    .optional()
+    .describe(
+      'Phase 3: when a graph is configured, filter results to a specific cluster label (e.g. "auth/", "billing/"). Ignored when no graph is configured.'
+    ),
 });
 
 export const IndexCodebaseInput = z.object({
@@ -64,6 +76,12 @@ export const SummarizeCodebaseInput = z.object({
   depth: z.enum(['overview', 'detailed']).optional().describe('Summary depth'),
   focus: z.array(z.string()).optional().describe('Focus areas'),
   maxTokens: z.number().optional().describe('Maximum tokens for summary (default: 2000)'),
+  cluster: z
+    .string()
+    .optional()
+    .describe(
+      'Phase 3: when a graph is configured, focus the summary on a single cluster label (e.g. "auth/"). Ignored when no graph is configured.'
+    ),
 });
 
 export const OrchestrateAgentsInput = z.object({
@@ -206,12 +224,14 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: 'find_symbol',
-    description: 'Find where a symbol (function, class, etc.) is defined and where it is called across the codebase. Uses LSP with TreeSitter fallback.',
+    description: 'Find where a symbol (function, class, etc.) is defined and where it is called across the codebase. Uses LSP with TreeSitter fallback. Phase 2a: results can be filtered by tree-sitter language.',
     inputSchema: {
       type: 'object',
       properties: {
         symbolName: { type: 'string', description: 'Name of the symbol to find' },
         entryPoints: { type: 'array', items: { type: 'string' }, description: 'Entry points for building dependency graph' },
+        language: { type: 'string', description: 'Optional tree-sitter language ID to filter results by (typescript, python, javascript, go, rust, ...)' },
+        cluster: { type: 'string', description: 'Optional cluster label (Phase 3 graph-backed filter, e.g. "auth/")' },
       },
       required: ['symbolName', 'entryPoints'],
     },
@@ -257,6 +277,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         depth: { type: 'string', enum: ['overview', 'detailed'], description: 'Summary depth' },
         focus: { type: 'array', items: { type: 'string' }, description: 'Focus areas' },
         maxTokens: { type: 'number', description: 'Maximum tokens for summary (default: 2000)' },
+        cluster: { type: 'string', description: 'Optional cluster label to focus the summary on (Phase 3 graph-backed)' },
       },
       required: [],
     },

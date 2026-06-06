@@ -37,9 +37,14 @@ describe('TreeSitterAdapter', () => {
       expect(adapter.isSupported('file.pyi')).toBe(true);
     });
 
+    it('supports Go and Rust files (added in Phase 2a)', () => {
+      expect(adapter.isSupported('file.go')).toBe(true);
+      expect(adapter.isSupported('file.rs')).toBe(true);
+    });
+
     it('returns false for unsupported files', () => {
-      expect(adapter.isSupported('file.rs')).toBe(false);
-      expect(adapter.isSupported('file.go')).toBe(false);
+      expect(adapter.isSupported('file.unknownlang')).toBe(false);
+      expect(adapter.isSupported('file.cobol')).toBe(false);
     });
 
     it('returns all supported extensions', () => {
@@ -317,11 +322,11 @@ from typing import List, Dict
     });
 
     it('handles unsupported file types', async () => {
-      const filePath = join(testDir, 'file.rs');
-      await writeFile(filePath, 'fn main() {}');
+      const filePath = join(testDir, 'file.unknownlang');
+      await writeFile(filePath, 'whatever this is');
 
       const result = await adapter.parseFile(filePath);
-      expect(result.errors).toContain('Unsupported file type: .rs');
+      expect(result.errors).toContain('Unsupported file type: .unknownlang');
       expect(result.language).toBe('unknown');
     });
 

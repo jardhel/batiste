@@ -81,7 +81,19 @@ export {
   type GitDiffResult,
   type FileInfo,
   type CrawlResult,
+  chunkSource,
+  type Chunk,
+  type CastOptions,
 } from './indexer/index.js';
+
+// Retrieval post-processing (GrepRAG)
+export {
+  mergeOverlappingHits,
+  rerankByBm25,
+  tokenize,
+  type RetrievalHit,
+  type Bm25Options,
+} from './retrieval/index.js';
 
 // MCP Server
 export { TOOL_DEFINITIONS, ToolHandler, start, type ToolName } from './mcp/index.js';

@@ -38,6 +38,8 @@ import { GitAwareIndexer } from '../indexer/git-aware-indexer.js';
 import { FileIndex } from '../indexer/file-index.js';
 import { loadConfig } from '../utils/config.js';
 import { AutoFixer } from '../autofix/AutoFixer.js';
+import { GraphQuerier } from './graph-querier.js';
+import type { Graph } from '@batiste-aidk/graph';
 
 /**
  * Per-tool input schemas, enforced at `handleTool` dispatch time.
@@ -113,10 +115,31 @@ export class ToolHandler {
   private symbolResolver: SymbolResolver | null = null;
   private contextBudget: ContextBudgetMonitor | null = null;
   private orchestrator: Orchestrator | null = null;
+  /**
+   * Phase 3 — optional graph-backed querier. When set, `find_symbol`
+   * and `summarize_codebase` prefer the graph path (cluster-aware,
+   * deterministic) over the tree-sitter scan. When null, every tool
+   * keeps its pre-Phase-3 behaviour.
+   */
+  private graphQuerier: GraphQuerier | null = null;
 
   constructor(projectRoot: string, dataDir: string) {
     this.projectRoot = projectRoot;
     this.dataDir = dataDir;
+  }
+
+  /**
+   * Phase 3 — attach a built {@link Graph} so MCP tools can use it
+   * opportunistically. Call this after `Indexer.index()` resolves.
+   * Passing `null` reverts to tree-sitter / LSP behaviour.
+   */
+  setGraph(graph: Graph | null): void {
+    this.graphQuerier = graph ? new GraphQuerier(graph) : null;
+  }
+
+  /** Test/inspection hook — exposes the active GraphQuerier (if any). */
+  getGraphQuerier(): GraphQuerier | null {
+    return this.graphQuerier;
   }
 
   async handleTool(name: ToolName, args: Record<string, unknown>): Promise<unknown> {
@@ -351,29 +374,93 @@ export class ToolHandler {
 
   private async findSymbol(args: Record<string, unknown>): Promise<unknown> {
     const symbolName = args.symbolName as string;
+    const language = args.language as string | undefined;
+    const cluster = args.cluster as string | undefined;
     const entryPoints = (args.entryPoints as string[]).map(p =>
       p.startsWith('/') ? p : join(this.projectRoot, p)
     );
 
+    // Phase 3 graph-backed path. Activates only when (a) a graph has
+    // been attached via `setGraph` and (b) the caller actually asked
+    // for cluster-aware behaviour OR the graph already covers the
+    // requested symbol. The legacy tree-sitter / LSP path stays the
+    // default so unattached deployments keep working unchanged.
+    if (this.graphQuerier) {
+      const findOpts = language ? { language } : undefined;
+      const hits = cluster
+        ? this.graphQuerier.findSymbolInCluster(symbolName, cluster, findOpts)
+        : this.graphQuerier.findSymbol(symbolName, findOpts);
+      if (hits.length > 0) {
+        return {
+          symbolName,
+          language: language ?? null,
+          cluster: cluster ?? null,
+          source: 'graph',
+          definitions: hits.map((h) => ({
+            file: h.node.path ?? null,
+            line: null,
+            type: h.node.kind,
+            name: h.node.label,
+            cluster: h.cluster?.label ?? null,
+          })),
+          callSites: [],
+          definitionCount: hits.length,
+          callSiteCount: 0,
+        };
+      }
+      // Empty graph hits when the caller pinned a cluster: respect the
+      // pin and return empty rather than falling back to a non-cluster-
+      // aware scan that would defeat the user's intent.
+      if (cluster) {
+        return {
+          symbolName,
+          language: language ?? null,
+          cluster,
+          source: 'graph',
+          definitions: [],
+          callSites: [],
+          definitionCount: 0,
+          callSiteCount: 0,
+        };
+      }
+      // Otherwise fall through to the tree-sitter / LSP path.
+    }
+
     const resolver = await this.getSymbolResolver();
     const result = await resolver.findSymbol(symbolName, entryPoints);
 
+    // Phase 2a — optional language filter. We resolve a file's language
+    // by asking a one-shot adapter for the strategy that owns its
+    // extension, then drop hits whose host language does not match.
+    let definitions = result.definitions;
+    let references = result.references;
+    if (language) {
+      const adapter = new TreeSitterAdapter();
+      const inLanguage = (file: string): boolean => {
+        const strategy = adapter.getStrategyForFile(file);
+        return strategy?.languageId === language;
+      };
+      definitions = definitions.filter(d => inLanguage(d.file));
+      references = references.filter(r => inLanguage(r.file));
+    }
+
     return {
       symbolName: result.symbolName,
-      definitions: result.definitions.map(d => ({
+      language: language ?? null,
+      definitions: definitions.map(d => ({
         file: d.file,
         line: d.line,
         type: d.type,
         name: d.name,
         source: d.source,
       })),
-      callSites: result.references.map(r => ({
+      callSites: references.map(r => ({
         file: r.file,
         line: r.line,
         source: r.source,
       })),
-      definitionCount: result.definitionCount,
-      callSiteCount: result.referenceCount,
+      definitionCount: definitions.length,
+      callSiteCount: references.length,
       source: result.source,
       lspAvailable: resolver.isLSPAvailable(),
     };
@@ -459,6 +546,27 @@ export class ToolHandler {
     const depth = (args.depth as string) ?? 'overview';
     const focus = (args.focus as string[]) ?? ['architecture', 'entry-points'];
     const maxTokens = (args.maxTokens as number) ?? 2000;
+    const cluster = args.cluster as string | undefined;
+
+    // Phase 3 graph-backed path. When a graph is attached, we layer
+    // cluster-level statistics onto the response. The tree-sitter
+    // dependency-graph path still runs underneath so structural metrics
+    // (totalFiles, circularDependencies) keep the same shape — this is
+    // pure enrichment, not a replacement.
+    let graphLayer: Record<string, unknown> | null = null;
+    if (this.graphQuerier) {
+      const rows = this.graphQuerier.clusterSummary();
+      const filtered = cluster ? rows.filter((r) => r.label === cluster) : rows;
+      graphLayer = {
+        source: 'graph',
+        cluster: cluster ?? null,
+        clusterCount: filtered.length,
+        clusters: filtered.slice(0, 10),
+        // The graph's own stable summary is byte-stable across runs, so
+        // including it keeps the response reproducible for audit.
+        graphSummary: this.graphQuerier.summarize(maxTokens, cluster),
+      };
+    }
 
     const scopePath = scope ? join(this.projectRoot, scope) : this.projectRoot;
 
@@ -561,6 +669,10 @@ export class ToolHandler {
       summary.withinBudget = estimatedTokens <= maxTokens;
     } else {
       summary.error = 'No source files found in scope';
+    }
+
+    if (graphLayer) {
+      summary.graph = graphLayer;
     }
 
     return summary;

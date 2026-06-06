@@ -2,19 +2,34 @@
  * TreeSitter Adapter
  *
  * Unified interface for parsing multiple languages using tree-sitter.
- * Registers language strategies and provides caching for parse results.
+ * Phase 2a refactor — the adapter now holds a {@link LanguageRegistry}
+ * (`./strategies/`) and delegates language lookup to it. Adding a new
+ * language is now a one-file commit under `./strategies/<lang>.ts`
+ * plus one line in `DEFAULT_STRATEGIES` — the adapter itself never
+ * needs to change.
+ *
+ * The legacy `LanguageStrategy` shape (`config/LanguageStrategy.ts`)
+ * is preserved so consumers that constructed strategies by hand
+ * (`adapter.registerStrategy(new TypeScriptStrategy())`) keep working.
+ * Internally we wrap Phase 2a strategies into the legacy shape via
+ * {@link toLegacyStrategy} so the adapter's parsing loop stays
+ * unchanged.
  */
 
 import Parser from 'tree-sitter';
 import { readFile } from 'fs/promises';
 import { extname } from 'path';
 import type {
-  LanguageStrategy,
+  LanguageStrategy as LegacyLanguageStrategy,
   CodeSymbol,
   ImportStatement,
 } from '../config/LanguageStrategy.js';
-import { TypeScriptStrategy } from '../config/TypeScriptStrategy.js';
-import { PythonStrategy } from '../config/PythonStrategy.js';
+import {
+  DEFAULT_STRATEGIES,
+  LanguageRegistry,
+  toLegacyStrategy,
+  type LanguageStrategy as Phase2aStrategy,
+} from './strategies/index.js';
 
 export interface ParseResult {
   filePath: string;
@@ -33,30 +48,61 @@ interface CachedParse {
 
 export class TreeSitterAdapter {
   private parser: Parser;
-  private strategies: Map<string, LanguageStrategy>;
-  private extensionMap: Map<string, LanguageStrategy>;
+  private registry: LanguageRegistry;
+  /** Keeps the legacy shape callers received from `getStrategyForFile`. */
+  private legacyByName: Map<string, LegacyLanguageStrategy>;
+  private legacyByExt: Map<string, LegacyLanguageStrategy>;
   private cache: Map<string, CachedParse>;
 
   constructor() {
     this.parser = new Parser();
-    this.strategies = new Map();
-    this.extensionMap = new Map();
+    this.registry = new LanguageRegistry();
+    this.legacyByName = new Map();
+    this.legacyByExt = new Map();
     this.cache = new Map();
 
-    this.registerStrategy(new TypeScriptStrategy());
-    this.registerStrategy(new PythonStrategy());
-  }
-
-  registerStrategy(strategy: LanguageStrategy): void {
-    this.strategies.set(strategy.languageId, strategy);
-    for (const ext of strategy.extensions) {
-      this.extensionMap.set(ext, strategy);
+    // Load every default strategy. The registry de-dupes by name/ext
+    // so a later `registerStrategy` call from user code still wins.
+    for (const strategy of DEFAULT_STRATEGIES) {
+      this.registerPhase2aStrategy(strategy);
     }
   }
 
-  getStrategyForFile(filePath: string): LanguageStrategy | null {
+  /** Phase 2a entry point — register a strategy authored against `./strategies/base.ts`. */
+  registerPhase2aStrategy(strategy: Phase2aStrategy): void {
+    this.registry.register(strategy);
+    this.indexLegacy(toLegacyStrategy(strategy));
+  }
+
+  /**
+   * Legacy entry point — register a strategy authored against the
+   * pre-Phase-2a `LanguageStrategy` shape. Preserved so existing
+   * downstream code (`adapter.registerStrategy(new TypeScriptStrategy())`)
+   * keeps working unchanged.
+   */
+  registerStrategy(strategy: LegacyLanguageStrategy): void {
+    this.indexLegacy(strategy);
+  }
+
+  private indexLegacy(strategy: LegacyLanguageStrategy): void {
+    this.legacyByName.set(strategy.languageId, strategy);
+    for (const ext of strategy.extensions) {
+      this.legacyByExt.set(ext.toLowerCase(), strategy);
+    }
+  }
+
+  /** Public registry access — Phase 2b graph builder consumes this. */
+  getRegistry(): LanguageRegistry {
+    return this.registry;
+  }
+
+  getStrategyForFile(filePath: string): LegacyLanguageStrategy | null {
     const ext = extname(filePath).toLowerCase();
-    return this.extensionMap.get(ext) ?? null;
+    return this.legacyByExt.get(ext) ?? null;
+  }
+
+  getStrategyForName(name: string): LegacyLanguageStrategy | null {
+    return this.legacyByName.get(name) ?? null;
   }
 
   isSupported(filePath: string): boolean {
@@ -64,7 +110,11 @@ export class TreeSitterAdapter {
   }
 
   getSupportedExtensions(): string[] {
-    return Array.from(this.extensionMap.keys());
+    return Array.from(this.legacyByExt.keys());
+  }
+
+  getSupportedLanguages(): string[] {
+    return Array.from(this.legacyByName.keys());
   }
 
   async parseFile(filePath: string): Promise<ParseResult> {
@@ -95,7 +145,7 @@ export class TreeSitterAdapter {
     }
   }
 
-  parseSource(source: string, filePath: string, strategy?: LanguageStrategy): ParseResult {
+  parseSource(source: string, filePath: string, strategy?: LegacyLanguageStrategy): ParseResult {
     const resolvedStrategy = strategy ?? this.getStrategyForFile(filePath);
     if (!resolvedStrategy) {
       return {
