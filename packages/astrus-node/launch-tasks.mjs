@@ -9,16 +9,26 @@ const tl = new audit.TaskLog("cachola-launch.db");
 if (typeof tl.init === "function") await tl.init();
 
 const PROGRAM = [
-  ["completed",   "Q&A entrevista NeoFeed (walk-back dos números)", "Prep da entrevista; números refutados, defesa abstrata, open-core. releases/2026-06-08-neofeed-interview-prep-v1/"],
-  ["completed",   "Kit Claude Design cachola.tech (casa de produto, 4-lang)", "Reposicionamento + portfolio + copy PT/EN/NL/ZH. products/cacholatech/claude-design-kit/"],
-  ["completed",   "Post LinkedIn auto-promoção (PT+EN)", "Envelope PR-safe, recibos no lugar de slogan. products/cacholatech/comms/"],
-  ["completed",   "STL MAJU-1 (closed/body/lid) + componentes", "Geometria afinada; esp32/bme280/yl83/cable. products/maju-landing/viewer/"],
-  ["in_progress", "Security headers tunados em todas as páginas", "CSP/HSTS/frame por site. cachola.tech=ouro; teaser+maju feito (deploy); falta Sereno + Argus (repos separados)"],
-  ["pending",     "Hardening das Functions (método+origem+rate-limit)", "/api/lead e /api/checkout: restringir método, checar origin, rate-limit KV"],
-  ["pending",     "Turnstile nos forms (lead+checkout)", "CAPTCHA invisível + verificação server-side; skill turnstile-spin (precisa API CF)"],
-  ["pending",     "E-mail de aviso de lead/pré-venda", "Hoje lead cai no KV em silêncio; wirar notificação (MailChannels/Resend)"],
-  ["pending",     "STL família (1S/2/R) + watermark Cachola Tech", "R do maju-R.scad; 1S/2 do chassi compartilhado; watermark no SCAD -> regen tudo (sem stale)"],
-  ["pending",     "Gate de higiene: check de derivado stale", "Ponto cego: gate passou com STL velho. Falhar se derivado (.stl/.png) mais velho que fonte (.scad)"],
+  // ===== GOAL (2026-06-08): Astrus em produção, MAJU-1 comprável =====
+  ["completed",   "🎯 GOAL: Astrus BUYABLE no ar", "FEITO E2E: astrus.cachola.tech vende MAJU-1 via Stripe cs_live (4 línguas). Bug raiz = phone_number_collection malformado, NÃO a chave (sk_live ok). Waitlist grava KV; cobertura/CSP ok"],
+  ["completed",   "Checkout: corrigir phone_number_collection", "Stripe queria [enabled]=true; cs_live verificado pt/en/nl/zh; .assetsignore esconde dev files; deploy prod"],
+  ["completed",   "Astrus i18n gap (cobertura.js/maju.html) → 4-lang", "Pente-fino: gap REAL, não cache. cobertura.js T(pt,en) servia PT pra NL/ZH; ~33 strings; corrigido por agente, audit 10/10. FALTA deploy"],
+  ["completed",   "cachola.tech: matar vazamento interno", "pitch-defesa/red-team/Silv.IA/Griphon PDF estavam PÚBLICOS (deploy da pasta Downloads sem auditar). Removidos do deploy; user purgou o cache de edge"],
+  ["completed",   "Sereno (app.astrus): 4-lang + botões", "Sem langswitch; login=caixa de erro. Add PT/EN/NL/ZH (128 chaves)+'coming soon' neutro; tsc+10/10. FALTA deploy"],
+  ["completed",   "MAJU-1 dome: DfAM fix (Adam) + manual", "Orelhas/pilares mergulhavam (z=0/2.2 vs pé 3.0)→suporte. Flush z=3.0, fundo plano, STL regen; manual PDF c/ design note; REPLY_ADAM.txt"],
+  ["completed",   "Cookie consent 4-lang (todas as páginas)", "Componente reusável; cabado em mermaid/cachola.tech/astrus-front/Sereno. FALTA deploy"],
+  ["completed",   "Mermaid demo: Acme + personas físicos", "Effect Photonics/Stijn removidos do build público; personas=Tesla/Einstein/Curie/Kao/Feynman; zero leak no bundle"],
+  ["completed",   "Mermaid: portão lead profissional + e-NDA", "/demo/ = gate 4-lang → /api/demo-access grava aceite no KV + cookie HMAC → middleware gateia /demo/app/"],
+  ["in_progress", "Mermaid: app nativo 4-línguas", "Agente Claude Code editando products/mermaid/src (i18n infra+LangSwitch+abas). RESSALVA: execução FORA do Batiste"],
+  ["pending",     "Mermaid: tema híbrido Light/Dark/Dracula + favicon", "Tokens semânticos (Metabase+landing+app antigo), switcher Slack-like; após i18n pra não conflitar no src"],
+  ["pending",     "Deploy lote (autorizado): mermaid+astrus-front+sereno+cachola.tech", "mermaid leva gate+i18n+tema+cookie; cada deploy precisa autorização explícita"],
+  // ===== Batiste-native — a falha de fundo do dia: ops rodando FORA do Batiste =====
+  ["pending",     "Gate @batiste-aidk/deploy-lineage", "Recusa deploy de fonte untracked/dirty/fora do registro; carimba SHA via @batiste-aidk/audit. O gate que FALTOU (deployei cru o dia todo; o classificador do harness virou o gate de fato)"],
+  ["pending",     "Gate @batiste-aidk/dfam-preflight", "Reprova STL: fundo não-coplanar / overhang>55° / não-manifold / fora do bed / feature<mín. O assert 'fundo plano' teria pego o bug do Adam (Adam virou nosso QA)"],
+  ["pending",     "DEPLOYMENTS.md — registro verificado", "domínio→projeto Pages→fonte git→comando que prova. Lineage de deploy que nunca existiu"],
+  ["pending",     "Commitar fontes untracked + .gitignore", "astrus-front/mermaid-landing/cacholatech/argus estavam ?? no git; cachola.tech vinha de Downloads. Ignorar node_modules/.wrangler/dist"],
+  ["pending",     "Rodar paralelização via @batiste-aidk/parallel", "Hoje paralelizei com sub-agentes do Claude Code, não pelo parallel+TaskLog do Batiste. Migrar pra dogfood real"],
+  ["pending",     "QA NeoFeed PDF pra Fran (LaTeX)", "build pandoc→xelatex; suavizar meta-coaching interno"],
 ];
 
 const arg = process.argv[2];
