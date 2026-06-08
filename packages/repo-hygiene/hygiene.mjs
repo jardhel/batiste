@@ -30,6 +30,7 @@ const target = resolve(args.find((a) => !a.startsWith("--")) || ".");
 const STRICT = flags.has("--strict");
 const WARN_ONLY = flags.has("--warn-only");
 const JSON_OUT = flags.has("--json");
+const NO_GIT_CLEAN = flags.has("--no-git-clean"); // pre-commit: staged != sujo
 
 const findings = [];
 const add = (check, level, msg) => findings.push({ check, level, msg });
@@ -58,8 +59,8 @@ if (!root) {
       .filter(underTarget).filter((p) => !cfg.ignore.some((ig) => p.includes(ig)));
   } catch { /* */ }
 
-  // CHECK 1 — git-clean
-  try {
+  // CHECK 1 — git-clean (pulado em pre-commit via --no-git-clean)
+  if (!NO_GIT_CLEAN) try {
     const dirty = git(`status --porcelain -- "${relTarget}"`, root).split("\n").filter(Boolean)
       .filter((l) => !cfg.ignore.some((ig) => l.includes(ig)));
     if (dirty.length)
