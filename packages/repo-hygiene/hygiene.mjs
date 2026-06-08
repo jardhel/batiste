@@ -36,6 +36,12 @@ const findings = [];
 const add = (check, level, msg) => findings.push({ check, level, msg });
 const git = (cmd, cwd) =>
   execSync(`git ${cmd}`, { cwd, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim();
+// glob simples → regex (suporta ** e *) p/ o check de derivado-stale
+const globToRe = (g) => new RegExp("^" +
+  g.replace(/[.+^${}()|[\]\\]/g, "\\$&")
+   .replace(/\*\*\//g, "§§").replace(/\*\*/g, "§").replace(/\*/g, "[^/]*")
+   .replace(/§§/g, "(?:.*/)?").replace(/§/g, ".*") + "$");
+const mm = (p, g) => globToRe(g).test(p);
 
 let root = null;
 try { root = git("rev-parse --show-toplevel", target); } catch { /* not a repo */ }
@@ -108,6 +114,19 @@ if (!root) {
       if (![join(dir, r), join(root, r)].some(existsSync))
         add("canonical", "warn", `${p} declara asset ausente: ${r}`);
     }
+  }
+
+  // CHECK 5 — derivado stale (config: .hygiene.json staleCheck[{derived, source}])
+  for (const rule of (cfg.staleCheck || [])) {
+    const mt = (p) => { try { return statSync(join(root, p)).mtimeMs; } catch { return 0; } };
+    const srcs = tracked.filter((p) => mm(p, rule.source));
+    const drvs = tracked.filter((p) => mm(p, rule.derived));
+    if (!srcs.length || !drvs.length) continue;
+    const newestSrc = Math.max(...srcs.map(mt));
+    const stale = drvs.filter((p) => mt(p) < newestSrc);
+    if (stale.length)
+      add("stale-derived", "error", `derivado mais velho que a fonte (${rule.source}): ` +
+        stale.slice(0, 8).join(", ") + (stale.length > 8 ? ` … +${stale.length - 8}` : ""));
   }
 }
 
