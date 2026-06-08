@@ -46,5 +46,5 @@ console.log(`✔ deploy-lineage OK · ${project} ← ${srcNorm} · ${branch}@${s
 
 if (doDeploy) {
   console.log(`▶ wrangler pages deploy ${srcNorm} --project-name ${project} --branch main --commit-hash ${sha}`);
-  execSync(`npx wrangler pages deploy ${srcNorm} --project-name ${project} --branch main --commit-dirty=false`, { cwd: repoRoot, stdio: "inherit" });
+  execSync(`npx wrangler pages deploy . --project-name ${project} --branch main --commit-dirty=false`, { cwd: resolve(repoRoot, srcNorm), stdio: "inherit" });
 }
