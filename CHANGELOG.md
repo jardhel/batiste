@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0-alpha.2] — 2026-06-09
+
+**Discipline gates — three operational guardrails grounded as code, not doctrine.** Each gate was driven by a real incident in the firm's own workflow and now fails the build instead of living as a note in a vault: a push to the flagship repo made under the wrong credential, twenty commits left stranded unpushed on a feature branch, and a marketing page whose CDN webfont failed to load on a locked-down corporate machine.
+
+### Added
+
+- **`@batiste-aidk/credential-preflight`** — new package. Before a commit/push, verifies the active GitHub account has WRITE on the repo's `origin` and the committer identity matches; fails (and suggests the correct `gh auth switch`) otherwise. Installs as `pre-commit`/`pre-push` hooks. 8 tests.
+- **`@batiste-aidk/repo-hygiene` — CHECK 6 (`unshipped`)** — flags work committed but not shipped: local commits ahead of `origin` with no open PR (`committed ≠ shipped`). `--allow-unshipped` downgrades to a warning. 7 tests.
+- **`@batiste-aidk/ui-consistency` — static font check (`--fonts`)** — fails on any live `fonts.googleapis.com`/`fonts.gstatic.com` reference in a product's HTML/CSS; enforces self-hosted woff2 (`font-src 'self'`) so text renders deterministically on locked-down/offline machines. 5 tests.
+
+### Notes
+
+- All three are dogfood-first: they run against Cachola Tech's own public products and the Batiste repo itself, and they fail builds, not just warn.
+- These are discipline/audit gates around the workflow; they do not change the runtime call path (scope → auth → audit) itself.
+
 ## [1.2.0-alpha.1] — 2026-04-22
 
 **Batiste v2 thesis scaffold — AI Vendor Shield (F5 + F6).** v1.x blindou o *call path* (scope, auth, audit, kill switch). v2 blinda o *dependency path*: the firm's IP lives in its own deployment (Firm Memory), and every foundation-model call enforces the DPA by code (DPA-compliant gateway). This alpha scaffolds the package surfaces and contracts; full delivery lands across alpha.2 → beta → 2.0.0.
