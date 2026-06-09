@@ -1,0 +1,12 @@
+{
+  "name": "@batiste-aidk/credential-preflight",
+  "version": "0.1.0",
+  "description": "Gate de identidade/credencial em commit/push — verifica que a conta gh ATIVA tem write no repo e que o committer é o esperado, antes de bloquear a operação. Impede o 403 do push com a conta errada.",
+  "type": "module",
+  "bin": { "credential-preflight": "./credential-preflight.mjs" },
+  "scripts": {
+    "check": "node credential-preflight.mjs",
+    "test": "node --test"
+  },
+  "license": "UNLICENSED"
+}
