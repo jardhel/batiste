@@ -1,0 +1,1 @@
+{ "name": "@batiste-aidk/ui-consistency", "version": "0.1.0", "type": "module", "bin": { "ui-consistency": "./ui-consistency.mjs" }, "peerDependencies": { "@playwright/test": "*" } }
