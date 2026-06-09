@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.0.0",
-    "@lancedb/lancedb": "^0.23.0",
+    "@lancedb/lancedb": "^0.30.0",
     "better-sqlite3": "^11.0.0",
     "zod": "^3.23.0"
   },
