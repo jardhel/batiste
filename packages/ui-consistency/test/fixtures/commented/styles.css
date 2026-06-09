@@ -1,0 +1,6 @@
+/* NB: dropped @import url("https://fonts.googleapis.com/...") — self-host instead */
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/inter-latin.woff2") format("woff2");
+}
+body { font-family: "Inter", sans-serif; }

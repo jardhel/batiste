@@ -1,1 +1,11 @@
-{ "name": "@batiste-aidk/ui-consistency", "version": "0.1.0", "type": "module", "bin": { "ui-consistency": "./ui-consistency.mjs" }, "peerDependencies": { "@playwright/test": "*" } }
+{
+  "name": "@batiste-aidk/ui-consistency",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": { "ui-consistency": "./ui-consistency.mjs" },
+  "scripts": {
+    "test": "node --test",
+    "check:fonts": "node ui-consistency.mjs --fonts"
+  },
+  "peerDependencies": { "@playwright/test": "*" }
+}

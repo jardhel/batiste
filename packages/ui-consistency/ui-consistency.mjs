@@ -5,7 +5,33 @@
 // cada produto e reprova se divergirem. Checa por CONTEÚDO (não por substring de
 // classe — evita falso-positivo). Apps gated recebem cookie.
 //   node ui-consistency.mjs   (precisa @playwright/test + Chrome)
-import { chromium } from "@playwright/test";
+//   node ui-consistency.mjs --fonts <dir> [<dir>...]   (STATIC, sem browser)
+import { reportCdnFonts } from "./font-source.mjs";
+
+// [nome, sourceDir] — fonte estática por produto (escaneada sem browser p/ refs de
+// webfont CDN). Mantido em paralelo aos PAIRS de runtime acima.
+const SOURCES = [
+  ["MERMAID", "../../../cachola_tech/products/mermaid-landing"],
+  ["ASTRUS", "../../../cachola_tech/products/astrus-front"],
+];
+
+// CHECK estático e isolado: `--fonts [dir...]` escaneia source(s) por referências
+// vivas a fonts.googleapis.com / fonts.gstatic.com (self-host, never CDN). Não
+// precisa de @playwright/test nem Chrome — roda em qualquer máquina/CI.
+if (process.argv.includes("--fonts")) {
+  const dirs = process.argv.slice(process.argv.indexOf("--fonts") + 1).filter((a) => !a.startsWith("-"));
+  const targets = dirs.length
+    ? dirs.map((d, i) => [`SRC${i + 1}`, d])
+    : SOURCES.map(([n, d]) => [n, new URL(d, import.meta.url).pathname]);
+  let f = 0;
+  for (const [n, dir] of targets) f += reportCdnFonts(n, dir);
+  console.log(`\n${f ? "✗ " + f + " referência(s) de webfont CDN" : "✔ fontes self-hosted"}`);
+  process.exit(f ? 1 : 0);
+}
+
+// Runtime parity (Playwright) — importado tarde p/ o CHECK estático --fonts não
+// exigir @playwright/test nem Chrome.
+const { chromium } = await import("@playwright/test");
 
 // [nome, landingURL, appURL, cookieFn?] — cookieFn() async → "name=value" p/ apps gated
 const PAIRS = [
