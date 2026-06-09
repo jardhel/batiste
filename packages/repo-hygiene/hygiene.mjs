@@ -8,6 +8,7 @@
 //        --strict    WARN também derruba (exit 1).
 //        --warn-only nada derruba (exit 0); só reporta.
 //        --json      saída JSON (pra CI/Batiste).
+//        --allow-unshipped  rebaixa CHECK 6 (committed≠shipped) de ERRO p/ WARN.
 //
 //  Config opcional por repo: .hygiene.json na raiz do git
 //    { "allowDuplicateBasenames": ["favicon.svg"],
@@ -18,11 +19,19 @@
 //    2. no-duplicate   — nenhum arquivo idêntico por hash em >1 pasta     [WARN]
 //    3. drafts-scoped  — rascunho/variante só dentro de _scratch/         [ERRO]
 //    4. canonical      — asset declarado em *.brand.yaml existe no disco  [WARN]
+//    5. stale-derived  — derivado mais velho que a fonte (.hygiene.json)  [ERRO]
+//    6. unshipped      — commit local não-pushado e sem PR aberto         [ERRO]
+//                        (committed ≠ shipped; --allow-unshipped → WARN)
 // =============================================================================
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, dirname, basename, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Roda o gate só quando invocado como CLI; sob `import` (testes), só expõe as
+// funções puras — sem escanear, sem process.exit.
+const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((a) => a.startsWith("--")));
@@ -31,6 +40,7 @@ const STRICT = flags.has("--strict");
 const WARN_ONLY = flags.has("--warn-only");
 const JSON_OUT = flags.has("--json");
 const NO_GIT_CLEAN = flags.has("--no-git-clean"); // pre-commit: staged != sujo
+const ALLOW_UNSHIPPED = flags.has("--allow-unshipped"); // CHECK 6 vira WARN
 
 const findings = [];
 const add = (check, level, msg) => findings.push({ check, level, msg });
@@ -43,6 +53,47 @@ const globToRe = (g) => new RegExp("^" +
    .replace(/§§/g, "(?:.*/)?").replace(/§/g, ".*") + "$");
 const mm = (p, g) => globToRe(g).test(p);
 
+// --- CHECK 6 decision (pura, testável — git/gh injetados, sem rede) ----------
+// Recebe o estado já coletado e devolve { level, msg } ou null (= shipped/limpo).
+//   branch        nome do branch atual (ou "HEAD" se detached)
+//   aheadOrigin   commits em HEAD que não estão em origin/main (Number)
+//   hasUpstream   tem upstream configurado? (boolean)
+//   aheadUpstream commits à frente do upstream (Number; só se hasUpstream)
+//   prState       estado do PR via `gh pr view --json state` → "OPEN" | null
+//                 (null = sem PR, gh indisponível, ou erro — best-effort)
+//   subjects      [] de assuntos dos commits stranded (pra mensagem)
+//   allowUnshipped rebaixa ERRO → WARN
+export function evaluateUnshipped({
+  branch = "HEAD",
+  aheadOrigin = 0,
+  hasUpstream = false,
+  aheadUpstream = 0,
+  prState = null,
+  subjects = [],
+  allowUnshipped = false,
+} = {}) {
+  // "Stranded" = há commit local que origin não tem (não-pushado), OU
+  // está à frente do próprio upstream — em ambos os casos, ainda não embarcou.
+  const ahead = Math.max(Number(aheadOrigin) || 0, hasUpstream ? Number(aheadUpstream) || 0 : 0);
+  if (ahead <= 0) return null;                 // nada além do origin → shipped
+  if (prState === "OPEN") return null;         // commit local mas com PR aberto → em trânsito, ok
+
+  const where = hasUpstream
+    ? `${aheadUpstream} à frente do upstream, ${aheadOrigin} além de origin/main`
+    : `sem upstream, ${aheadOrigin} além de origin/main`;
+  const list = subjects.length
+    ? "\n    " + subjects.slice(0, 12).map((s) => `· ${s}`).join("\n    ") +
+      (subjects.length > 12 ? `\n    … +${subjects.length - 12}` : "")
+    : "";
+  const level = allowUnshipped ? "warn" : "error";
+  return {
+    level,
+    msg: `${ahead} commit(s) commitado(s) mas não pushado(s) e sem PR aberto — committed ≠ shipped ` +
+      `(branch '${branch}': ${where})${list}`,
+  };
+}
+
+if (IS_MAIN) {
 let root = null;
 try { root = git("rev-parse --show-toplevel", target); } catch { /* not a repo */ }
 let tracked = [];
@@ -128,6 +179,41 @@ if (!root) {
       add("stale-derived", "error", `derivado mais velho que a fonte (${rule.source}): ` +
         stale.slice(0, 8).join(", ") + (stale.length > 8 ? ` … +${stale.length - 8}` : ""));
   }
+
+  // CHECK 6 — unshipped (committed ≠ shipped): commit local sem push e sem PR
+  try {
+    const branch = (() => { try { return git("rev-parse --abbrev-ref HEAD", root); } catch { return "HEAD"; } })();
+
+    // upstream? ahead/behind via @{u}...HEAD (left=behind, right=ahead)
+    let hasUpstream = false, aheadUpstream = 0;
+    try {
+      git("rev-parse --abbrev-ref --symbolic-full-name @{u}", root); // lança se não há upstream
+      hasUpstream = true;
+      const [, right] = git("rev-list --left-right --count @{u}...HEAD", root).split(/\s+/);
+      aheadUpstream = Number(right) || 0;
+    } catch { /* sem upstream */ }
+
+    // commits além de origin/main (a referência de "embarcado" do projeto)
+    let aheadOrigin = 0, subjects = [];
+    try {
+      aheadOrigin = Number(git("rev-list --count origin/main..HEAD", root)) || 0;
+      if (aheadOrigin > 0)
+        subjects = git(`log --format=%s -n 12 origin/main..HEAD`, root).split("\n").filter(Boolean);
+    } catch { /* origin/main pode não existir; aheadOrigin fica 0 */ }
+
+    // PR aberto? best-effort via gh; gh ausente/erro → prState=null (cai no threshold)
+    let prState = null;
+    if (aheadUpstream > 0 || aheadOrigin > 0) {
+      try {
+        const out = git ? execSync(`gh pr view ${JSON.stringify(branch)} --json state`,
+          { cwd: root, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim() : "";
+        prState = (JSON.parse(out || "{}").state || null);
+      } catch { prState = null; }
+    }
+
+    const r = evaluateUnshipped({ branch, aheadOrigin, hasUpstream, aheadUpstream, prState, subjects, allowUnshipped: ALLOW_UNSHIPPED });
+    if (r) add("unshipped", r.level, r.msg);
+  } catch (e) { add("unshipped", "warn", `checagem de unshipped falhou: ${e.message}`); }
 }
 
 // relatório + exit
@@ -146,3 +232,4 @@ try {
   if (audit?.smoke) audit.smoke("repo-hygiene", { errors: errors.length, warns: warns.length });
 } catch { /* opcional */ }
 process.exit(WARN_ONLY ? 0 : (errors.length || (STRICT && warns.length)) ? 1 : 0);
+} // fim IS_MAIN

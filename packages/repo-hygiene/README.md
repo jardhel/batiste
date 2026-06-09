@@ -7,22 +7,25 @@ sessão de vibe coding de terminar suja. Este check bloqueia.
 
 ## Uso
 ```bash
-node hygiene.mjs [path] [--strict] [--warn-only] [--json]
+node hygiene.mjs [path] [--strict] [--warn-only] [--json] [--allow-unshipped]
 ```
 - `path` — dir-alvo (default: cwd). Escaneia arquivos git-tracked sob ele.
 - `--strict` — WARN também derruba (exit 1).
 - `--warn-only` — nada derruba; só reporta.
 - `--json` — saída estruturada (CI/Batiste).
+- `--allow-unshipped` — rebaixa o CHECK `unshipped` de ERRO p/ WARN (mesmo padrão de `--no-git-clean`).
 
 Exit 1 = falha (use no fim da sessão / pre-commit / CI). Exit 0 = limpo.
 
-## Os 4 checks
+## Os checks
 | Check | Nível | O que pega |
 |---|---|---|
 | `git-clean` | ERRO | dir não é repo git, ou tem mudança não-commitada (sem rede de segurança = faxina irreversível) |
 | `no-duplicate` | WARN | arquivo idêntico por hash em >1 pasta (multi-source) |
 | `drafts-scoped` | ERRO | rascunho/variante (`concepts/`, `_final_b`, `a.html`, `_v2`…) fora de `_scratch/` |
 | `canonical` | WARN | asset declarado em `*.brand.yaml` que não existe no disco |
+| `stale-derived` | ERRO | derivado mais velho que a fonte (regras `staleCheck` em `.hygiene.json`) |
+| `unshipped` | ERRO | commit local não-pushado **e** sem PR aberto — _committed ≠ shipped_ (rebaixa com `--allow-unshipped`) |
 
 ERRO bloqueia (sem ambiguidade). WARN reporta pra julgamento humano (bundles de
 upload auto-contidos podem duplicar de propósito).
