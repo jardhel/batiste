@@ -36,6 +36,11 @@ const PROGRAM = [
   ["pending",     "Astrus: criar os prices Stripe (ativar tiers)", "ÚNICO bloqueio dos tiers agora: criar os ~16 prices na conta Stripe (ação de $ semi-irreversível). Aguarda 'go' do user — eu executo via function admin temp c/ a chave instalada. Aí subscribe vira cs_live."],
   ["pending",     "Astrus: UI de login + gating no /app/", "shell construível; usabilidade depende do e-mail (acima)"],
   ["pending",     "Caixa: revisar bays + janela de chuva (fit-test)", "BLOQUEIO: medir as peças na bancada quando chegarem; dfam-preflight roda no STL revisado antes dos 5 finais"],
+  // ===== Crise de qualidade/consistência (2026-06-09) =====
+  ["completed",   "Gate @batiste-aidk/ui-consistency + fix landing↔app", "Junior pegaria, Batiste não pegava → gate criado. Astrus/Mermaid/Argus agora GREEN (favicon/fonte/langswitch/wordmark/Beta), verificado por conteúdo, deployado pelo gate de lineage"],
+  ["pending",     "Batiste README: revisar e publicar", "Reescrito 3-lentes: matou 446→438 testes, kill-switch <1ms fabricado, connectors 'proprietário'→MIT; open-core honesto; AI-tells mortos; Hive Mind rebaixado; seção dogfood honesta. AGUARDA sua revisão (não pushei)"],
+  ["pending",     "Decidir naming 'Hive Mind' (bench activeloop)", "Bench: 'Hive Mind' é tagline quase-verbatim do activeloopai/hivemind (YC, mesmo domínio) + genérico. Rebaixar como marquee; liderar com orquestração-auditada. PR canon (press release Fran) também usa → candidato a /pr-audit"],
+  ["pending",     "GPS Voador: OSINT/RUMINT outdated", "Outro produto (vertical eleitoral); tratar separado da crise Astrus/Mermaid"],
 ];
 
 const arg = process.argv[2];
