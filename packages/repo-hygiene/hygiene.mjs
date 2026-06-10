@@ -63,6 +63,14 @@ const mm = (p, g) => globToRe(g).test(p);
 //                 (null = sem PR, gh indisponível, ou erro — best-effort)
 //   subjects      [] de assuntos dos commits stranded (pra mensagem)
 //   allowUnshipped rebaixa ERRO → WARN
+// Bases de resolução de um asset declarado em brand.yaml: relativa ao dir do
+// yaml, ao dir PAI do yaml (cwd da ferramenta que consome, ex. tools/docgen/
+// com brands/x.brand.yaml declarando "brands/x.svg"), e à raiz do repo.
+export function brandAssetCandidates(root, yamlRelPath, ref) {
+  const dir = join(root, dirname(yamlRelPath));
+  return [join(dir, ref), join(dirname(dir), ref), join(root, ref)];
+}
+
 export function evaluateUnshipped({
   branch = "HEAD",
   aheadOrigin = 0,
@@ -157,12 +165,11 @@ if (!root) {
 
   // CHECK 4 — canonical assets (brand.yaml)
   for (const p of tracked.filter((p) => /\.brand\.ya?ml$|(^|\/)brand\.ya?ml$/i.test(p))) {
-    const dir = join(root, dirname(p));
     let txt = ""; try { txt = readFileSync(join(root, p), "utf8"); } catch { continue; }
     const refs = [...txt.matchAll(/[:\s"']([\w./-]+\.(?:svg|png|pdf|jpg|jpeg|webp))\b/gi)].map((m) => m[1]);
     for (const r of [...new Set(refs)]) {
       if (/^https?:/.test(r)) continue;
-      if (![join(dir, r), join(root, r)].some(existsSync))
+      if (!brandAssetCandidates(root, p, r).some(existsSync))
         add("canonical", "warn", `${p} declara asset ausente: ${r}`);
     }
   }

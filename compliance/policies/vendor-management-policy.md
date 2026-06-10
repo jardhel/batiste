@@ -44,3 +44,13 @@ We track dependency concentration (e.g., reliance on a single cloud signing auth
 ## 7. Sub-processor list (published)
 
 A public list at `/docs/sub-processors.md`. Customers get 30 days' notice before any addition or replacement. If they object, they may terminate the affected statement of work.
+
+## 8. License-gate exceptions
+
+| Package | License | Reason | Approver | Date | Review trigger |
+|---|---|---|---|---|---|
+| `@img/sharp-libvips-linux-x64@1.2.4` | LGPL-3.0-or-later | Prebuilt libvips binary, dynamic linking only — no copyleft over first-party code | Jardhel Cachola | 2026-06-10 | version bump re-flags automatically |
+| `@img/sharp-libvips-linuxmusl-x64@1.2.4` | LGPL-3.0-or-later | idem | Jardhel Cachola | 2026-06-10 | idem |
+| `@img/sharp-libvips-darwin-arm64@1.2.4` | LGPL-3.0-or-later | idem (local dev) | Jardhel Cachola | 2026-06-10 | idem |
+
+Exceptions live in code at `scripts/generate-license-report.mjs` (`EXCEPTIONS`) — the gate re-flags on any version change by design.

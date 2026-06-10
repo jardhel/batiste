@@ -74,15 +74,29 @@ function collectFiles(pkgPath) {
 // aggregated NOTICE, so excluding the binary variants makes NOTICE cross-
 // platform deterministic without loss of license compliance.
 const PLATFORM_SPECIFIC = /(-|\/)((?:darwin|linux|win32|freebsd|openbsd|android|sunos|netbsd|aix)(?:-|_|$)|(?:arm64|x64|ia32|armv7|arm)$|musl$|gnueabihf$)/i;
-function isPlatformSpecific(name) {
-  return PLATFORM_SPECIFIC.test(name);
+// O regex pega variantes com plataforma no NOME (@rollup/rollup-darwin-arm64),
+// mas deixa passar dep platform-constrained de nome neutro (fsevents é darwin-
+// only e era a fonte do drift de NOTICE mac x linux). Checa também os campos
+// os/cpu do manifest — fonte da verdade da restrição.
+function isPlatformSpecific(e) {
+  if (PLATFORM_SPECIFIC.test(e.name)) return true;
+  const p = Array.isArray(e.paths) ? e.paths[0] : e.path;
+  if (!p) return false;
+  try {
+    const m = JSON.parse(readFileSync(join(p, 'package.json'), 'utf8'));
+    return Boolean(m.os || m.cpu);
+  } catch { return false; }
 }
 
 const rows = [];
 for (const [license, entries] of Object.entries(pnpmLicenses())) {
   for (const e of entries) {
-    if (isPlatformSpecific(e.name)) continue;
-    rows.push({ name: e.name, version: e.version, license, path: e.path });
+    if (isPlatformSpecific(e)) continue;
+    // pnpm licenses entrega versions/paths como ARRAYS (mesma pegadinha do
+    // license report — e.version singular é undefined).
+    const version = Array.isArray(e.versions) && e.versions.length ? e.versions[0] : e.version;
+    const path = Array.isArray(e.paths) ? e.paths[0] : e.path;
+    rows.push({ name: e.name, version, license, path });
   }
 }
 // Dedup by name — ship one NOTICE block per package, not per version.

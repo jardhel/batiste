@@ -44,3 +44,6 @@ coverage/
 .batiste/index-state.json
 .batiste/tasks.db
 reports/
+
+# repo embutido de dev local — nunca gitlink
+packages/core/claude-code/

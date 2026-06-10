@@ -80,7 +80,7 @@ Details are in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Packages
 
-Batiste is open-core: the runtime primitives are MIT, and a small set of orchestration and marketplace packages are source-available under a proprietary licence. See [License](#license).
+Batiste is open-core: the runtime primitives are MIT, and a small set of orchestration and marketplace packages are source-available under a proprietary licence. See [License](#license). Where this is heading: [docs/ROADMAP.md](./docs/ROADMAP.md) — every "shipped" entry carries its verification command.
 
 | Package | Licence | Description |
 |---|---|---|
