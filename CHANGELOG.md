@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0-alpha.3] — 2026-06-10
+
+**CI verde de ponta a ponta + roadmap público com política de claims.** A rodada saiu de um postmortem real: a main estava vermelha havia um dia e cada causa era um modo de falha que os próprios gates pregam contra — gitlink sem `.gitmodules`, lockfile fora de sincronia, teste dependente de rede, artefato de compliance não-determinístico.
+
+### Fixed
+
+- **CI da main verde (4 causas raiz)** — gitlink fantasma `packages/core/claude-code` removido (quebrava checkout com exit 128); lockfile re-sincronizado pós-dependabot; `--passWithNoTests` não é mais duplicado pelo workflow (vitest novo rejeita flag repetida); pacotes `node --test` engolem flags de coverage injetadas pelo CI.
+- **`@batiste-aidk/memory` offline em teste** — o `EmbeddingEngine` é mockado com bag-of-tokens determinístico; testes não baixam mais o MiniLM do HuggingFace em tempo de execução (o CI tomava 429 e a suíte virava loteria de rede). 18 testes.
+- **NOTICE determinístico cross-platform** — o filtro de pacote por plataforma agora lê `os`/`cpu` do manifest além do nome (`fsevents` é darwin-only com nome neutro e causava drift de hash macOS×Linux); `versions`/`paths` do `pnpm licenses` tratados como arrays.
+- **License gate: chave de exceção corrigida** — `pnpm licenses` entrega `versions` em array; a chave virava `pkg@undefined` e exceções nunca casavam. Exceções LGPL-3.0 (libvips pré-compilado do sharp, linking dinâmico) registradas em código e em `compliance/policies/vendor-management-policy.md` §8.
+- **`@batiste-aidk/repo-hygiene`** — check `canonical` resolve assets de `brand.yaml` também pelo cwd da ferramenta consumidora (falso-positivo com `tools/docgen/brands/`). Resolução extraída pura (`brandAssetCandidates`), 8 testes.
+
+### Added
+
+- **`docs/ROADMAP.md`** — roadmap revalidado: todo item "entregue" carrega o comando de verificação; política explícita de claims (sem números de economia de token até benchmark robusto). Linkado no README.
+
 ## [1.2.0-alpha.2] — 2026-06-09
 
 **Discipline gates — three operational guardrails grounded as code, not doctrine.** Each gate was driven by a real incident in the firm's own workflow and now fails the build instead of living as a note in a vault: a push to the flagship repo made under the wrong credential, twenty commits left stranded unpushed on a feature branch, and a marketing page whose CDN webfont failed to load on a locked-down corporate machine.
