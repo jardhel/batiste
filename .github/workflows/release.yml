@@ -75,8 +75,11 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           TARBALL="batiste-${VERSION}.tar.gz"
+          # escreve FORA da árvore que está sendo tarball-izada — escrever dentro
+          # faz o tar ler o próprio output ("file changed as we read it", exit 1)
           tar --exclude='./node_modules' --exclude='./.git' \
-              -czf "${TARBALL}" .
+              -czf "${RUNNER_TEMP}/${TARBALL}" .
+          mv "${RUNNER_TEMP}/${TARBALL}" "${TARBALL}"
           sha256sum "${TARBALL}" > "${TARBALL}.sha256"
           echo "tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
 
