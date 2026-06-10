@@ -28,17 +28,16 @@ TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "▶ sbom: batiste@${VERSION} commit=${COMMIT:0:12} at ${TS}"
 
 # ---------- CycloneDX ----------
-# @cyclonedx/cyclonedx-npm produces a CDX 1.5 JSON covering the whole
-# workspace when run from the root.
-echo "▶ cdx: @cyclonedx/cyclonedx-npm"
-npx --yes @cyclonedx/cyclonedx-npm@latest \
-  --output-format JSON \
-  --output-file "$REPORTS/sbom.cdx.json" \
-  --package-lock-only \
-  --spec-version 1.5 \
-  --omit dev \
+# cdxgen lê pnpm-lock.yaml nativamente — cyclonedx-npm exigia package-lock.json
+# (npm) e quebrava o release em repo pnpm ("No evidence: no package lock file").
+echo "▶ cdx: @cyclonedx/cdxgen (pnpm-aware)"
+npx --yes @cyclonedx/cdxgen@latest \
+  -t pnpm \
+  --no-install-deps \
+  -o "$REPORTS/sbom.cdx.json" \
+  "$REPO_ROOT" \
   || {
-    echo "✖ cyclonedx-npm failed" >&2
+    echo "✖ cdxgen failed" >&2
     exit 1
   }
 
