@@ -76,6 +76,12 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## @playwright/test@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## @protobufjs/aspromise@undefined  (BSD-3-Clause)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -586,6 +592,12 @@ git commit history is authoritative for the timestamp of each regeneration.
 
 --------------------------------------------------------------------------------
 
+## fsevents@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
 ## function-bind@undefined  (MIT)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
@@ -1049,6 +1061,18 @@ git commit history is authoritative for the timestamp of each regeneration.
 --------------------------------------------------------------------------------
 
 ## platform@undefined  (MIT)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## playwright@undefined  (Apache-2.0)
+
+(no LICENSE / NOTICE file shipped; see package metadata)
+
+--------------------------------------------------------------------------------
+
+## playwright-core@undefined  (Apache-2.0)
 
 (no LICENSE / NOTICE file shipped; see package metadata)
 
