@@ -111,26 +111,38 @@ function main() {
   }
   if (accounts.length && !active) warn("nenhuma conta gh marcada como ativa (Active account: true)");
 
-  // 3) permissão da conta ativa no repo
+  // 2b) credencial FIXADA no repo (git config credential.username) tem
+  // precedência sobre a conta ativa: é ela que o push vai usar de fato.
+  // Sem isso o gate briga com a realidade quando duas sessões revezam
+  // `gh auth switch` (guerra de contas 2026-06-10).
+  let pinned = null;
+  try { pinned = sh("git config --local credential.username") || null; } catch { /* não fixada */ }
+  const effective = pinned || active;
+  const who = pinned ? `FIXADA '${pinned}' (credential.username)` : `ATIVA '${active}'`;
+
+  // 3) permissão da conta efetiva no repo
   let permission = null;
-  if (repoInfo && active) {
+  if (repoInfo && effective) {
     const slug = `${repoInfo.owner}/${repoInfo.name}`;
+    const viewCmd = pinned
+      ? `GH_TOKEN=$(gh auth token --user ${pinned}) gh repo view ${slug} --json viewerPermission`
+      : `gh repo view ${slug} --json viewerPermission`;
     try {
-      const out = sh(`gh repo view ${slug} --json viewerPermission`);
+      const out = sh(viewCmd);
       permission = JSON.parse(out).viewerPermission;
     } catch {
-      fail(`\`gh repo view ${slug}\` falhou com a conta ATIVA '${active}' (sem acesso ao repo?).`);
+      fail(`\`gh repo view ${slug}\` falhou com a conta ${who} (sem acesso ao repo? token expirado?).`);
     }
     if (permission) {
       const dec = permissionDecision(permission);
       if (!dec.ok) {
-        const suggestion = suggestAccount(accounts, active, repoInfo.owner);
+        const suggestion = pinned ? null : suggestAccount(accounts, active, repoInfo.owner);
         const hint = suggestion
           ? `\n    → outra conta gh logada é o dono do repo: \`gh auth switch --user ${suggestion}\``
           : (accounts.length > 1
               ? `\n    → contas gh logadas: ${accounts.map((a) => a.account).join(", ")} — talvez precise trocar com \`gh auth switch\`.`
               : "");
-        fail(`conta ATIVA '${active}' tem permissão ${dec.permission} em ${slug} (precisa de WRITE/ADMIN/MAINTAIN p/ push).${hint}`);
+        fail(`conta ${who} tem permissão ${dec.permission} em ${slug} (precisa de WRITE/ADMIN/MAINTAIN p/ push).${hint}`);
       }
     }
   }
