@@ -1,4 +1,30 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Embedding determinístico OFFLINE — o EmbeddingEngine real baixa o MiniLM do
+// HuggingFace em tempo de teste (o CI tomou 429 e o teste virou loteria de
+// rede). Bag-of-tokens com hash FNV estável: textos que compartilham palavras
+// ficam próximos em cosseno — suficiente pros asserts semânticos daqui.
+vi.mock('../vector/embed.js', () => {
+  const DIMS = 384;
+  const embedText = (text: string): number[] => {
+    const v: number[] = new Array(DIMS).fill(0);
+    for (const tok of String(text).toLowerCase().match(/[\p{L}\p{N}-]+/gu) ?? []) {
+      let h = 2166136261;
+      for (let i = 0; i < tok.length; i++) { h ^= tok.charCodeAt(i); h = Math.imul(h, 16777619); }
+      v[Math.abs(h) % DIMS] += 1;
+    }
+    const n = Math.hypot(...v) || 1;
+    return v.map((x) => x / n);
+  };
+  class EmbeddingEngine {
+    constructor(_opts: unknown) {}
+    async initialize(): Promise<void> {}
+    async embed(t: string): Promise<number[]> { return embedText(t); }
+    async embedBatch(ts: string[]): Promise<number[][]> { return ts.map(embedText); }
+    async embedQuery(q: string): Promise<number[]> { return embedText(q); }
+  }
+  return { EmbeddingEngine };
+});
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
