@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "description": "Gate de higiene de repo — padrão da casa como gate, não como memória. Falha o 'done' quando o vibe coding deixou bagunça.",
   "type": "module",
-  "bin": { "repo-hygiene": "./hygiene.mjs" },
-  "scripts": { "check": "node hygiene.mjs", "test": "node --test" },
+  "bin": {
+    "repo-hygiene": "./hygiene.mjs"
+  },
+  "scripts": {
+    "check": "node hygiene.mjs",
+    "test": "sh -c 'node --test' --"
+  },
   "license": "UNLICENSED"
 }

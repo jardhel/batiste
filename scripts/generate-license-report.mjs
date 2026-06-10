@@ -48,7 +48,14 @@ const DENY = new Set([
 ]);
 // Explicit per-package exceptions recorded in vendor-management-policy.md.
 // Map: "pkg@version" → { license, reason, approver, date }.
-const EXCEPTIONS = Object.freeze({});
+const EXCEPTIONS = Object.freeze({
+  // libvips pré-compilado do sharp: LGPL-3.0 com linking DINÂMICO — uso permitido
+  // sem obrigação copyleft sobre o nosso código. Registrado em
+  // compliance/policies/vendor-management-policy.md §8 (aprovação Jardhel, 2026-06-10).
+  '@img/sharp-libvips-linux-x64@1.2.4':      { license: 'LGPL-3.0-or-later', reason: 'prebuilt libvips, dynamic linking', approver: 'Jardhel Cachola', date: '2026-06-10' },
+  '@img/sharp-libvips-linuxmusl-x64@1.2.4':  { license: 'LGPL-3.0-or-later', reason: 'prebuilt libvips, dynamic linking', approver: 'Jardhel Cachola', date: '2026-06-10' },
+  '@img/sharp-libvips-darwin-arm64@1.2.4':   { license: 'LGPL-3.0-or-later', reason: 'prebuilt libvips, dynamic linking', approver: 'Jardhel Cachola', date: '2026-06-10' },
+});
 
 function log(msg) { if (!QUIET) process.stderr.write(msg + '\n'); }
 
@@ -87,7 +94,10 @@ const raw = pnpmLicenses();
 const rows = [];
 for (const [licenseKey, entries] of Object.entries(raw)) {
   for (const e of entries) {
-    const key = `${e.name}@${e.version}`;
+    // pnpm licenses entrega `versions` (array); `version` singular não existe —
+    // sem este fallback a chave vira "pkg@undefined" e exceção nunca casa.
+    const version = Array.isArray(e.versions) && e.versions.length ? e.versions[0] : e.version;
+    const key = `${e.name}@${version}`;
     const exception = EXCEPTIONS[key];
     const license = exception?.license ?? normaliseLicense(licenseKey);
     const status = exception ? 'exception' : classify(license);
