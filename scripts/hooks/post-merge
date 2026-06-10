@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# post-merge — reconciles the Batiste task DAG against merged commits.
+#
+# After a `git merge` / `git pull` lands new commits, this hook reads their
+# `Task-done: <label-or-id>` trailers and marks the matching tasks
+# `completed` on the board (with the commit SHA as audit evidence). It is the
+# anti-dogfood cure: the product sells orchestration, so its own board must
+# not rot with tasks that were finished but never closed.
+#
+# Contract (must hold for this hook to stay safe to run on every merge):
+#   - IDEMPOTENT   — reconcile persists the last reconciled SHA and never
+#                    re-closes a task that is already completed.
+#   - EVIDENCE-ONLY — only tasks with a real Task-done trailer in a real
+#                    commit are closed. Stale-but-open tasks are *flagged*,
+#                    never auto-closed.
+#   - FAIL-SOFT    — if reconcile errors (no board yet, CLI not built, no
+#                    tasks.db), the hook prints a notice and exits 0 so it
+#                    NEVER blocks the developer's merge/pull.
+#
+# Install (pick one):
+#   # A) Point git at the tracked hooks dir (recommended — versioned, shared):
+#   git config core.hooksPath scripts/hooks
+#
+#   # B) Copy into the local hooks dir (per-clone, not versioned):
+#   cp scripts/hooks/post-merge .git/hooks/post-merge
+#   chmod +x .git/hooks/post-merge
+#
+# The same body works as a `pre-push` hook if you prefer reconciling before
+# pushing — symlink or copy it to scripts/hooks/pre-push and install likewise.
+
+set -u  # NB: deliberately NOT `set -e` — we must fail soft.
+
+# Resolve repo root so the hook works regardless of git's CWD.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+cd "$REPO_ROOT" || exit 0
+
+# Reconcile is opt-out: set BATISTE_TASK_SYNC=0 to skip (e.g. in CI checkouts).
+if [ "${BATISTE_TASK_SYNC:-1}" = "0" ]; then
+  exit 0
+fi
+
+# Find the batiste-direct CLI. Prefer the built binary; fall back to a
+# workspace-local invocation. If none resolves, fail soft.
+run_reconcile() {
+  if command -v batiste-direct >/dev/null 2>&1; then
+    batiste-direct manage_task '{"action":"reconcile"}'
+    return $?
+  fi
+
+  if [ -f packages/code/dist/direct-cli.js ]; then
+    node packages/code/dist/direct-cli.js manage_task '{"action":"reconcile"}'
+    return $?
+  fi
+
+  # CLI not built — nothing to do, but say so.
+  echo "[batiste task-sync] batiste-direct not found (build packages/code first); skipping reconcile." >&2
+  return 0
+}
+
+echo "[batiste task-sync] reconciling task board from merged commits…" >&2
+if run_reconcile; then
+  echo "[batiste task-sync] reconcile done." >&2
+else
+  # Non-zero from reconcile must not break the merge. Surface it and move on.
+  echo "[batiste task-sync] reconcile reported an issue; not blocking (fail-soft)." >&2
+fi
+
+exit 0

@@ -157,28 +157,36 @@ export class SQLiteTaskStore implements ITaskStore {
 
   async get(id: string): Promise<Task | null> {
     const row = this.db
-      .prepare('SELECT id, parentId, label, status, context FROM tasks WHERE id = ?')
+      .prepare(
+        'SELECT id, parentId, label, status, context, createdAt, updatedAt FROM tasks WHERE id = ?'
+      )
       .get(id) as Record<string, unknown> | undefined;
     return row ? this.rowToTask(row) : null;
   }
 
   async getChildren(parentId: string): Promise<Task[]> {
     const rows = this.db
-      .prepare('SELECT id, parentId, label, status, context FROM tasks WHERE parentId = ?')
+      .prepare(
+        'SELECT id, parentId, label, status, context, createdAt, updatedAt FROM tasks WHERE parentId = ?'
+      )
       .all(parentId) as Record<string, unknown>[];
     return rows.map((row) => this.rowToTask(row));
   }
 
   async getAll(): Promise<Task[]> {
     const rows = this.db
-      .prepare('SELECT id, parentId, label, status, context FROM tasks')
+      .prepare(
+        'SELECT id, parentId, label, status, context, createdAt, updatedAt FROM tasks'
+      )
       .all() as Record<string, unknown>[];
     return rows.map((row) => this.rowToTask(row));
   }
 
   async getRoots(): Promise<Task[]> {
     const rows = this.db
-      .prepare('SELECT id, parentId, label, status, context FROM tasks WHERE parentId IS NULL')
+      .prepare(
+        'SELECT id, parentId, label, status, context, createdAt, updatedAt FROM tasks WHERE parentId IS NULL'
+      )
       .all() as Record<string, unknown>[];
     return rows.map((row) => this.rowToTask(row));
   }
@@ -206,6 +214,8 @@ export class SQLiteTaskStore implements ITaskStore {
       label: row.label as string,
       status: row.status as Task['status'],
       context: JSON.parse(row.context as string),
+      ...(row.createdAt != null ? { createdAt: Number(row.createdAt) } : {}),
+      ...(row.updatedAt != null ? { updatedAt: Number(row.updatedAt) } : {}),
     };
   }
 }

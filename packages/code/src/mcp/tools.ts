@@ -27,7 +27,9 @@ export const ExecuteSandboxInput = z.object({
 });
 
 export const ManageTaskInput = z.object({
-  action: z.enum(['create', 'update', 'get', 'list', 'tree', 'clear']).describe('Task action'),
+  action: z
+    .enum(['create', 'update', 'get', 'list', 'tree', 'clear', 'reconcile', 'stale'])
+    .describe('Task action'),
   taskId: z.string().optional().describe('Task ID for update/get'),
   label: z.string().optional().describe('Task label for create'),
   parentId: z.string().optional().describe('Parent task ID'),
@@ -36,6 +38,14 @@ export const ManageTaskInput = z.object({
     toolName: z.string(),
     output: z.any(),
   }).optional().describe('Cache tool output'),
+  since: z
+    .string()
+    .optional()
+    .describe('reconcile: git revision lower bound (default: persisted marker / recent window)'),
+  staleDays: z
+    .number()
+    .optional()
+    .describe('reconcile/stale: days untouched before a pending task is flagged stale (default 14)'),
 });
 
 export const RunTDDInput = z.object({
@@ -191,16 +201,18 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: 'manage_task',
-    description: 'Create, update, or query tasks in the persistent task DAG. Supports caching tool outputs to prevent duplicate work.',
+    description: 'Create, update, or query tasks in the persistent task DAG. Supports caching tool outputs, reconciling closures from git Task-done: trailers (with commit evidence + audit), and flagging stale pending tasks.',
     inputSchema: {
       type: 'object',
       properties: {
-        action: { type: 'string', enum: ['create', 'update', 'get', 'list', 'tree', 'clear'], description: 'Action to perform' },
+        action: { type: 'string', enum: ['create', 'update', 'get', 'list', 'tree', 'clear', 'reconcile', 'stale'], description: 'Action to perform' },
         taskId: { type: 'string', description: 'Task ID (for update/get)' },
         label: { type: 'string', description: 'Task label (for create)' },
         parentId: { type: 'string', description: 'Parent task ID (for create subtask)' },
         status: { type: 'string', enum: ['pending', 'running', 'completed', 'failed'], description: 'New status (for update)' },
         toolOutput: { type: 'object', properties: { toolName: { type: 'string' }, output: {} }, description: 'Tool output to cache' },
+        since: { type: 'string', description: 'reconcile: git revision lower bound; only commits after it are scanned (default: persisted marker / recent window)' },
+        staleDays: { type: 'number', description: 'reconcile/stale: days a pending task may sit untouched before being flagged stale (default 14)' },
       },
       required: ['action'],
     },

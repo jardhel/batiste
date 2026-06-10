@@ -29,6 +29,7 @@
     "start": "node dist/mcp/server.js"
   },
   "dependencies": {
+    "@batiste-aidk/audit": "workspace:*",
     "@batiste-aidk/core": "workspace:*",
     "@batiste-aidk/graph": "workspace:*",
     "@batiste-aidk/gvs": "workspace:*",

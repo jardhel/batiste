@@ -17,6 +17,9 @@
  *   batiste-direct summarize_codebase '{"depth":"detailed"}'
  *   batiste-direct validate_code '{"paths":["src/main.ts"]}'
  *   batiste-direct manage_task '{"action":"list"}'
+ *   batiste-direct manage_task '{"action":"reconcile"}'
+ *   batiste-direct manage_task '{"action":"reconcile","since":"HEAD~50"}'
+ *   batiste-direct manage_task '{"action":"stale","staleDays":7}'
  */
 
 import { join } from 'path';
