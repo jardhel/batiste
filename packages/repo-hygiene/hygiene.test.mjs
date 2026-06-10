@@ -98,3 +98,15 @@ test("PR não-OPEN (ex.: MERGED/CLOSED) ainda conta como stranded se ahead>0", (
   assert.ok(r, "PR merged mas commits novos não-pushados ainda é stranded");
   assert.equal(r.level, "error");
 });
+
+// --- CHECK 4: resolução de asset declarado em brand.yaml ---------------------
+import { brandAssetCandidates } from "./hygiene.mjs";
+
+test("brandAssetCandidates inclui dir do yaml, dir pai (cwd da ferramenta) e raiz", () => {
+  const c = brandAssetCandidates("/repo", "tools/docgen/brands/cachola.brand.yaml", "brands/cachola-symbol.svg");
+  assert.deepEqual(c, [
+    "/repo/tools/docgen/brands/brands/cachola-symbol.svg",
+    "/repo/tools/docgen/brands/cachola-symbol.svg",
+    "/repo/brands/cachola-symbol.svg",
+  ]);
+});
