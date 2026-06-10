@@ -45,6 +45,9 @@ jobs:
       - name: Test (release gate)
         run: pnpm -r test
 
+      - name: Install syft (SPDX)
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
       - name: Generate SBOM (SPDX + CycloneDX)
         run: bash scripts/generate-sbom.sh
 
