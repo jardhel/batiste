@@ -23,7 +23,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.2.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

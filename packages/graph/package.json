@@ -23,7 +23,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "graphology": "^0.25.0",
+    "graphology": "^0.26.0",
     "graphology-communities-louvain": "^2.0.2",
     "graphology-types": "^0.24.7"
   },
