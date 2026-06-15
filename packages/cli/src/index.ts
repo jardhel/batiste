@@ -25,7 +25,7 @@ const program = new Command();
 
 program
   .name('batiste')
-  .description('Batiste — Autonomous Agent Compute Marketplace')
+  .description('Batiste — zero-trust runtime for AI agents')
   .version('0.1.0');
 
 // ─── node subcommand group ────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ program
   .description('About Batiste')
   .action(() => {
     process.stdout.write(`
-  ${bold('Batiste')} ${green('·')} Autonomous Agent Compute Marketplace
+  ${bold('Batiste')} ${green('·')} zero-trust runtime for AI agents
   ${green('The invisible sous-chef that runs your AI stack.')}
 
   Eindhoven, Netherlands

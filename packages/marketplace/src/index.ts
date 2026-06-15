@@ -1,7 +1,7 @@
 /**
  * @batiste-aidk/marketplace
  *
- * Autonomous Agent Compute Marketplace.
+ * compute marketplace.
  * Node registry, discovery, zero-trust routing, and per-cycle pricing.
  *
  * @dogfood Built using @batiste-aidk/code analysis and validation tooling.

@@ -1,6 +1,34 @@
 # Batiste Architecture
 
-Technical reference for the Batiste Autonomous Agent Compute Marketplace.
+Technical reference for the Batiste zero-trust runtime for AI agents.
+
+---
+
+## What runs here, and what does not
+
+Batiste is a **zero-trust runtime plus a set of deterministic hands** for AI
+agents. The runtime is the scope → auth → audit chain every tool call passes
+through; the hands are the deterministic capabilities the runtime exposes as MCP
+tools: tree-sitter AST analysis (`@batiste-aidk/graph`), PDF/CSV parsing
+(`@batiste-aidk/connectors`), the parallel DAG executor (`@batiste-aidk/parallel`),
+the SHA-256 append-only audit ledger (`@batiste-aidk/audit`), and the path-scoped
+deny-lists (`@batiste-aidk/scope`).
+
+**The brain is an external LLM host — it is not embedded in this runtime, by
+design.** There is no LLM SDK in the request path (`grep -rniE
+'@anthropic-ai|openai' packages --include='*.ts'` over runtime code returns no
+client call). Reasoning is supplied by the host the operator already runs —
+Claude Code, Cowork, or any MCP client — which calls the deterministic hands
+through the zero-trust chain. Keeping the model out of the runtime is what makes
+every action attestable before it runs: the hands are deterministic and the
+ledger is the record, regardless of which model decided to call them.
+
+The `CoderAgent` and `ReviewerAgent` classes in `@batiste-aidk/core` are
+**roadmap stubs, not shipped autonomy** — `CoderAgent.generateCode` returns a
+placeholder string (`// Placeholder for LLM-based code generation`,
+`tokensUsed: 0`) and `ReviewerAgent.reviewCode` is a heuristic substring check
+(`code?.includes('eval(')`), not a model review. They exist to fix the
+orchestration shape; the LLM-backed behaviour is not implemented.
 
 ---
 

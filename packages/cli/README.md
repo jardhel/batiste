@@ -98,7 +98,7 @@ batiste config --creator-id my-team
 
 ```bash
 batiste who
-#   BATISTE · Autonomous Agent Compute Marketplace
+#   BATISTE · zero-trust runtime for AI agents
 #   The invisible sous-chef that runs your AI stack.
 #   Eindhoven, Netherlands
 ```
