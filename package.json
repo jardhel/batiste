@@ -2,7 +2,7 @@
   "name": "batiste",
   "version": "0.0.0",
   "private": true,
-  "description": "The Autonomous Agent Compute Marketplace — zero-trust MCP infrastructure for routing, billing, auditing, and governing AI agents on your own network.",
+  "description": "The zero-trust MCP infrastructure for routing, billing, auditing, and governing AI agents on your own network.",
   "keywords": [
     "ai-agents",
     "mcp",

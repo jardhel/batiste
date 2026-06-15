@@ -177,6 +177,12 @@ importers:
       '@batiste-aidk/audit':
         specifier: workspace:*
         version: link:../audit
+      '@batiste-aidk/code':
+        specifier: workspace:*
+        version: link:../code
+      '@batiste-aidk/connectors':
+        specifier: workspace:*
+        version: link:../connectors
       '@batiste-aidk/gvs':
         specifier: workspace:*
         version: link:../gvs
@@ -413,6 +419,8 @@ importers:
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.30)
+
+  packages/pitch-integrity: {}
 
   packages/repo-hygiene: {}
 

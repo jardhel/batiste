@@ -2,7 +2,7 @@
   <img src="./assets/logo.png" width="120" alt="Batiste Logo" />
 
   # The Story of Batiste
-  *From a local RAG server to an autonomous agent marketplace*
+  *From a local RAG server to a zero-trust runtime for AI agents*
 </div>
 
 ---

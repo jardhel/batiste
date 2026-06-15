@@ -1,7 +1,7 @@
 {
   "name": "@batiste-aidk/marketplace",
   "version": "0.1.0",
-  "description": "Autonomous Agent Compute Marketplace — node registry, routing, pricing, and discovery",
+  "description": "compute marketplace — node registry, routing, pricing, and discovery",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
