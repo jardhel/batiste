@@ -25,7 +25,15 @@ import {
   VaultIndexInput,
 } from './tools.js';
 import { loadVault, validateVault, AXES, type Axis } from '@batiste-aidk/gvs';
-import { SQLiteTaskStore, TaskManager, type TaskNode } from '@batiste-aidk/core/tasks';
+import {
+  SQLiteTaskStore,
+  TaskManager,
+  TaskReconciler,
+  SQLiteReconcileMarkerStore,
+  type TaskNode,
+  type ReconcileAuditSink,
+} from '@batiste-aidk/core/tasks';
+import { EventLog } from '@batiste-aidk/audit';
 import { ContextBudgetMonitor, type BudgetCategory, type BudgetConfig } from '@batiste-aidk/core/context';
 import { ProcessSandbox } from '@batiste-aidk/core/sandbox';
 import { Orchestrator } from '@batiste-aidk/core/agents';
@@ -112,6 +120,8 @@ export class ToolHandler {
   private dataDir: string;
   private taskManager: TaskManager | null = null;
   private store: SQLiteTaskStore | null = null;
+  private reconcileMarkerStore: SQLiteReconcileMarkerStore | null = null;
+  private auditEventLog: EventLog | null = null;
   private symbolResolver: SymbolResolver | null = null;
   private contextBudget: ContextBudgetMonitor | null = null;
   private orchestrator: Orchestrator | null = null;
@@ -321,9 +331,62 @@ export class ToolHandler {
         const deletedCount = await manager.clearAll();
         return { cleared: true, deletedCount };
       }
+      case 'reconcile': {
+        const reconciler = await this.getTaskReconciler();
+        const since = args.since as string | undefined;
+        const staleDays = args.staleDays as number | undefined;
+        const result = await reconciler.reconcileFromGit({
+          ...(since !== undefined ? { since } : {}),
+          ...(staleDays !== undefined ? { staleDays } : {}),
+        });
+        return { reconciled: true, ...result };
+      }
+      case 'stale': {
+        const reconciler = await this.getTaskReconciler();
+        const staleDays = args.staleDays as number | undefined;
+        const result = await reconciler.staleCheck({
+          ...(staleDays !== undefined ? { staleDays } : {}),
+        });
+        return result;
+      }
       default:
         throw new Error(`Unknown task action: ${action}`);
     }
+  }
+
+  /**
+   * Build a {@link TaskReconciler} bound to the project's git repo and the
+   * persistent reconcile marker. The audit sink is backed by the same
+   * `.batiste/audit.db` EventLog the rest of the CLI uses, so each closure
+   * lands as a `task.reconciled` event with the commit SHA as evidence.
+   */
+  private async getTaskReconciler(): Promise<TaskReconciler> {
+    const manager = await this.getTaskManager();
+    if (!this.reconcileMarkerStore) {
+      this.reconcileMarkerStore = new SQLiteReconcileMarkerStore(
+        join(this.dataDir, 'reconcile.db')
+      );
+    }
+    if (!this.auditEventLog) {
+      this.auditEventLog = new EventLog(join(this.dataDir, 'audit.db'));
+    }
+    const eventLog = this.auditEventLog;
+    const auditSink: ReconcileAuditSink = {
+      recordClosure: ({ taskId, label, commitSha, matchedBy }) => {
+        eventLog.append({
+          ts: new Date().toISOString(),
+          event: 'task.reconciled',
+          generator: 'batiste manage_task reconcile',
+          payload: { task_id: taskId, subject: label, commit_sha: commitSha, matched_by: matchedBy },
+        });
+      },
+    };
+    return new TaskReconciler(
+      manager,
+      this.projectRoot,
+      this.reconcileMarkerStore,
+      auditSink
+    );
   }
 
   private serializeTree(nodes: TaskNode[]): unknown[] {
@@ -884,6 +947,14 @@ export class ToolHandler {
       this.store.close();
       this.store = null;
       this.taskManager = null;
+    }
+    if (this.reconcileMarkerStore) {
+      this.reconcileMarkerStore.close();
+      this.reconcileMarkerStore = null;
+    }
+    if (this.auditEventLog) {
+      this.auditEventLog.close();
+      this.auditEventLog = null;
     }
     if (this.symbolResolver) {
       await this.symbolResolver.stop();

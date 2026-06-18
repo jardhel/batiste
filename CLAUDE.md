@@ -18,7 +18,7 @@ The two-line summary, in case nothing else gets read:
 | `Bash(pnpm typecheck)` / `pnpm test` for lint check | `mcp__batiste__validate_code` | Runs ESLint + tsc together with structured truncation; ledgered as a tool call |
 | `Bash(pnpm -r build)` to verify build | `Bash(pnpm -r build)` is fine — no Batiste equivalent yet | Acceptable native fallback |
 | Reading multiple files to understand a package | `mcp__batiste__summarize_codebase` | Compressed summary instead of N reads (NB: as of 2026-04-24 this tool errors on TS dirs — bug task `2c8a0e6d`; until fixed, fall back to Read with justification) |
-| TaskCreate / TaskUpdate | `mcp__batiste__manage_task` | Persistent DAG with status, parent/child, idempotent; survives across sessions |
+| TaskCreate / TaskUpdate | `mcp__batiste__manage_task` | Persistent DAG with status, parent/child, idempotent; survives across sessions. **Close tasks via the `Task-done: <label-or-id>` commit trailer** (like `Co-Authored-By`) — `reconcile` matches it against the board and marks `completed` with the commit SHA as evidence. Stale tasks are flagged, never auto-closed. See [CONTRIBUTING.md → Closing tasks from commits](./CONTRIBUTING.md#closing-tasks-from-commits--the-task-done-trailer). |
 | Quick "how does this codebase work" | `mcp__batiste__summarize_codebase` (when bug fixed) OR Explore agent | Prefer Batiste once the bug is fixed |
 | `Bash(grep imports)` to find dependencies | `mcp__batiste__analyze_dependency` | Structured import graph with circulars surfaced |
 | Writing test → impl → re-test loop | `mcp__batiste__run_tdd` | RED-GREEN cycle in one tool, validates code quality at the end |

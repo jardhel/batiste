@@ -197,6 +197,55 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ---
 
+## Closing tasks from commits — the `Task-done` trailer
+
+Batiste tracks work in a persistent task DAG (`mcp__batiste__manage_task`, stored in `$PROJECT_ROOT/.batiste/tasks.db`). The board is only useful if it reflects reality — a task that was finished but left `pending` is dogfood drift: the product sells orchestration, so its own board must not rot.
+
+To close a task automatically when the work lands, add a **`Task-done`** trailer to the commit, exactly like `Co-Authored-By` — at the bottom of the message, one per line. The value is the task **label** or **id**:
+
+```
+feat(core): add geo-routing to RoutingLayer
+
+Implements the regional fallback discussed in #142.
+
+Task-done: geo-routing-fallback
+Task-done: 2c8a0e6d
+Co-Authored-By: Jane Dev <jane@example.com>
+```
+
+A commit may carry **multiple** `Task-done` trailers — list one per task it closes.
+
+### What the gate does
+
+When commits land on the branch (via merge or pull), the **`reconcile`** step reads the `Task-done` trailers, matches each value by **label or id** against the board, and marks every match `completed` — writing the commit SHA into the audit ledger as evidence. It is:
+
+- **Idempotent** — it persists the last reconciled SHA and never re-closes an already-`completed` task.
+- **Evidence-only** — a task is closed **only** when a real `Task-done` trailer appears in a real commit. There is no "close because it feels done."
+
+Run it manually any time:
+
+```bash
+batiste-direct manage_task '{"action":"reconcile"}'
+```
+
+To wire it to run automatically on every merge/pull, install the tracked hook:
+
+```bash
+# Recommended — versioned, shared across the team:
+git config core.hooksPath scripts/hooks
+
+# Or per-clone:
+cp scripts/hooks/post-merge .git/hooks/post-merge && chmod +x .git/hooks/post-merge
+```
+
+The hook is **fail-soft**: if there is no board yet, the CLI is not built, or reconcile errors, it prints a notice and exits `0` — it never blocks your merge or push.
+
+### Integrity note — stale only signals, it never closes
+
+A separate **stale-check** flags tasks that have been `pending` past a threshold (default **14 days** with no `updatedAt` movement). Flagging surfaces a `staleSince` marker so an old task is visible — it does **not** change the task's status. The board stays honest in both directions: nothing rots silently in `pending`, and nothing is marked `completed` without commit evidence. Closing a task always requires proof of work in a commit.
+
+---
+
 ## Reporting Bugs
 
 Open an issue and include:
