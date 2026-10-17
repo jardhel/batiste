@@ -9,8 +9,28 @@
 // um layout corpo+tampa lado a lado). Uma ilha solta (ex.: membrana "sacrificial" no ar, v3 do MAJU-1, 2026-10-16)
 // não imprime e nenhum teste de ângulo a enxerga.
 // sai !=0 (reprova) se: overhang acima do limite fora do fundo, ou não cabe no bed.
+//
+// NOVO (2026-10-17) · modos por camada, o que o fatiador verifica de verdade:
+//   --overhang <arq.stl>... [--layer 0.2] [--max-overhang-deg 45] [--bridge-max 8] [--min-area 1] [--strict-bridge]
+//              [--min-width 0.25] [--features f.json] [--dump pasta] [--json]
+//        fatia em camadas, calcula a região SEM APOIO (camada menos a anterior expandida pelo avanço máximo) e a classifica em
+//        PONTE (apoiada nos dois lados, vão <= bridge-max), PONTE LONGA (aviso; falha com --strict-bridge), BALANÇO e ILHA
+//        (reprovam se >= min-area mm² numa camada). `--overhang 55` (com número) continua sendo o limite de ângulo do modo antigo.
+//   --clash-from-closed <corpo.stl> <tampa.stl> [--min-gap 0.6] [--max-interference 0] [--features f.json] [--json]
+//        corpo e tampa nas coordenadas de montagem: volume de interferência e folga vertical mínima da saia/pinos da tampa.
+// Por que existe: o gate de ângulo + ilhas não sabe se um trecho tem apoio na camada de baixo (MAJU-1, caixa v3.2).
 import { readFileSync } from "node:fs";
 
+const _argv = process.argv.slice(2);
+const _oi = _argv.indexOf("--overhang");
+const _legacyOverhang = _oi >= 0 && /^[\d.]+$/.test(_argv[_oi + 1] ?? "");
+if (_argv.includes("--clash-from-closed")) {
+  const { mainClash } = await import("./clash.mjs");
+  process.exit(await mainClash(_argv));
+} else if (_oi >= 0 && !_legacyOverhang) {
+  const { main } = await import("./overhang.mjs");
+  process.exit(await main(_argv));
+}
 const file = process.argv[2];
 const bedArg = (process.argv.includes("--bed") ? process.argv[process.argv.indexOf("--bed") + 1] : "256x256x256").split("x").map(Number);
 const partsEsperadas = Number(process.argv.includes("--parts") ? process.argv[process.argv.indexOf("--parts") + 1] : 1);
