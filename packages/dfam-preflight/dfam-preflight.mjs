@@ -4,12 +4,16 @@
 // com features mergulhando abaixo do pé → fundo não-plano → exige suporte.
 // Checa: fundo plano (min-Z coplanar) · overhang > limite · bounding box <= bed.
 //
-// uso: node dfam-preflight.mjs <arquivo.stl> [--bed 256x256x256] [--overhang 55]
+// uso: node dfam-preflight.mjs <arquivo.stl> [--bed 256x256x256] [--overhang 55] [--parts 1]
+// Também reprova GEOMETRIA FLUTUANTE: o STL tem de ter exatamente --parts pedaços conectados (padrão 1; use 2 para
+// um layout corpo+tampa lado a lado). Uma ilha solta (ex.: membrana "sacrificial" no ar, v3 do MAJU-1, 2026-10-16)
+// não imprime e nenhum teste de ângulo a enxerga.
 // sai !=0 (reprova) se: overhang acima do limite fora do fundo, ou não cabe no bed.
 import { readFileSync } from "node:fs";
 
 const file = process.argv[2];
 const bedArg = (process.argv.includes("--bed") ? process.argv[process.argv.indexOf("--bed") + 1] : "256x256x256").split("x").map(Number);
+const partsEsperadas = Number(process.argv.includes("--parts") ? process.argv[process.argv.indexOf("--parts") + 1] : 1);
 const maxOverhang = Number(process.argv.includes("--overhang") ? process.argv[process.argv.indexOf("--overhang") + 1] : 55); // graus da vertical
 if (!file) { console.error("uso: dfam-preflight <arquivo.stl>"); process.exit(2); }
 
@@ -23,10 +27,10 @@ if (binN >= 0 && 84 + binN * 50 === raw.length) {
   for (let i = 0; i < binN; i++) {
     const o = 84 + i * 50;
     const nx = raw.readFloatLE(o), ny = raw.readFloatLE(o + 4), nz = raw.readFloatLE(o + 8);
-    const zs = [];
-    for (let k = 0; k < 3; k++) { const p = o + 12 + k * 12; const x = raw.readFloatLE(p), y = raw.readFloatLE(p + 4), z = raw.readFloatLE(p + 8); acc(x, y, z); zs.push(z); }
+    const zs = [], vs = [];
+    for (let k = 0; k < 3; k++) { const p = o + 12 + k * 12; const x = raw.readFloatLE(p), y = raw.readFloatLE(p + 4), z = raw.readFloatLE(p + 8); acc(x, y, z); zs.push(z); vs.push([x, y, z]); }
     const nl = Math.hypot(nx, ny, nz) || 1;
-    tris.push({ nz: nz / nl, cz: (zs[0] + zs[1] + zs[2]) / 3 });
+    tris.push({ nz: nz / nl, cz: (zs[0] + zs[1] + zs[2]) / 3, v: vs });
   }
 } else {
   // STL ASCII (saída padrão do OpenSCAD)
@@ -39,8 +43,9 @@ if (binN >= 0 && 84 + binN * 50 === raw.length) {
     const nx = +m[1], ny = +m[2], nz = +m[3];
     const zs = [+m[6], +m[9], +m[12]];
     acc(+m[4], +m[5], +m[6]); acc(+m[7], +m[8], +m[9]); acc(+m[10], +m[11], +m[12]);
+    const vs = [[+m[4], +m[5], +m[6]], [+m[7], +m[8], +m[9]], [+m[10], +m[11], +m[12]]];
     const nl = Math.hypot(nx, ny, nz) || 1;
-    tris.push({ nz: nz / nl, cz: (zs[0] + zs[1] + zs[2]) / 3 });
+    tris.push({ nz: nz / nl, cz: (zs[0] + zs[1] + zs[2]) / 3, v: vs });
   }
 }
 const n = tris.length;
@@ -82,7 +87,36 @@ const massAbove = tris.some((t) => t.cz > minZ + 3 * band);
 const danglesBelow = low > 0 && nextBand === 0 && massAbove; // lowest facets isolados abaixo
 console.log(`  gap em Z na base (feature abaixo do pé) : ${danglesBelow ? "SIM ✗" : "não"}`);
 
+// 5) GEOMETRIA FLUTUANTE: pedaços desconectados (união de vértices, tolerância de 1 µm). Cada pedaço fora do
+//    esperado é uma ilha: imprime no ar ou solta. Pega o que o teste de ângulo não vê.
+const pai = new Map();
+const chave = (v) => `${Math.round(v[0] * 1000)},${Math.round(v[1] * 1000)},${Math.round(v[2] * 1000)}`;
+const raiz = (a) => { while (pai.get(a) !== a) { pai.set(a, pai.get(pai.get(a))); a = pai.get(a); } return a; };
+for (const t of tris) {
+  const ks = t.v.map(chave);
+  for (const k of ks) if (!pai.has(k)) pai.set(k, k);
+  for (let i = 1; i < 3; i++) pai.set(raiz(ks[i]), raiz(ks[0]));
+}
+const grupos = new Map();
+for (const t of tris) { const r = raiz(chave(t.v[0])); (grupos.get(r) || grupos.set(r, []).get(r)).push(t); }
+// volume com sinal de cada casca: sólido solto tem volume POSITIVO (normais para fora); cavidade interna fechada tem volume
+// NEGATIVO (normais para dentro) e imprime normalmente, então não é ilha.
+const volSinal = (ts) => ts.reduce((s, t) => { const [a, b, c] = t.v; return s + (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6; }, 0);
+const todas = [...grupos.values()].sort((a, b) => b.length - a.length);
+const pedacos = todas.filter((ts) => volSinal(ts) > 0);
+const cavidades = todas.length - pedacos.length;
+const bbox = (ts) => { const b = [1e9, -1e9, 1e9, -1e9, 1e9, -1e9]; for (const t of ts) for (const v of t.v) { b[0] = Math.min(b[0], v[0]); b[1] = Math.max(b[1], v[0]); b[2] = Math.min(b[2], v[1]); b[3] = Math.max(b[3], v[1]); b[4] = Math.min(b[4], v[2]); b[5] = Math.max(b[5], v[2]); } return b; };
+console.log(`  pedaços conectados : ${pedacos.length} (esperado ${partsEsperadas})${cavidades ? ` · ${cavidades} cavidade(s) interna(s) fechada(s), ok` : ""}`);
+
 let fail = false;
+if (pedacos.length !== partsEsperadas) {
+  for (const ts of pedacos.slice(partsEsperadas)) {
+    const b = bbox(ts);
+    console.log(`  ilha: ${ts.length} triângulos · x[${fmt(b[0])},${fmt(b[1])}] y[${fmt(b[2])},${fmt(b[3])}] z[${fmt(b[4])},${fmt(b[5])}]`);
+  }
+  console.log(`✗ REPROVA (geometria flutuante): ${pedacos.length} pedaços desconectados, esperado ${partsEsperadas}. Uma ilha sem ligação ao resto não imprime (fica no ar). Conecte-a à peça ou remova-a.`);
+  fail = true;
+}
 if (danglesBelow) { console.log(`✗ REPROVA (Adam-class): há geometria mergulhando abaixo do fundo principal (gap em Z) → fundo não é plano → exige suporte. Suba os features pro nível do pé.`); fail = true; }
 if (!fitsBed) { console.log("✗ REPROVA: maior que a mesa"); fail = true; }
 if (overhangs > 0) console.log(`⚠ AVISO: ${overhangs} facetas viradas pra baixo > ${maxOverhang}° (pior ${fmt(worst)}°). INCLUI louvers/bridges curtas que imprimem sem suporte — o check ainda NÃO é bridge-aware; revisar visualmente. Não reprova sozinho.`);
