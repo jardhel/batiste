@@ -12,7 +12,8 @@
 //   pre     antes do deploy: o stage da árvore de trabalho TEM de ser idêntico ao stage do commit
 //           (testado == publicado) e nenhum arquivo publicado pode referenciar arquivo ausente.
 //   post    depois do deploy: cada arquivo do stage existe no ar, com o tipo de conteúdo certo
-//           (o fallback do Pages devolve 200 text/html para arquivo que não subiu) e o mesmo sha256.
+//           (o fallback do Pages devolve 200 text/html para arquivo que não subiu) e o mesmo sha256;
+//           HTML é comparado normalizado (sem _di, beacon/e-mail-decode da Cloudflare, espaço final).
 //
 // uso:
 //   node deploy-integrity.mjs status [--repo <raiz>] [--live] [--max-age-hours 24]
@@ -20,6 +21,7 @@
 //   node deploy-integrity.mjs post <products/x> --host https://x.cachola.tech [--repo <raiz>] [--stage-tool <stage.mjs>]
 // Sai 0 (passa), 1 (BLOQUEIA) ou 2 (uso). Exceções de referência: .deploy-integrity.json do produto,
 // {"ignoreRefs": ["/caminho", "/prefixo/*"]}.
+// HTML (também a raiz) é conferido por sha256 do corpo normalizado; opt-out: {"htmlDynamic": ["app/", "x.html"]}.
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -104,6 +106,46 @@ function ignorados(produtoDir) {
 function gatedPrefixes(produtoDir) {
   try { return JSON.parse(fs.readFileSync(path.join(produtoDir, ".deploy-integrity.json"), "utf8")).gatedPrefixes || []; } catch { return []; }
 }
+// Opt-out por produto do confronto de HTML (.deploy-integrity.json, chave htmlDynamic):
+// prefixos ("/app/*", "app/") ou arquivos ("index.html") cujo HTML é gerado em runtime.
+function htmlDynamic(produtoDir) {
+  try { return JSON.parse(fs.readFileSync(path.join(produtoDir, ".deploy-integrity.json"), "utf8")).htmlDynamic || []; } catch { return []; }
+}
+export function htmlDinamico(padroes, rel) {
+  const r = rel.replace(/^\//, "");
+  return padroes.some((p0) => {
+    const p = String(p0).replace(/^\//, "");
+    if (p.endsWith("/*")) return r.startsWith(p.slice(0, -1));
+    if (p.endsWith("/")) return r.startsWith(p);
+    return r === p || r.startsWith(`${p}/`);
+  });
+}
+
+/** Normaliza HTML para comparar o servido com o do stage: tira injeções da Cloudflare, _di, espaço final. */
+export function normalizarHtml(txt) {
+  return String(txt)
+    .replace(/\r\n/g, "\n")
+    // Web Analytics / beacon injetado pela borda
+    .replace(/<script\b[^>]*(?:static\.cloudflareinsights\.com|data-cf-beacon)[^>]*>\s*<\/script\s*>/gi, "")
+    .replace(/<script\b[^>]*>[^<]*cloudflareinsights[^<]*<\/script\s*>/gi, "")
+    // script inline do bot-management/challenge (window.__CF$cv$params -> /cdn-cgi/challenge-platform)
+    .replace(/<script\b[^>]*>(?:(?!<\/script)[\s\S])*__CF\$cv\$params(?:(?!<\/script)[\s\S])*<\/script\s*>/gi, "")
+    // e-mail decode / challenge scripts de /cdn-cgi/
+    .replace(/<script\b[^>]*\/cdn-cgi\/[^>]*>\s*<\/script\s*>/gi, "")
+    // e-mail ofuscado pela borda volta a um marcador igual dos dois lados
+    .replace(/<a\b[^>]*href=["']\/cdn-cgi\/l\/email-protection[^"']*["'][^>]*>[\s\S]*?<\/a\s*>/gi, "[email]")
+    .replace(/<span\b[^>]*class=["']__cf_email__["'][^>]*>[\s\S]*?<\/span\s*>/gi, "[email]")
+    .replace(/\/cdn-cgi\/l\/email-protection#[0-9a-f]+/gi, "[email]")
+    // o lado do commit tem o e-mail em claro: mesmo marcador (âncora mailto inteira e e-mail solto)
+    .replace(/<a\b[^>]*href=["']mailto:[^"']*["'][^>]*>[\s\S]*?<\/a\s*>/gi, "[email]")
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g, "[email]")
+    // cache-bust do próprio gate
+    .replace(/([?&])_di=\d+&?/g, (m, c) => (m.endsWith("&") ? c : ""))
+    .split("\n").map((l) => l.replace(/[ \t]+$/, "")).join("\n")
+    .replace(/\s+$/, "");
+}
+export const hashHtml = (txt) => sha(normalizarHtml(txt));
+
 const casa = (padrao, p) => (padrao.endsWith("/*") ? p.startsWith(padrao.slice(0, -1)) : p === padrao);
 
 /** Referências locais (href/src/poster/url()/strings de caminho absoluto) que apontam para arquivo ausente. */
@@ -194,6 +236,7 @@ export async function post(repo, produto, host, stageTool, { fetchFn = fetch } =
   const head = gitHead(repo);
   const st = montarStage(repo, produto, stageTool, { from: head });
   const gated = gatedPrefixes(path.join(repo, produto));
+  const dinamicos = htmlDynamic(path.join(repo, produto));
   let gatedOk = 0;
   try {
     const stamp = Date.now();
@@ -213,9 +256,13 @@ export async function post(repo, produto, host, stageTool, { fetchFn = fetch } =
       }
       if (r.status !== 200) { falhas.push(`${urlDe(rel)}: HTTP ${r.status}`); continue; }
       if (!tipoPlausivel(ext, ct)) { falhas.push(`${urlDe(rel)}: tipo "${ct}" para .${ext} (o arquivo não está no ar: o Pages devolveu a página inicial no lugar)`); continue; }
-      if (ext !== "html" && rel !== "index.html") {
+      if (ext !== "html") {
         const corpo = Buffer.from(await r.arrayBuffer());
         if (sha(corpo) !== hash) falhas.push(`${urlDe(rel)}: conteúdo no ar diferente do commit ${head.slice(0, 8)} (sha256 não bate)`);
+      } else if (!htmlDinamico(dinamicos, rel)) {
+        const noAr = hashHtml(await r.text());
+        const doCommit = hashHtml(fs.readFileSync(path.join(st.pub, rel), "utf8"));
+        if (noAr !== doCommit) falhas.push(`HTML no ar difere do commit ${head.slice(0, 8)}: ${urlDe(rel)}`);
       }
     }
   } finally { fs.rmSync(st.out, { recursive: true, force: true }); }

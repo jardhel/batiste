@@ -31,7 +31,7 @@ da sessão cortava a saída com `tail`, então o erro nunca aparecia.
   unidade testada e publicada. Depois varre `href`, `src`, `poster`, `url()` e caminhos absolutos em HTML, CSS e JS
   do que vai ao ar; referência a arquivo ausente bloqueia. O `_redirects` com `/* → /index.html` não mascara
   nada. Exceções conhecidas: `.deploy-integrity.json` do produto, `{"ignoreRefs": ["/caminho", "/prefixo/*"]}`.
-- **`post`** baixa cada arquivo do stage no host vivo (com `?_di=` para furar o cache de borda) e exige: HTTP 200,
+- **`post`** (HTML: sha256 do corpo normalizado — sem `_di`, beacon/e-mail-decode da Cloudflare, espaço final; divergência = `HTML no ar difere do commit XXXX: <rota>`; opt-out `{"htmlDynamic": ["app/", "x.html"]}` no `.deploy-integrity.json`; gated fica fora) baixa cada arquivo do stage no host vivo (com `?_di=` para furar o cache de borda) e exige: HTTP 200,
   tipo de conteúdo plausível para a extensão e o mesmo sha256. **`text/html` num `.js`, `.css` ou `.mp4` é a
   assinatura do arquivo que não subiu:** o Pages devolve a página inicial com 200 no lugar.
 - **`status`** é local e rápido (produto sem mudança no git nem monta stage). Bloqueia quando há arquivo público

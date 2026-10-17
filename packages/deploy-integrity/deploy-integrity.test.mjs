@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import { execFileSync } from "node:child_process";
-import { diffTrees, hashTree, pre, post, status, referenciasQuebradas, tipoPlausivel } from "./deploy-integrity.mjs";
+import { diffTrees, hashTree, pre, post, status, normalizarHtml, htmlDinamico, referenciasQuebradas, tipoPlausivel } from "./deploy-integrity.mjs";
 
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8" }).trim();
 const write = (p, c) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, c); };
@@ -189,4 +189,57 @@ test("status: pronto-e-não-publicado acima do limite BLOQUEIA; recente só avis
 test("hashTree ignora .DS_Store e lista caminhos relativos", () => {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), "di-h-")); write(path.join(d, "a/b.txt"), "1"); write(path.join(d, ".DS_Store"), "x");
   assert.deepEqual([...hashTree(d).keys()], ["a/b.txt"]);
+});
+
+// ---- post confere o HTML servido (lacuna de 2026-10-17: batiste.cachola.tech com rodapé velho passou verde)
+const HTML_NOVO = `<!doctype html><html><body><footer>Designed by Brazilian engineering</footer></body></html>\n`;
+const HTML_VELHO = HTML_NOVO.replace("Designed by Brazilian engineering", "Made in Eindhoven");
+function repoHtml(extra = {}) {
+  const { d, stage } = repoFalso();
+  write(path.join(d, "products/demo/index.html"), HTML_NOVO);
+  write(path.join(d, "products/demo/sobre.html"), "<h1>sobre</h1>");
+  for (const [k, v] of Object.entries(extra)) write(path.join(d, "products/demo", k), v);
+  commit(d);
+  return { d, stage };
+}
+const rodar = async (d, stage, arquivos) => { const { s, host } = await servidor(new Map(Object.entries(arquivos))); try { return await post(d, "products/demo", host, stage); } finally { s.close(); } };
+
+test("post HTML: igual passa; defasado BARRA com mensagem clara (prova-que-reprova)", async () => {
+  const { d, stage } = repoHtml();
+  assert.deepEqual(await rodar(d, stage, { "index.html": HTML_NOVO, "sobre.html": "<h1>sobre</h1>" }), []);
+  const f = await rodar(d, stage, { "index.html": HTML_VELHO, "sobre.html": "<h1>sobre</h1>" });
+  assert.equal(f.length, 1);
+  assert.match(f[0], /^HTML no ar difere do commit [0-9a-f]{8}: \/$/);
+  const g = await rodar(d, stage, { "index.html": HTML_NOVO, "sobre.html": "<h1>sobre velho</h1>" });
+  assert.match(g[0], /HTML no ar difere do commit [0-9a-f]{8}: \/sobre\.html/);
+});
+
+test("post HTML: injeções da Cloudflare, _di e espaço final são normalizados", async () => {
+  const { d, stage } = repoHtml();
+  const injetado = HTML_NOVO.replace("</body>",
+    `<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vabc" data-cf-beacon='{"token":"x"}'></script>` +
+    `<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>`)+ "   \n\n";
+  assert.deepEqual(await rodar(d, stage, { "index.html": injetado, "sobre.html": "<h1>sobre</h1>" }), []);
+  assert.equal(normalizarHtml('<a href="/x?_di=123">a</a><a href="/y?v=1&_di=9&z=2">b</a>'), '<a href="/x">a</a><a href="/y?v=1&z=2">b</a>');
+  // bot-challenge inline e e-mail ofuscado pela borda (achados em prod 2026-10-17)
+  assert.equal(normalizarHtml(`<p>oi</p><script>(function(){window.__CF$cv$params={r:'a',t:'b'};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';})();</script>`), "<p>oi</p>");
+  assert.equal(normalizarHtml('<b><a href="mailto:help@cachola.tech">help@cachola.tech</a></b>'),
+    normalizarHtml('<b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ab">[email&#160;protected]</a></b>'));
+  assert.equal(normalizarHtml("a \r\nb\t\n\n"), "a\nb");
+  assert.notEqual(normalizarHtml(HTML_VELHO), normalizarHtml(HTML_NOVO));
+});
+
+test("post HTML: rota gated não entra; htmlDynamic é opt-out por prefixo/arquivo", async () => {
+  const { d, stage } = repoHtml({ "salas/a/index.html": "<h1>sala</h1>", "app/index.html": "<h1>app</h1>" });
+  write(path.join(d, "products/demo/.deploy-integrity.json"), JSON.stringify({ gatedPrefixes: ["salas/"], htmlDynamic: ["app/"] })); commit(d, "cfg");
+  const base = { "index.html": HTML_NOVO, "sobre.html": "<h1>sobre</h1>", "app/index.html": "<h1>app RUNTIME</h1>" };
+  const f = await rodar(d, stage, { ...base, "salas/a/index.html": "<h1>sala</h1>" });
+  assert.equal(f.length, 1); assert.match(f[0], /gated respondeu HTTP 200/);
+  write(path.join(d, "products/demo/.deploy-integrity.json"), JSON.stringify({ gatedPrefixes: ["salas/"] })); commit(d, "cfg2");
+  const g = await rodar(d, stage, { ...base, "salas/a/index.html": "<h1>sala</h1>" });
+  assert.ok(g.some((x) => /HTML no ar difere.*\/app/.test(x)));
+  assert.equal(htmlDinamico(["app/"], "app/x/index.html"), true);
+  assert.equal(htmlDinamico(["/app/*"], "app/index.html"), true);
+  assert.equal(htmlDinamico(["index.html"], "index.html"), true);
+  assert.equal(htmlDinamico(["app/"], "apple/index.html"), false);
 });
