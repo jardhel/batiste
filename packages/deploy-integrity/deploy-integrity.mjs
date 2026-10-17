@@ -95,6 +95,15 @@ function lerRedirects(pub) {
 function ignorados(produtoDir) {
   try { return JSON.parse(fs.readFileSync(path.join(produtoDir, ".deploy-integrity.json"), "utf8")).ignoreRefs || []; } catch { return []; }
 }
+
+// Prefixos gated do produto (.deploy-integrity.json, chave gatedPrefixes): caminhos
+// atrás de portão (ex.: salas Thalia) onde o 401/403 anônimo é a PROVA de que o
+// gate está de pé — o hash não é conferível sem credencial, e um 200 anônimo ali
+// seria o verdadeiro vazamento. Falso positivo descoberto no redeploy da Thalia
+// de 2026-10-17 (incidente das senhas): o post listava todos os /salas/* como falha.
+function gatedPrefixes(produtoDir) {
+  try { return JSON.parse(fs.readFileSync(path.join(produtoDir, ".deploy-integrity.json"), "utf8")).gatedPrefixes || []; } catch { return []; }
+}
 const casa = (padrao, p) => (padrao.endsWith("/*") ? p.startsWith(padrao.slice(0, -1)) : p === padrao);
 
 /** Referências locais (href/src/poster/url()/strings de caminho absoluto) que apontam para arquivo ausente. */
@@ -184,6 +193,8 @@ export async function post(repo, produto, host, stageTool, { fetchFn = fetch } =
   const falhas = [];
   const head = gitHead(repo);
   const st = montarStage(repo, produto, stageTool, { from: head });
+  const gated = gatedPrefixes(path.join(repo, produto));
+  let gatedOk = 0;
   try {
     const stamp = Date.now();
     for (const [rel, hash] of hashTree(st.pub)) {
@@ -193,6 +204,13 @@ export async function post(repo, produto, host, stageTool, { fetchFn = fetch } =
       try { r = await fetchFn(url, { redirect: "follow" }); } catch (e) { falhas.push(`${urlDe(rel)}: sem resposta (${e.message})`); continue; }
       const ext = (rel.split(".").pop() || "").toLowerCase();
       const ct = r.headers.get("content-type") || "";
+      const atrasDoPortao = gated.some((p) => rel.startsWith(p));
+      if (atrasDoPortao) {
+        // gate de pé = 401/403 pro anônimo; 200 anônimo num caminho gated é falha de portão
+        if (r.status === 401 || r.status === 403) { gatedOk++; continue; }
+        falhas.push(`${urlDe(rel)}: caminho gated respondeu HTTP ${r.status} pro anônimo (portão caiu?)`);
+        continue;
+      }
       if (r.status !== 200) { falhas.push(`${urlDe(rel)}: HTTP ${r.status}`); continue; }
       if (!tipoPlausivel(ext, ct)) { falhas.push(`${urlDe(rel)}: tipo "${ct}" para .${ext} (o arquivo não está no ar: o Pages devolveu a página inicial no lugar)`); continue; }
       if (ext !== "html" && rel !== "index.html") {
