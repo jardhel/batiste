@@ -18,6 +18,8 @@
 // uso:
 //   node deploy-integrity.mjs status [--repo <raiz>] [--live] [--max-age-hours 24]
 //   node deploy-integrity.mjs pre  <products/x> [--repo <raiz>] [--stage-tool <stage.mjs>]
+//   node deploy-integrity.mjs resolve <products/x>   # projeto<TAB>host pelo DEPLOYMENTS.md; 2 se não registrado/ambíguo
+//   node deploy-integrity.mjs prova-no-ar <url> [--produto products/x] [--commit <sha>] [--work]  # imprime "NO AR" só se provado
 //   node deploy-integrity.mjs post <products/x> --host https://x.cachola.tech [--repo <raiz>] [--stage-tool <stage.mjs>]
 // Sai 0 (passa), 1 (BLOQUEIA) ou 2 (uso). Exceções de referência: .deploy-integrity.json do produto,
 // {"ignoreRefs": ["/caminho", "/prefixo/*"]}.
@@ -285,6 +287,67 @@ export function produtosRegistrados(repo) {
   return out;
 }
 
+/**
+ * Resolve projeto Pages e host de um produto pelo DEPLOYMENTS.md. NUNCA adivinha:
+ * produto não registrado ou com mais de um projeto/host => lança Error com mensagem clara.
+ */
+export function resolverProduto(repo, produto) {
+  const alvo = produto.replace(/\/$/, "");
+  const todos = produtosRegistrados(repo);
+  const achados = todos.filter((p) => p.produto === alvo);
+  if (!achados.length) {
+    throw new Error(`produto "${alvo}" NÃO está registrado no DEPLOYMENTS.md (registrados: ${[...new Set(todos.map((p) => p.produto))].join(", ") || "nenhum"}). Registre-o ou passe --project-name e --host explícitos.`);
+  }
+  const projetos = [...new Set(achados.map((p) => p.projeto))], hosts = [...new Set(achados.map((p) => p.host))];
+  if (projetos.length > 1 || hosts.length > 1) {
+    throw new Error(`produto "${alvo}" é AMBÍGUO no DEPLOYMENTS.md (projetos: ${projetos.join(", ")}; hosts: ${hosts.join(", ")}). Passe --project-name e --host explícitos.`);
+  }
+  return { produto: alvo, projeto: projetos[0], host: hosts[0] };
+}
+
+/** Candidatos de arquivo do stage para o caminho de uma URL. */
+function candidatosDoCaminho(pathname) {
+  const p = decodeURIComponent(pathname);
+  if (p === "/" || p === "") return ["index.html"];
+  const sem = p.replace(/^\//, "");
+  if (p.endsWith("/")) return [`${sem}index.html`];
+  return [sem, `${sem}.html`, `${sem}/index.html`];
+}
+
+/**
+ * Prova de "no ar" para UMA url: HTTP 200 E tipo de conteúdo plausível E corpo igual ao do stage do commit
+ * (HTML normalizado; demais por sha256). Devolve { falhas, commit, arquivo }.
+ */
+export async function provaNoAr(repo, url, { produto, commit, work = false, stageTool, fetchFn = fetch } = {}) {
+  const u = new URL(url);
+  const reg = produto ? resolverProduto(repo, produto) : produtosRegistrados(repo).find((p) => new URL(p.host).origin === u.origin);
+  if (!reg) throw new Error(`não achei o produto de ${u.origin} no DEPLOYMENTS.md; passe --produto products/<x>`);
+  const prod = reg.produto;
+  const ref = commit || gitHead(repo);
+  const sha8 = (work ? "árvore de trabalho" : ref.slice(0, 8));
+  const falhas = [];
+  const st = montarStage(repo, prod, stageTool, work ? {} : { from: ref });
+  let arquivo = null;
+  try {
+    const mapa = hashTree(st.pub);
+    arquivo = candidatosDoCaminho(u.pathname).find((c) => mapa.has(c));
+    if (!arquivo) { falhas.push(`${u.pathname}: não existe no stage de ${prod} @ ${sha8} (nada a provar: rota inexistente no que foi publicado)`); return { falhas, commit: ref, arquivo }; }
+    if (gatedPrefixes(path.join(repo, prod)).some((g) => arquivo.startsWith(g))) { falhas.push(`${u.pathname}: caminho gated; a prova anônima não se aplica (o portão responde 401/403). Prove com sessão.`); return { falhas, commit: ref, arquivo }; }
+    const ext = (arquivo.split(".").pop() || "").toLowerCase();
+    if (ext === "html" && htmlDinamico(htmlDynamic(path.join(repo, prod)), arquivo)) { falhas.push(`${u.pathname}: HTML marcado como dinâmico (htmlDynamic) em .deploy-integrity.json; o corpo não é comparável`); return { falhas, commit: ref, arquivo }; }
+    const alvo = new URL(u); alvo.searchParams.set("_di", String(Date.now()));
+    let r;
+    try { r = await fetchFn(alvo.href, { redirect: "follow" }); } catch (e) { falhas.push(`${u.href}: sem resposta (${e.message})`); return { falhas, commit: ref, arquivo }; }
+    const ct = r.headers.get("content-type") || "";
+    if (r.status !== 200) falhas.push(`${u.href}: HTTP ${r.status} (esperado 200)`);
+    else if (!tipoPlausivel(ext, ct)) falhas.push(`${u.href}: content-type "${ct}" para .${ext} (o arquivo não está no ar: o Pages devolveu a página inicial no lugar)`);
+    else if (ext === "html") {
+      if (hashHtml(await r.text()) !== hashHtml(fs.readFileSync(path.join(st.pub, arquivo), "utf8"))) falhas.push(`HTML no ar difere do commit ${sha8}: ${u.pathname}`);
+    } else if (sha(Buffer.from(await r.arrayBuffer())) !== mapa.get(arquivo)) falhas.push(`${u.pathname}: conteúdo no ar diferente do commit ${sha8} (sha256 não bate)`);
+  } finally { fs.rmSync(st.out, { recursive: true, force: true }); }
+  return { falhas, commit: ref, arquivo };
+}
+
 function idadeHoras(repo, produto, arquivos) {
   let maisAntigo = Infinity;
   for (const a of arquivos) {
@@ -322,7 +385,7 @@ async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   const repo = repoDe(rest);
   const stageTool = opt(rest, "--stage-tool") || STAGE_PADRAO(repo);
-  const positional = rest.filter((a, i) => !a.startsWith("--") && !(i > 0 && ["--repo", "--stage-tool", "--host", "--max-age-hours"].includes(rest[i - 1])));
+  const positional = rest.filter((a, i) => !a.startsWith("--") && !(i > 0 && ["--repo", "--stage-tool", "--host", "--max-age-hours", "--commit", "--produto"].includes(rest[i - 1])));
   const bloquear = (falhas, titulo) => {
     if (!falhas.length) { console.log(`✓ deploy-integrity ${titulo}: passa`); return 0; }
     console.error(`✗ deploy-integrity ${titulo} BLOQUEOU:`); for (const f of falhas) console.error(`  ${f}`); return 1;
@@ -333,12 +396,23 @@ async function main() {
     if (!host) { console.error("✗ deploy-integrity post: sem --host e o produto não tem host no DEPLOYMENTS.md"); process.exit(2); }
     process.exit(bloquear(await post(repo, positional[0], host, stageTool), "post"));
   }
+  if (cmd === "resolve" && positional[0]) {
+    try { const r = resolverProduto(repo, positional[0]); console.log(`${r.projeto}\t${r.host}`); process.exit(0); }
+    catch (e) { console.error(`✗ deploy-integrity resolve: ${e.message}`); process.exit(2); }
+  }
+  if (cmd === "prova-no-ar" && positional[0]) {
+    try {
+      const r = await provaNoAr(repo, positional[0], { produto: opt(rest, "--produto"), commit: opt(rest, "--commit"), work: rest.includes("--work"), stageTool });
+      if (r.falhas.length) { console.error("✗ NÃO PROVADO no ar:"); for (const f of r.falhas) console.error(`  ${f}`); process.exit(1); }
+      console.log(`NO AR: ${positional[0]} (200, tipo plausível, corpo == ${r.arquivo} @ ${rest.includes("--work") ? "árvore" : r.commit.slice(0, 8)})`); process.exit(0);
+    } catch (e) { console.error(`✗ prova-no-ar: ${e.message}`); process.exit(2); }
+  }
   if (cmd === "status") {
     const { linhas, bloqueios } = status(repo, stageTool, { maxHoras: Number(opt(rest, "--max-age-hours") || 24) });
     for (const l of linhas) console.log(l);
     process.exit(bloqueios.length ? 1 : 0);
   }
-  console.error("uso: deploy-integrity.mjs status | pre <products/x> | post <products/x> --host https://… [--repo <raiz>] [--stage-tool <stage.mjs>]");
+  console.error("uso: deploy-integrity.mjs status | pre <products/x> | post <products/x> --host https://… | resolve <products/x> | prova-no-ar <url> [--produto products/x] [--commit <sha>] [--work] [--repo <raiz>] [--stage-tool <stage.mjs>]");
   process.exit(2);
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) main();

@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import { execFileSync } from "node:child_process";
-import { diffTrees, hashTree, pre, post, status, normalizarHtml, htmlDinamico, referenciasQuebradas, tipoPlausivel } from "./deploy-integrity.mjs";
+import { resolverProduto, provaNoAr, diffTrees, hashTree, pre, post, status, normalizarHtml, htmlDinamico, referenciasQuebradas, tipoPlausivel } from "./deploy-integrity.mjs";
 
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8" }).trim();
 const write = (p, c) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, c); };
@@ -242,4 +242,58 @@ test("post HTML: rota gated não entra; htmlDynamic é opt-out por prefixo/arqui
   assert.equal(htmlDinamico(["/app/*"], "app/index.html"), true);
   assert.equal(htmlDinamico(["index.html"], "index.html"), true);
   assert.equal(htmlDinamico(["app/"], "apple/index.html"), false);
+});
+
+// ------------------------------------------------------------------------------------ resolve + prova-no-ar
+const LINHA = (host, proj, prod) => `| ${host} | \`${proj}\` | \`${prod}/\` | nenhum | - | - |\n`;
+const CAB = "| Domínio | Projeto Pages | Fonte git | Build | Bindings | Prova |\n|---|---|---|---|---|---|\n";
+function comRegistro(linhas) {
+  const r = repoFalso();
+  write(path.join(r.d, "DEPLOYMENTS.md"), CAB + linhas);
+  commit(r.d, "deployments");
+  return r;
+}
+
+test("resolverProduto: registrado resolve projeto e host; sem flags não adivinha", () => {
+  const { d } = comRegistro(LINHA("demo.cachola.tech", "demo-pages", "products/demo"));
+  assert.deepEqual(resolverProduto(d, "products/demo/"), { produto: "products/demo", projeto: "demo-pages", host: "https://demo.cachola.tech" });
+});
+test("resolverProduto: produto inexistente FALHA ALTO listando os registrados", () => {
+  const { d } = comRegistro(LINHA("demo.cachola.tech", "demo-pages", "products/demo"));
+  assert.throws(() => resolverProduto(d, "products/nao-existe"), /NÃO está registrado.*products\/demo/s);
+});
+test("resolverProduto: dois projetos ou dois hosts para o mesmo produto = ambíguo, falha alto", () => {
+  const { d } = comRegistro(LINHA("a.cachola.tech", "proj-a", "products/demo") + LINHA("b.cachola.tech", "proj-b", "products/demo"));
+  assert.throws(() => resolverProduto(d, "products/demo"), /AMBÍGUO.*proj-a.*proj-b/s);
+  const r2 = comRegistro(LINHA("a.cachola.tech", "proj-a", "products/demo") + LINHA("b.cachola.tech", "proj-a", "products/demo"));
+  assert.throws(() => resolverProduto(r2.d, "products/demo"), /AMBÍGUO/);
+});
+
+test("prova-no-ar: 200 + tipo + corpo igual ao commit passa; defasado, 404 e fallback 200 text/html reprovam", async () => {
+  const { d, stage } = repoHtml({ "app.js": "console.log(1)" });
+  write(path.join(d, "DEPLOYMENTS.md"), CAB + LINHA("demo.cachola.tech", "demo-pages", "products/demo")); commit(d, "reg");
+  const bom = new Map([["index.html", HTML_NOVO], ["sobre.html", "<h1>sobre</h1>"], ["app.js", "console.log(1)"]]);
+  let { s, host } = await servidor(bom);
+  try {
+    assert.deepEqual((await provaNoAr(d, `${host}/`, { produto: "products/demo", stageTool: stage })).falhas, []);
+    assert.deepEqual((await provaNoAr(d, `${host}/sobre.html`, { produto: "products/demo", stageTool: stage })).falhas, []);
+    assert.deepEqual((await provaNoAr(d, `${host}/app.js`, { produto: "products/demo", stageTool: stage })).falhas, []);
+  } finally { s.close(); }
+
+  ({ s, host } = await servidor(new Map([["index.html", HTML_VELHO], ["sobre.html", "<h1>sobre</h1>"]])));   // produção defasada e sem app.js
+  try {
+    assert.match((await provaNoAr(d, `${host}/`, { produto: "products/demo", stageTool: stage })).falhas[0], /^HTML no ar difere do commit [0-9a-f]{8}/);
+    assert.match((await provaNoAr(d, `${host}/app.js`, { produto: "products/demo", stageTool: stage })).falhas[0], /text\/html.*não está no ar/);
+    assert.match((await provaNoAr(d, `${host}/nao-existe`, { produto: "products/demo", stageTool: stage })).falhas[0], /não existe no stage/);
+  } finally { s.close(); }
+
+  ({ s, host } = await servidor(bom, { corrompe: ["app.js"] }));
+  try { assert.match((await provaNoAr(d, `${host}/app.js`, { produto: "products/demo", stageTool: stage })).falhas[0], /sha256 não bate/); } finally { s.close(); }
+});
+test("prova-no-ar: status diferente de 200 reprova", async () => {
+  const { d, stage } = repoHtml();
+  write(path.join(d, "DEPLOYMENTS.md"), CAB + LINHA("demo.cachola.tech", "demo-pages", "products/demo")); commit(d, "reg");
+  const s = http.createServer((q, r) => { r.writeHead(503, { "content-type": "text/html" }); r.end("x"); });
+  await new Promise((ok) => s.listen(0, "127.0.0.1", ok));
+  try { assert.match((await provaNoAr(d, `http://127.0.0.1:${s.address().port}/`, { produto: "products/demo", stageTool: stage })).falhas[0], /HTTP 503/); } finally { s.close(); }
 });
