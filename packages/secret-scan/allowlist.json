@@ -1,0 +1,12 @@
+{
+  "comment": "Allowlist GENÉRICA do pacote (só o que é estrutural em qualquer repo). Repo com falso-positivos próprios usa --allowlist <json> ou .secret-scan.allowlist.json na raiz. Exceção SÓ por path-glob, valor pinado ou pin path+sha256 da linha; nunca 'passa dessa vez'.",
+  "paths": ["**/*.test.mjs", "**/*.spec.mjs", "**/*.test.ts", "**/*.spec.ts", "**/vendor/**", "*.min.js", "**/package-lock.json", "**/MANIFEST.json", "**/*.manifest.json"],
+  "lineAllow": [
+    "^\\s*[\"'-]*\\s*([a-z_]*sha256[a-z_]*|stamp_hash|integrity|hash[a-z_]*|commit)\\s*[\"']?\\s*[:=]",
+    "security find-generic-password",
+    "[:=]\\s*[\"'`]https?://"
+  ],
+  "pathPatterns": [],
+  "values": [],
+  "pins": []
+}
