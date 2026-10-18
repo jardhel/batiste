@@ -18,7 +18,7 @@ Rode dentro do repo alvo. Sai `0` (limpo) ou `1` (**bloqueia**). A API `scan({ro
 |---|---|
 | 1 | `fallback:`/`secretFallback:` com literal em `functions/` ou `tools/` |
 | 2 | `env.<NOME-credencial> \|\| "literal"` (só quando o nome cheira a credencial) |
-| 3 | `PASS/PASSWORD/SENHA/SECRET/TOKEN/API_KEY = "literal"` |
+| 3 | atribuição de string literal a variável cujo nome é PASS, PASSWORD, SENHA, SECRET, TOKEN ou API_KEY |
 | 4 | `senha: <valor>` em `*.md`/`*.txt` |
 | 5 | token JWT/Thalia inteiro (`eyJ….<assinatura>`, `?t=eyJ…`) |
 | 6 | prefixos de provedor (`sk_live_`, `whsec_`, `sk-ant-`, `AKIA`, `AIza`, `gh*_`, `xox*-`) |
