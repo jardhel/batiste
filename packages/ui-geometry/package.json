@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "name": "@batiste-aidk/ui-geometry",
+  "version": "0.1.0",
+  "description": "Gate de geometria de UI: overlay/painel não cobre o elemento principal e o elemento é alcançável por rolagem em 320x568, 360x640 e 390x844.",
+  "type": "module",
+  "bin": { "ui-geometry": "./ui-geometry.mjs" },
+  "scripts": { "test": "sh -c 'node --test' --" },
+  "peerDependencies": { "playwright": "*" },
+  "license": "UNLICENSED"
+}
