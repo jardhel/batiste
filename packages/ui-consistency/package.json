@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@batiste-aidk/ui-consistency",
   "version": "0.1.0",
   "type": "module",

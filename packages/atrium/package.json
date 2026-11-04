@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@batiste-aidk/atrium",
   "version": "0.1.0",
   "description": "Atrium — the entry hall to a Batiste deployment's Firm Memory. Ingestion (Claude Code memory + sessions, vault, Drive, Trello) and retrieval CLI. Every mutation is audit-emitted before commit per ADR-0002.",

@@ -1,0 +1,67 @@
+Batiste — licensing
+===================
+
+Batiste is open-core. This repository contains two bodies of code under two
+different licences, and each package declares its own `license` field in its
+`package.json`. Those per-package declarations are authoritative. This file
+states the same division in one place.
+
+Copyright (c) 2025-present Cachola Tech Ltda (CNPJ 62.014.963/0001-00),
+Sao Paulo, Brazil. All rights reserved except as expressly granted below.
+
+
+1. MIT-licensed packages
+------------------------
+
+The MIT licence reproduced in section 3 applies to, and only to, the following
+packages in this repository:
+
+    packages/aidk                 packages/audit
+    packages/auth                 packages/code
+    packages/connectors           packages/core
+    packages/graph                packages/gvs
+    packages/memory               packages/rls
+    packages/router               packages/scope
+    packages/sign                 packages/transport
+
+The grant is by enumeration. A package is MIT-licensed only if it is named in
+the list above.
+
+
+2. Proprietary packages and everything else
+-------------------------------------------
+
+All other content in this repository — including but not limited to
+packages/atrium, packages/cli, packages/credential-preflight,
+packages/marketplace, packages/parallel, packages/pitch-integrity,
+packages/repo-hygiene and packages/ui-consistency — is proprietary and
+source-available. It is published so that it can be read, audited and
+evaluated. No licence to use, copy, modify, merge, publish, distribute,
+sublicense or sell it is granted by this file or by its presence in a public
+repository. Commercial terms: jardhel@cachola.tech.
+
+Third-party dependency notices are reproduced in NOTICE.
+
+
+3. The MIT Licence, as it applies to the packages listed in section 1
+---------------------------------------------------------------------
+
+Copyright (c) 2025-present Cachola Tech Ltda
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -1,0 +1,33 @@
+{
+  "$comment": "Declarative manifest for npm publication of Batiste. ONLY MIT packages are listed here. Proprietary (UNLICENSED / no-license) packages are intentionally absent and must NEVER be published public. See scripts/PUBLISH.md. Order = dependency levels (lower first).",
+  "org": "@batiste-aidk",
+  "registry": "https://registry.npmjs.org/",
+  "requiredLicense": "MIT",
+  "levels": [
+    {
+      "level": 0,
+      "comment": "No public-MIT workspace dependencies.",
+      "packages": ["core", "connectors", "graph", "gvs", "memory", "sign", "rls"]
+    },
+    {
+      "level": 1,
+      "comment": "Depend only on level-0 public-MIT packages.",
+      "packages": ["audit", "auth", "scope", "transport"]
+    },
+    {
+      "level": 2,
+      "comment": "Depend on level-0/1 public-MIT packages.",
+      "packages": ["code", "aidk"]
+    }
+  ],
+  "proprietaryDoNotPublish": [
+    "atrium",
+    "cli",
+    "marketplace",
+    "parallel",
+    "credential-preflight",
+    "pitch-integrity",
+    "repo-hygiene",
+    "ui-consistency"
+  ]
+}

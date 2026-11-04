@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@batiste-aidk/pitch-integrity",
   "version": "0.1.0",
   "description": "Gate de integridade de pitch/demo — falha quando um artefato de demo vende teatro (números sorteados/multiplicados, result fixo, sleep \"simulate real work\", alvo inexistente, claim production-ready sem prova) como se fosse real.",
