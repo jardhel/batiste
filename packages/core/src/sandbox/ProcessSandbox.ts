@@ -1,4 +1,5 @@
-import { spawn, ChildProcess } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import type {
   ISandbox,
@@ -51,7 +52,7 @@ export class ProcessSandbox implements ISandbox {
 
       const proc = spawn(options.command, options.args ?? [], {
         cwd: options.workingDir ?? process.cwd(),
-        env: env as NodeJS.ProcessEnv,
+        env: env,
         stdio: ['pipe', 'pipe', 'pipe'],
         timeout,
         killSignal: 'SIGKILL',
@@ -63,17 +64,17 @@ export class ProcessSandbox implements ISandbox {
       let stderr = '';
       let timedOut = false;
 
-      proc.stdout?.on('data', data => {
+      proc.stdout.on('data', (data: Buffer) => {
         stdout += data.toString();
       });
 
-      proc.stderr?.on('data', data => {
+      proc.stderr.on('data', (data: Buffer) => {
         stderr += data.toString();
       });
 
       if (options.stdin) {
-        proc.stdin?.write(options.stdin);
-        proc.stdin?.end();
+        proc.stdin.write(options.stdin);
+        proc.stdin.end();
       }
 
       const timeoutId = setTimeout(() => {

@@ -17,7 +17,7 @@
 
 import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
-import { Agent } from './Agent.js';
+import type { Agent } from './Agent.js';
 import { CoderAgent } from './specialized/CoderAgent.js';
 import { ReviewerAgent } from './specialized/ReviewerAgent.js';
 import type {
@@ -75,10 +75,10 @@ export interface LoadBalancingStrategy {
 // ============================================================================
 
 export class AgentPool extends EventEmitter {
-  private agents: Map<string, Agent> = new Map();
+  private agents = new Map<string, Agent>();
   private taskQueue: QueuedTask[] = [];
-  private inFlight: Map<string, { agentId: string; startTime: number }> = new Map();
-  private taskHistory: Map<string, { success: boolean; timeMs: number }> = new Map();
+  private inFlight = new Map<string, { agentId: string; startTime: number }>();
+  private taskHistory = new Map<string, { success: boolean; timeMs: number }>();
   private deadLetterQueue: DLQEntry[] = [];
   private spec: AgentPoolSpec;
   private readonly poolId: string;
@@ -190,7 +190,7 @@ export class AgentPool extends EventEmitter {
   }
 
   private createAgentForRole(role: AgentRole): Agent {
-    const baseName = `${role}-${this.agents.size + 1}`;
+    const baseName = `${role}-${String(this.agents.size + 1)}`;
 
     switch (role) {
       case 'coder':
@@ -272,7 +272,7 @@ export class AgentPool extends EventEmitter {
       attempt: task.retries + 1,
     });
 
-    this.assignTaskToAgent(agent, task).catch((err) => {
+    this.assignTaskToAgent(agent, task).catch((err: unknown) => {
       this.inFlight.delete(task.assignment.taskId);
       this.log('error', 'task.dispatch_error', { taskId: task.assignment.taskId, error: String(err) });
       this.emit('dispatchError', { poolId: this.poolId, taskId: task.assignment.taskId, error: err });
@@ -405,7 +405,7 @@ export class AgentPool extends EventEmitter {
       senderId: this.poolId,
       recipientId: agent.id,
       timestamp: new Date().toISOString(),
-      payload: assignment as unknown as Record<string, unknown>,
+      payload: assignment,
     };
 
     await agent.receiveMessage(message);
@@ -418,7 +418,7 @@ export class AgentPool extends EventEmitter {
   private routeMessage(message: AgentMessage): void {
     const recipient = this.agents.get(message.recipientId);
     if (recipient) {
-      recipient.receiveMessage(message).catch((err) => {
+      recipient.receiveMessage(message).catch((err: unknown) => {
         this.emit('routingError', { message, error: err });
       });
       return;
@@ -441,7 +441,7 @@ export class AgentPool extends EventEmitter {
       utilization > this.spec.autoscaling.targetUtilization &&
       metrics.totalAgents < this.spec.autoscaling.maxReplicas
     ) {
-      this.spawnAgent().then(() => {
+      void this.spawnAgent().then(() => {
         this.emit('scaledUp', { poolId: this.poolId, newSize: this.agents.size });
       });
     } else if (
@@ -450,7 +450,7 @@ export class AgentPool extends EventEmitter {
     ) {
       const idleAgent = Array.from(this.agents.values()).find((a) => a.isAvailable());
       if (idleAgent) {
-        this.terminateAgent(idleAgent.id).then(() => {
+        void this.terminateAgent(idleAgent.id).then(() => {
           this.emit('scaledDown', { poolId: this.poolId, newSize: this.agents.size });
         });
       }

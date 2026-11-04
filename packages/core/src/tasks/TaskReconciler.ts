@@ -294,7 +294,7 @@ export class TaskReconciler {
       // Fall back to the recent window rather than crashing the board.
       if (since) {
         warnings.push(
-          `marker ref ${since.slice(0, 12)} is not reachable in ${this.repoPath}; scanned the last ${DEFAULT_INITIAL_COMMITS} commits instead (trailers older than that window may have been missed)`
+          `marker ref ${since.slice(0, 12)} is not reachable in ${this.repoPath}; scanned the last ${String(DEFAULT_INITIAL_COMMITS)} commits instead (trailers older than that window may have been missed)`
         );
         return this.readCommits(undefined, warnings);
       }

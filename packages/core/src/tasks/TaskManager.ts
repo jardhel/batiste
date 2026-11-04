@@ -7,7 +7,7 @@
  * - Recover full state after process restart
  */
 
-import type { Task, TaskStatus, TaskNode, ITaskStore, ToolOutputCache } from './types.js';
+import type { Task, TaskStatus, TaskNode, ITaskStore } from './types.js';
 
 export class TaskManager {
   constructor(private store: ITaskStore) {}
@@ -113,7 +113,7 @@ export class TaskManager {
   /**
    * Delete a task and optionally its subtasks
    */
-  async deleteTask(taskId: string, cascade: boolean = false): Promise<void> {
+  async deleteTask(taskId: string, cascade = false): Promise<void> {
     if (cascade) {
       const children = await this.store.getChildren(taskId);
       for (const child of children) {
@@ -147,13 +147,13 @@ export class TaskManager {
   /**
    * Retrieve a cached tool output
    */
-  async getToolOutput(taskId: string, toolName: string): Promise<unknown | null> {
+  async getToolOutput(taskId: string, toolName: string): Promise<unknown> {
     const task = await this.store.get(taskId);
     if (!task) {
       return null;
     }
 
-    const cached = task.context.toolOutputs?.[toolName] as ToolOutputCache | undefined;
+    const cached = task.context.toolOutputs?.[toolName];
     return cached?.output ?? null;
   }
 
@@ -173,7 +173,7 @@ export class TaskManager {
       return null;
     }
 
-    const cached = task.context.toolOutputs?.[toolName] as ToolOutputCache | undefined;
+    const cached = task.context.toolOutputs?.[toolName];
     return cached?.cachedAt ?? null;
   }
 

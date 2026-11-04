@@ -33,10 +33,10 @@ export interface OrchestratorConfig {
 }
 
 export class Orchestrator extends EventEmitter {
-  private pools: Map<AgentRole, AgentPool> = new Map();
-  private workflows: Map<string, WorkflowDefinition> = new Map();
-  private executions: Map<string, WorkflowExecution> = new Map();
-  private checkpoints: Map<string, Checkpoint[]> = new Map();
+  private pools = new Map<AgentRole, AgentPool>();
+  private workflows = new Map<string, WorkflowDefinition>();
+  private executions = new Map<string, WorkflowExecution>();
+  private checkpoints = new Map<string, Checkpoint[]>();
   private config: OrchestratorConfig;
   private checkpointTimer: NodeJS.Timeout | null = null;
 
@@ -186,7 +186,7 @@ export class Orchestrator extends EventEmitter {
     if (stage.vetoRequired) {
       const vetoResult = await this.checkVeto(result, stage);
       if (vetoResult.decision === 'rejected') {
-        const retries = (input._retryCount as number) ?? 0;
+        const retries = (input._retryCount as number | undefined) ?? 0;
         if (retries < (stage.retryPolicy?.maxRetries ?? 3)) {
           await this.delay(stage.retryPolicy?.backoffMs ?? 1000);
           await this.executeStage(workflow, execution, {
@@ -443,7 +443,7 @@ export class Orchestrator extends EventEmitter {
   // ============================================================================
 
   getStatus(): {
-    pools: Array<{ role: AgentRole; metrics: ReturnType<AgentPool['getMetrics']> }>;
+    pools: { role: AgentRole; metrics: ReturnType<AgentPool['getMetrics']> }[];
     activeExecutions: number;
     totalCheckpoints: number;
   } {

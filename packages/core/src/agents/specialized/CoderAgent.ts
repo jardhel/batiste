@@ -6,7 +6,8 @@
  */
 
 import { randomUUID } from 'crypto';
-import { Agent, AgentConfig } from '../Agent.js';
+import type { AgentConfig } from '../Agent.js';
+import { Agent } from '../Agent.js';
 import type { TaskAssignment, TaskResult, Checkpoint } from '../types.js';
 
 export interface CoderAgentConfig extends Omit<AgentConfig, 'role'> {
@@ -58,7 +59,7 @@ export class CoderAgent extends Agent {
     code: string;
     files: string[];
     tokensUsed: number;
-    artifacts: Array<{ name: string; type: string; content: string }>;
+    artifacts: { name: string; type: string; content: string }[];
   }> {
     // Placeholder for LLM-based code generation
     const files = assignment.files ?? [];

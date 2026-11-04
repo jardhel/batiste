@@ -6,7 +6,8 @@
  */
 
 import { randomUUID } from 'crypto';
-import { Agent, AgentConfig } from '../Agent.js';
+import type { AgentConfig } from '../Agent.js';
+import { Agent } from '../Agent.js';
 import type {
   TaskAssignment,
   TaskResult,
@@ -137,13 +138,13 @@ export class ReviewerAgent extends Agent {
   private generateFeedback(issues: ReviewResult['issues'], decision: VetoDecision): string {
     if (decision === 'approved') {
       return issues?.length
-        ? `Approved with ${issues.length} minor suggestions.`
+        ? `Approved with ${String(issues.length)} minor suggestions.`
         : 'Code looks good. Approved.';
     }
 
     if (decision === 'rejected') {
       const errorCount = issues?.filter((i) => i.severity === 'error').length ?? 0;
-      return `Rejected: ${errorCount} critical issue(s) must be addressed.`;
+      return `Rejected: ${String(errorCount)} critical issue(s) must be addressed.`;
     }
 
     return 'Escalating for human review due to complex issues.';
@@ -199,8 +200,8 @@ export class ReviewerAgent extends Agent {
 
     this.identity.state = agentState.state;
     if (agentState.context) {
-      this.strictness = (agentState.context.strictness as typeof this.strictness) ?? 'normal';
-      this.focusAreas = (agentState.context.focusAreas as string[]) ?? ['correctness'];
+      this.strictness = (agentState.context.strictness as typeof this.strictness | undefined) ?? 'normal';
+      this.focusAreas = (agentState.context.focusAreas as string[] | undefined) ?? ['correctness'];
       this.context = new Map(Object.entries(agentState.context));
     }
     this.messageQueue = [...checkpoint.pendingMessages.filter((m) => m.recipientId === this.id)];

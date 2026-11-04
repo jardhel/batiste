@@ -11,11 +11,16 @@ import Database from 'better-sqlite3';
 import { existsSync, unlinkSync, renameSync } from 'fs';
 import type { Task, ITaskStore } from './types.js';
 
+/** Normaliza o que foi lancado para Error (better-sqlite3 lanca Error com `code`). */
+function asDbError(error: unknown): Error & { code?: string } {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 export class SQLiteTaskStore implements ITaskStore {
   private db: Database.Database;
   private dbPath: string;
 
-  constructor(dbPath: string = ':memory:') {
+  constructor(dbPath = ':memory:') {
     this.dbPath = dbPath;
     this.db = this.openDatabase(dbPath);
     this.initializeSchema();
@@ -30,9 +35,9 @@ export class SQLiteTaskStore implements ITaskStore {
       }
       return db;
     } catch (error: unknown) {
-      const err = error as Error & { code?: string };
+      const err = asDbError(error);
       // Handle readonly database or locked database
-      if (err.message?.includes('readonly') || err.code === 'SQLITE_READONLY') {
+      if (err.message.includes('readonly') || err.code === 'SQLITE_READONLY') {
         return this.handleReadonlyDatabase(dbPath, err);
       }
       throw error;
@@ -44,8 +49,8 @@ export class SQLiteTaskStore implements ITaskStore {
       db.exec('CREATE TABLE IF NOT EXISTS _write_test (id INTEGER)');
       db.exec('DROP TABLE IF EXISTS _write_test');
     } catch (error: unknown) {
-      const err = error as Error & { code?: string };
-      if (err.message?.includes('readonly') || err.code === 'SQLITE_READONLY') {
+      const err = asDbError(error);
+      if (err.message.includes('readonly') || err.code === 'SQLITE_READONLY') {
         throw error;
       }
       // Other errors during test are non-fatal
@@ -58,7 +63,7 @@ export class SQLiteTaskStore implements ITaskStore {
     }
 
     // Try to recover by backing up and recreating
-    const backupPath = `${dbPath}.readonly-backup-${Date.now()}`;
+    const backupPath = `${dbPath}.readonly-backup-${String(Date.now())}`;
 
     try {
       if (existsSync(dbPath)) {
@@ -83,7 +88,8 @@ export class SQLiteTaskStore implements ITaskStore {
         `Database is readonly and recovery failed. ` +
           `Original: ${originalError.message}. ` +
           `Recovery: ${recErr.message}. ` +
-          `Try: rm -rf ${dbPath}* and restart.`
+          `Try: rm -rf ${dbPath}* and restart.`,
+        { cause: recoveryError }
       );
     }
   }
@@ -105,7 +111,7 @@ export class SQLiteTaskStore implements ITaskStore {
       this.db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_parentId ON tasks(parentId)`);
     } catch (error: unknown) {
       const err = error as Error;
-      if (err.message?.includes('readonly')) {
+      if (err.message.includes('readonly')) {
         // If schema init fails due to readonly, try recovery
         this.db.close();
         this.db = this.handleReadonlyDatabase(this.dbPath, err);
@@ -142,8 +148,8 @@ export class SQLiteTaskStore implements ITaskStore {
     try {
       return operation();
     } catch (error: unknown) {
-      const err = error as Error & { code?: string };
-      if (err.message?.includes('readonly') || err.code === 'SQLITE_READONLY') {
+      const err = asDbError(error);
+      if (err.message.includes('readonly') || err.code === 'SQLITE_READONLY') {
         // Attempt recovery
         this.db.close();
         this.db = this.handleReadonlyDatabase(this.dbPath, err);
@@ -218,7 +224,7 @@ export class SQLiteTaskStore implements ITaskStore {
       parentId: (row.parentId as string) || undefined,
       label: row.label as string,
       status: row.status as Task['status'],
-      context: JSON.parse(row.context as string),
+      context: JSON.parse(row.context as string) as Task['context'],
       ...(row.createdAt != null ? { createdAt: Number(row.createdAt) } : {}),
       ...(row.updatedAt != null ? { updatedAt: Number(row.updatedAt) } : {}),
     };

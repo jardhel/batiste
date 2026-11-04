@@ -21,7 +21,7 @@ export interface ExecutionOptions {
   timeout?: number;
   maxMemory?: number;
   networkEnabled?: boolean;
-  mounts?: Array<{ hostPath: string; containerPath: string; readonly?: boolean }>;
+  mounts?: { hostPath: string; containerPath: string; readonly?: boolean }[];
   stdin?: string;
 }
 

@@ -27,7 +27,7 @@ const CHARS_PER_TOKEN = 4; // Approximate for Claude tokenization
 
 export class ContextBudgetMonitor {
   private config: BudgetConfig;
-  private usage: Map<BudgetCategory, number> = new Map();
+  private usage = new Map<BudgetCategory, number>();
 
   constructor(config: BudgetConfig) {
     this.config = {
@@ -157,14 +157,14 @@ export class ContextBudgetMonitor {
         const limit = this.config.categoryBudgets[category] ?? 'unlimited';
         const percentage =
           typeof limit === 'number' ? ((used / limit) * 100).toFixed(1) : '-';
-        lines.push(`- **${category}**: ${used} / ${limit} tokens (${percentage}%)`);
+        lines.push(`- **${category}**: ${String(used)} / ${String(limit)} tokens (${percentage}%)`);
       }
     }
 
     const total = this.getTotalUsage();
     const totalPercentage = ((total / this.config.totalBudget) * 100).toFixed(1);
     lines.push('');
-    lines.push(`**Total**: ${total} / ${this.config.totalBudget} tokens (${totalPercentage}%)`);
+    lines.push(`**Total**: ${String(total)} / ${String(this.config.totalBudget)} tokens (${totalPercentage}%)`);
 
     const suggestions = this.getSuggestions();
     if (suggestions.length > 0) {

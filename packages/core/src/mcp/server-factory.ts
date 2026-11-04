@@ -37,7 +37,7 @@ export function createMcpServer(config: McpServerConfig): Server {
   };
 
   if (config.promptRegistry) {
-    capabilities['prompts'] = { listChanged: true };
+    capabilities.prompts = { listChanged: true };
   }
 
   const server = new Server(
@@ -172,9 +172,9 @@ async function startGateway(
       if (stateful) {
         const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-        if (sessionId && sessions.has(sessionId)) {
-          // Existing session
-          const transport = sessions.get(sessionId)!;
+        const existing = sessionId ? sessions.get(sessionId) : undefined;
+        if (sessionId && existing) {
+          const transport = existing;
           await transport.handleRequest(req, res, body);
         } else if (!sessionId) {
           // New session — create transport
@@ -217,8 +217,9 @@ async function startGateway(
     if (req.method === 'GET') {
       if (stateful) {
         const sessionId = req.headers['mcp-session-id'] as string | undefined;
-        if (sessionId && sessions.has(sessionId)) {
-          const transport = sessions.get(sessionId)!;
+        const existing = sessionId ? sessions.get(sessionId) : undefined;
+        if (sessionId && existing) {
+          const transport = existing;
           await transport.handleRequest(req, res);
           return;
         }
@@ -235,8 +236,9 @@ async function startGateway(
     if (req.method === 'DELETE') {
       if (stateful) {
         const sessionId = req.headers['mcp-session-id'] as string | undefined;
-        if (sessionId && sessions.has(sessionId)) {
-          const transport = sessions.get(sessionId)!;
+        const existing = sessionId ? sessions.get(sessionId) : undefined;
+        if (sessionId && existing) {
+          const transport = existing;
           await transport.handleRequest(req, res);
           sessions.delete(sessionId);
           return;
@@ -258,7 +260,7 @@ async function startGateway(
   return new Promise<void>((resolve) => {
     httpServer.listen(port, host, () => {
       if (config.label) {
-        console.error(`${config.label} MCP Server started (gateway) on ${host}:${port}`);
+        console.error(`${config.label} MCP Server started (gateway) on ${host}:${String(port)}`);
       }
       resolve();
     });
@@ -274,7 +276,7 @@ function readBody(req: IncomingMessage): Promise<unknown> {
         const raw = Buffer.concat(chunks).toString('utf-8');
         resolve(raw ? JSON.parse(raw) : undefined);
       } catch (err) {
-        reject(err);
+        reject(err instanceof Error ? err : new Error(String(err)));
       }
     });
     req.on('error', reject);

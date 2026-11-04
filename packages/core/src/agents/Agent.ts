@@ -34,7 +34,7 @@ export abstract class Agent extends EventEmitter {
   protected identity: AgentIdentity;
   protected messageQueue: AgentMessage[] = [];
   protected currentTask: TaskAssignment | null = null;
-  protected context: Map<string, unknown> = new Map();
+  protected context = new Map<string, unknown>();
 
   constructor(config: AgentConfig) {
     super();
@@ -160,7 +160,7 @@ export abstract class Agent extends EventEmitter {
   }
 
   protected async handleQuery(message: AgentMessage): Promise<void> {
-    const response = await this.respondToQuery(message.payload as Record<string, unknown>);
+    const response = await this.respondToQuery(message.payload);
     await this.sendMessage(message.senderId, 'response', response, message.id);
   }
 
@@ -191,7 +191,7 @@ export abstract class Agent extends EventEmitter {
   }
 
   protected async sendResult(recipientId: string, result: TaskResult, correlationId?: string): Promise<void> {
-    await this.sendMessage(recipientId, 'task_result', result as unknown as Record<string, unknown>, correlationId);
+    await this.sendMessage(recipientId, 'task_result', result, correlationId);
   }
 
   protected async sendError(recipientId: string, taskId: string, error: unknown, correlationId?: string): Promise<void> {

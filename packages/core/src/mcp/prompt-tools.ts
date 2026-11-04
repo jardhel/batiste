@@ -66,12 +66,12 @@ export function handlePromptTool(
   }
 
   if (toolName === 'register_prompt') {
-    const name = args['name'] as string;
-    const template = args['template'] as string;
-    const title = args['title'] as string | undefined;
-    const description = args['description'] as string | undefined;
-    const argDefs = args['arguments'] as PromptArgumentDefinition[] | undefined;
-    const role = (args['role'] as 'user' | 'assistant') ?? 'user';
+    const name = args.name as string;
+    const template = args.template as string;
+    const title = args.title as string | undefined;
+    const description = args.description as string | undefined;
+    const argDefs = args.arguments as PromptArgumentDefinition[] | undefined;
+    const role = (args.role as 'user' | 'assistant' | undefined) ?? 'user';
 
     registry.register({
       definition: {
@@ -100,7 +100,7 @@ export function handlePromptTool(
   }
 
   if (toolName === 'unregister_prompt') {
-    const name = args['name'] as string;
+    const name = args.name as string;
     const removed = registry.unregister(name);
     return { handled: true, result: { unregistered: name, found: removed } };
   }
