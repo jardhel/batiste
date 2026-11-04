@@ -149,6 +149,7 @@ test("tasklogFindings: agrupa por regra, erro por padrão, warn-only rebaixa, fa
 
 test("CLI: CHECK 7 derruba o fim de sessão (exit 1) com TaskLog parado; --no-tasklog e TaskLog limpo passam", () => {
   const dir = mkdtempSync(join(tmpdir(), "hy-"));
+  const stubDir = mkdtempSync(join(tmpdir(), "hy-stub-"));
   const sh = (c) => execSync(c, { cwd: dir, stdio: "pipe" });
   sh("git init -q && git config user.email t@t && git config user.name t");
   writeFileSync(join(dir, "a.txt"), "x");
@@ -156,7 +157,7 @@ test("CLI: CHECK 7 derruba o fim de sessão (exit 1) com TaskLog parado; --no-ta
   sh("git add -A && git commit -qm base");
   const now = Math.floor(Date.now() / 1000);
   const stub = (tasks) => {
-    const f = join(dir, "bd.mjs");
+    const f = join(stubDir, "bd.mjs"); // fora do repo: senao vira "??" e o CHECK 1 (git-clean) reprova no Linux
     writeFileSync(f, `#!/usr/bin/env node\nconsole.log(JSON.stringify({tasks:${JSON.stringify(tasks)}}))\n`);
     chmodSync(f, 0o755);
     return f;
