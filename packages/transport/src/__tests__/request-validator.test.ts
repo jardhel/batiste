@@ -147,11 +147,35 @@ describe('validateBody', () => {
 });
 
 describe('getClientIp', () => {
-  it('should extract IP from X-Forwarded-For', () => {
+  const xff = { 'x-forwarded-for': '10.0.0.1, 10.0.0.2' };
+
+  it('honours X-Forwarded-For when the TCP peer is a trusted proxy', () => {
     const req = mockRequest({
-      headers: { 'x-forwarded-for': '10.0.0.1, 10.0.0.2' },
+      headers: xff,
+      socket: { remoteAddress: '172.16.0.5' } as never,
     });
-    expect(getClientIp(req)).toBe('10.0.0.1');
+    const proxy = { trustProxy: true, trustedProxies: ['172.16.0.5'] };
+    expect(getClientIp(req, proxy)).toBe('10.0.0.1');
+  });
+
+  it('ignores X-Forwarded-For when the TCP peer is not a trusted proxy', () => {
+    const req = mockRequest({
+      headers: xff,
+      socket: { remoteAddress: '203.0.113.9' } as never,
+    });
+    const proxy = { trustProxy: true, trustedProxies: ['172.16.0.5'] };
+    expect(getClientIp(req, proxy)).toBe('203.0.113.9');
+  });
+
+  it('ignores X-Forwarded-For when proxy trust is disabled or unset', () => {
+    const req = mockRequest({
+      headers: xff,
+      socket: { remoteAddress: '172.16.0.5' } as never,
+    });
+    expect(getClientIp(req)).toBe('172.16.0.5');
+    expect(getClientIp(req, { trustProxy: false, trustedProxies: ['172.16.0.5'] })).toBe(
+      '172.16.0.5',
+    );
   });
 
   it('should fall back to socket address', () => {
