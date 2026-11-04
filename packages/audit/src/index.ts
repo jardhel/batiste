@@ -18,7 +18,12 @@ export {
 } from './task-log.js';
 export { KillSwitch, type KillSwitchListener } from './kill-switch.js';
 export { SessionMonitor, type MonitoredSession } from './session-monitor.js';
-export { AuditedToolHandler, type AuditMiddlewareConfig } from './middleware.js';
+export {
+  AuditedToolHandler,
+  type AuditMiddlewareConfig,
+  type UsageResolver,
+  type UsageResolverContext,
+} from './middleware.js';
 export { AuditedPromptHandler, type PromptAuditConfig } from './prompt-audit.js';
 export { generateReport, type ComplianceReport } from './compliance-report.js';
 export { AuditEntrySchema, KillCommandSchema, TokenUsageSchema, type AuditEntry, type KillCommand, type TokenUsage } from './types.js';
