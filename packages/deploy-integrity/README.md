@@ -41,6 +41,29 @@ da sessão cortava a saída com `tail`, então o erro nunca aparecia.
 - **`status`** é local e rápido (produto sem mudança no git nem monta stage). Bloqueia quando há arquivo público
   pronto e fora do commit há mais que `--max-age-hours`.
 
+## status --prod: o status que olha o ar
+
+O `status` local compara árvore com commit e **nunca olhava a produção** (achado de 26/10 e 04/11: marcava ✓ para
+`hefesto` e `gpsvoador` enquanto a produção servia HTML de 08/10, `?v=20261008`, contra `?v=20261012` no HEAD).
+`status --prod` (padrão no SessionStart da casa) faz, para CADA produto do DEPLOYMENTS.md, em paralelo
+(`--concurrency 4`, timeout de 30 s por produto):
+
+1. **prova** da rota de prova (`/` ou `provaPath` em `.deploy-integrity.json`) contra o stage do HEAD;
+2. **registro**: o último commit de deploy citado na linha do DEPLOYMENTS.md (o mais novo que seja ancestral do
+   HEAD) contra o HEAD, só nos caminhos do produto: commits sem deploy.
+
+| marca | significa | exit |
+|---|---|---|
+| `✓` | produção == HEAD provado e registro em dia | 0 |
+| `⚠` | produção == HEAD, mas o DEPLOYMENTS.md está atrás (commits do produto depois do deploy registrado) | 0 |
+| `✗` | produção ≠ HEAD (pronto e não publicado), ou sem prova **e** com commits sem deploy | 1 |
+| `?` | sem prova (rota inexistente no stage, 403, HTML dinâmico, sem rede): **pendência explícita, nunca ✓** | 0 (`--strict` → 1) |
+
+`--json` devolve a lista estruturada. Produto sem rota pública provável (`argus`, `kairos`: o stage não tem
+`index.html`; `phoenix-studio`: 403 anônimo) fica em `?` até declarar `provaPath` ou `htmlDynamic`.
+Limite honesto: o commit de deploy vem de texto livre do DEPLOYMENTS.md (primeiro `commit|HEAD \`sha\``); linha
+sem sha dá `ultimoDeploy: null` e só a prova do ar vale.
+
 ## prova-no-ar: o gate do relato
 
 Use **antes** de dizer "no ar" a alguém. Para UMA url faz o que o `post` faz por arquivo: HTTP 200, `content-type` plausível para a extensão (`text/html` num `.js` é o arquivo que não subiu) e corpo igual ao do stage do commit (HTML normalizado; demais por sha256). Só então imprime `NO AR: <url> (...)` e sai `0`; qualquer divergência imprime `NÃO PROVADO no ar` com o motivo e sai `1`. Produto vem de `--produto` ou do host no DEPLOYMENTS.md; o commit padrão é o HEAD (`--commit <sha>` escolhe outro, `--work` compara com a árvore de trabalho). Caminho gated e HTML `htmlDynamic` não são comparáveis anonimamente: reprovam com a explicação, nunca passam em silêncio. Rota que não existe no stage reprova (o Pages teria devolvido a página inicial com 200).

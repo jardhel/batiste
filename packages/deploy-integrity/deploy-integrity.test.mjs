@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import { execFileSync } from "node:child_process";
-import { resolverProduto, provaNoAr, diffTrees, hashTree, pre, post, status, normalizarHtml, htmlDinamico, referenciasQuebradas, tipoPlausivel } from "./deploy-integrity.mjs";
+import { resolverProduto, provaNoAr, diffTrees, hashTree, pre, post, status, normalizarHtml, htmlDinamico, referenciasQuebradas, tipoPlausivel, ultimoCommitDeploy, commitsSemDeploy, statusProd, classificarProva } from "./deploy-integrity.mjs";
 
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8" }).trim();
 const write = (p, c) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, c); };
@@ -296,4 +296,84 @@ test("prova-no-ar: status diferente de 200 reprova", async () => {
   const s = http.createServer((q, r) => { r.writeHead(503, { "content-type": "text/html" }); r.end("x"); });
   await new Promise((ok) => s.listen(0, "127.0.0.1", ok));
   try { assert.match((await provaNoAr(d, `http://127.0.0.1:${s.address().port}/`, { produto: "products/demo", stageTool: stage })).falhas[0], /HTTP 503/); } finally { s.close(); }
+});
+
+// ------------------------------------------------------------------------------------ status --prod (buraco de 26/10)
+const comDeploy = (extra = "") => {
+  const r = repoFalso();
+  const base = git(r.d, "rev-parse", "--short", "HEAD");
+  write(path.join(r.d, "DEPLOYMENTS.md"), CAB + `| demo.cachola.tech | \`demo-pages\` | \`products/demo/\` | nenhum | - | Deploy 01/11: commit \`${base}\` ${extra}|\n`);
+  commit(r.d, "deployments");
+  return { ...r, base };
+};
+
+test("ultimoCommitDeploy: lê o primeiro commit da linha do produto; sha inexistente ou sem registro = null", () => {
+  const { d, base } = comDeploy();
+  assert.equal(ultimoCommitDeploy(d, "products/demo"), base);
+  assert.equal(ultimoCommitDeploy(d, "products/outro"), null);
+  write(path.join(d, "DEPLOYMENTS.md"), CAB + "| demo.cachola.tech | `demo-pages` | `products/demo/` | nenhum | - | commit `deadbeef` |\n");
+  assert.equal(ultimoCommitDeploy(d, "products/demo"), null);
+});
+
+test("commitsSemDeploy: só commits que tocam o produto depois do deploy registrado", () => {
+  const { d, base } = comDeploy();
+  assert.deepEqual(commitsSemDeploy(d, "products/demo", base), []);
+  write(path.join(d, "products/demo/novo.js"), "1"); commit(d, "feat demo novo");
+  write(path.join(d, "outra-coisa.txt"), "1"); commit(d, "nao toca o produto");
+  const r = commitsSemDeploy(d, "products/demo", base);
+  assert.equal(r.length, 1); assert.match(r[0].assunto, /feat demo novo/);
+  assert.equal(commitsSemDeploy(d, "products/demo", null), null);
+});
+
+test("classificarProva: diverge x sem-prova x ok", () => {
+  assert.equal(classificarProva([]).tipo, "ok");
+  assert.equal(classificarProva(["HTML no ar difere do commit abc: /"]).tipo, "diverge");
+  assert.equal(classificarProva(["https://x/: HTTP 403 (esperado 200)"]).tipo, "sem-prova");
+  assert.equal(classificarProva(["/: não existe no stage de products/x @ abc (nada a provar)"]).tipo, "sem-prova");
+});
+
+test("statusProd: ✓ só com prova; divergência BLOQUEIA; sem prova é pendência explícita, nunca ✓", async () => {
+  const { d, stage } = comDeploy();
+  const prod = [{ produto: "products/demo", projeto: "demo-pages", host: "https://demo.cachola.tech" }];
+  const mk = (falhas) => async () => ({ falhas });
+  let r = await statusProd(d, stage, { produtos: prod, provaFn: mk([]) });
+  assert.match(r.linhas[0], /^✓ products\/demo: produção == HEAD/); assert.equal(r.bloqueios.length, 0);
+
+  r = await statusProd(d, stage, { produtos: prod, provaFn: mk(["HTML no ar difere do commit abc: /"]) });
+  assert.match(r.linhas[0], /^✗ products\/demo: PRODUÇÃO ≠ HEAD/); assert.equal(r.bloqueios.length, 1);
+
+  r = await statusProd(d, stage, { produtos: prod, provaFn: mk(["https://demo.cachola.tech/: HTTP 403 (esperado 200)"]) });
+  assert.match(r.linhas[0], /^\? products\/demo: sem prova/); assert.equal(r.bloqueios.length, 0); assert.equal(r.semProva.length, 1);
+
+  r = await statusProd(d, stage, { produtos: prod, provaFn: async () => { throw new Error("rede caiu"); } });
+  assert.match(r.linhas[0], /^\? .*rede caiu/);
+});
+
+test("statusProd: produção == HEAD mas commits do produto depois do deploy registrado = aviso; sem prova + commits = BLOQUEIA", async () => {
+  const { d, stage } = comDeploy();
+  write(path.join(d, "products/demo/novo.js"), "1"); commit(d, "feat demo novo");
+  const prod = [{ produto: "products/demo", projeto: "demo-pages", host: "https://demo.cachola.tech" }];
+  let r = await statusProd(d, stage, { produtos: prod, provaFn: async () => ({ falhas: [] }) });
+  assert.match(r.linhas[0], /^⚠ .*registro do DEPLOYMENTS.md está atrás.*feat demo novo/);
+  r = await statusProd(d, stage, { produtos: prod, provaFn: async () => ({ falhas: ["x: HTTP 403 (esperado 200)"] }) });
+  assert.equal(r.bloqueios.length, 1);
+});
+
+test("statusProd: provaPath do produto (.deploy-integrity.json) define a rota provada", async () => {
+  const { d, stage } = comDeploy();
+  write(path.join(d, "products/demo/.deploy-integrity.json"), JSON.stringify({ provaPath: "/health.json" })); commit(d, "cfg");
+  const prod = [{ produto: "products/demo", projeto: "demo-pages", host: "https://demo.cachola.tech" }];
+  let visto;
+  await statusProd(d, stage, { produtos: prod, provaFn: async (_r, url) => { visto = url; return { falhas: [] }; } });
+  assert.equal(visto, "https://demo.cachola.tech/health.json");
+});
+
+test("ultimoCommitDeploy: vale o commit mais novo citado, qualquer que seja a ordem na linha (astrus novo-primeiro, afrodite antigo-primeiro)", () => {
+  const { d, base } = comDeploy();
+  write(path.join(d, "products/demo/a.js"), "1"); commit(d, "a");
+  const novo = git(d, "rev-parse", "--short", "HEAD");
+  write(path.join(d, "DEPLOYMENTS.md"), CAB + `| demo.cachola.tech | \`demo-pages\` | \`products/demo/\` | nenhum | - | Deploy 2: commit \`${novo}\` · Deploy 1: commit \`${base}\` |\n`);
+  assert.equal(ultimoCommitDeploy(d, "products/demo"), novo);
+  write(path.join(d, "DEPLOYMENTS.md"), CAB + `| demo.cachola.tech | \`demo-pages\` | \`products/demo/\` | nenhum | - | Deploy 1: commit \`${base}\` · Deploy 2: commit \`${novo}\` |\n`);
+  assert.equal(ultimoCommitDeploy(d, "products/demo"), novo);
 });

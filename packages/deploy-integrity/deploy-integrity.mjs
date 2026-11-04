@@ -9,6 +9,10 @@
 //   status  sentinela de defasagem (rápido, local): quantos arquivos PÚBLICOS do produto mudaram na
 //           árvore de trabalho e não estão no commit, e há quanto tempo. Com --live, também o que
 //           está no ar versus o commit. Sai 1 se passar do limite (--max-age-hours, padrão 24).
+//   status --prod  (padrão no SessionStart) para CADA produto registrado: prova a rota de prova (padrão "/", ou
+//           provaPath em .deploy-integrity.json) contra o stage do HEAD e cruza o último commit de deploy do
+//           DEPLOYMENTS.md com o HEAD (commits do produto sem deploy). ✓ só com produção == HEAD provado;
+//           "? sem prova" quando não dá para provar (nunca ✓); ✗ quando produção ≠ HEAD ou há commits sem deploy.
 //   pre     antes do deploy: o stage da árvore de trabalho TEM de ser idêntico ao stage do commit
 //           (testado == publicado) e nenhum arquivo publicado pode referenciar arquivo ausente.
 //   post    depois do deploy: cada arquivo do stage existe no ar, com o tipo de conteúdo certo
@@ -16,7 +20,7 @@
 //           HTML é comparado normalizado (sem _di, beacon/e-mail-decode da Cloudflare, espaço final).
 //
 // uso:
-//   node deploy-integrity.mjs status [--repo <raiz>] [--live] [--max-age-hours 24]
+//   node deploy-integrity.mjs status [--repo <raiz>] [--max-age-hours 24] [--prod [--strict] [--json] [--concurrency 4]]
 //   node deploy-integrity.mjs pre  <products/x> [--repo <raiz>] [--stage-tool <stage.mjs>]
 //   node deploy-integrity.mjs resolve <products/x>   # projeto<TAB>host pelo DEPLOYMENTS.md; 2 se não registrado/ambíguo
 //   node deploy-integrity.mjs prova-no-ar <url> [--produto products/x] [--commit <sha>] [--work]  # imprime "NO AR" só se provado
@@ -380,12 +384,100 @@ export function status(repo, stageTool, { maxHoras = 24, produtos } = {}) {
   return { linhas, bloqueios };
 }
 
+
+// ------------------------------------------------------------------------------------ status --prod
+/**
+ * Último commit de deploy REGISTRADO no DEPLOYMENTS.md para o produto: o primeiro `commit|HEAD \`sha\`` da linha
+ * (a linha lista do deploy mais novo para o mais antigo). Só vale se o sha existe no repo. null = sem registro.
+ */
+export function ultimoCommitDeploy(repo, produto) {
+  const f = path.join(repo, "DEPLOYMENTS.md");
+  if (!fs.existsSync(f)) return null;
+  const alvo = produto.replace(/\/$/, "");
+  for (const l of fs.readFileSync(f, "utf8").split("\n")) {
+    if (!l.startsWith("|")) continue;
+    const col = l.split("|").map((c) => c.trim());
+    if ((col[3] || "").match(/products\/[A-Za-z0-9._-]+/)?.[0] !== alvo) continue;
+    // A ordem na linha varia (astrus: mais novo primeiro; afrodite: mais antigo primeiro). Vale o commit MAIS NOVO
+    // citado que exista no repo e seja ancestral do HEAD (hotfix em outro branch não conta como deploy da linha).
+    const shas = [...new Set([...l.matchAll(/\b(?:commit|HEAD)\s+`([0-9a-f]{7,40})`/gi)].map((m) => m[1]))].filter((x) => {
+      try { git(repo, "cat-file", "-e", `${x}^{commit}`); execFileSync("git", ["merge-base", "--is-ancestor", x, "HEAD"], { cwd: repo }); return true; } catch { return false; }
+    });
+    if (!shas.length) return null;
+    const ancestral = (a, b) => { try { execFileSync("git", ["merge-base", "--is-ancestor", a, b], { cwd: repo }); return true; } catch { return false; } };
+    const maisNovo = shas.reduce((acc, x) => (ancestral(acc, x) ? x : acc));   // todos são ancestrais do HEAD: ordem total
+    return git(repo, "rev-parse", "--short", maisNovo);
+  }
+  return null;
+}
+
+/** Commits que tocam o produto entre o último deploy registrado e o HEAD. */
+export function commitsSemDeploy(repo, produto, deployCommit) {
+  if (!deployCommit) return null;
+  const out = git(repo, "log", "--format=%h\t%s", `${deployCommit}..HEAD`, "--", produto);
+  return out ? out.split("\n").map((l) => { const [sha, ...r] = l.split("\t"); return { sha, assunto: r.join("\t") }; }) : [];
+}
+
+function provaPathDe(produtoDir) {
+  try { return JSON.parse(fs.readFileSync(path.join(produtoDir, ".deploy-integrity.json"), "utf8")).provaPath || "/"; } catch { return "/"; }
+}
+
+/** Classifica o resultado de provaNoAr: "ok" | "diverge" (produção ≠ HEAD) | "sem-prova" (não dá para provar). */
+export function classificarProva(falhas) {
+  if (!falhas.length) return { tipo: "ok" };
+  const f = falhas[0];
+  if (/^HTML no ar difere|conteúdo no ar diferente/.test(f)) return { tipo: "diverge", motivo: f };
+  if (/HTTP 404/.test(f)) return { tipo: "diverge", motivo: f };
+  return { tipo: "sem-prova", motivo: f };   // não existe no stage, gated, dinâmico, 403, sem resposta
+}
+
+async function emPool(itens, n, fn) {
+  const out = new Array(itens.length); let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, itens.length) }, async () => { while (i < itens.length) { const k = i++; out[k] = await fn(itens[k]); } }));
+  return out;
+}
+
+/**
+ * Status contra a PRODUÇÃO. Por produto: (1) prova da rota contra o stage do HEAD; (2) commits do produto
+ * depois do último deploy registrado. Nunca imprime ✓ sem ter olhado o ar.
+ */
+export async function statusProd(repo, stageTool, { produtos, fetchFn = fetch, concurrency = 4, timeoutMs = 30000, provaFn = provaNoAr } = {}) {
+  const lista = (produtos || produtosRegistrados(repo)).filter((p, i, a) => a.findIndex((x) => x.produto === p.produto) === i);
+  const itens = await emPool(lista, concurrency, async (p) => {
+    const dir = path.join(repo, p.produto);
+    const item = { produto: p.produto, host: p.host, estado: "sem-prova", motivo: "", commitsSemDeploy: [], ultimoDeploy: null };
+    if (!fs.existsSync(dir)) { item.motivo = "pasta do produto não existe neste repo"; return item; }
+    item.ultimoDeploy = ultimoCommitDeploy(repo, p.produto);
+    try { item.commitsSemDeploy = commitsSemDeploy(repo, p.produto, item.ultimoDeploy) || []; } catch { /* sha fora do histórico */ }
+    const url = `${p.host.replace(/\/$/, "")}${provaPathDe(dir)}`;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    try {
+      const r = await provaFn(repo, url, { produto: p.produto, stageTool, fetchFn: (u, o) => fetchFn(u, { ...o, signal: ctl.signal }) });
+      const c = classificarProva(r.falhas);
+      item.estado = c.tipo; item.motivo = c.motivo || ""; item.url = url;
+    } catch (e) { item.estado = "sem-prova"; item.motivo = String(e.message).split("\n")[0]; }
+    finally { clearTimeout(timer); }
+    return item;
+  });
+  const linhas = [], bloqueios = [], semProva = [];
+  for (const it of itens) {
+    const n = it.commitsSemDeploy.length;
+    const pend = n ? ` · ${n} commit(s) do produto depois do último deploy registrado (${it.ultimoDeploy}): ${it.commitsSemDeploy.slice(0, 3).map((c) => `${c.sha} ${c.assunto}`).join(" | ")}` : "";
+    if (it.estado === "ok" && !n) linhas.push(`✓ ${it.produto}: produção == HEAD (${it.url})`);
+    else if (it.estado === "ok") { const m = `⚠ ${it.produto}: produção == HEAD, mas o registro do DEPLOYMENTS.md está atrás${pend}`; linhas.push(m); }
+    else if (it.estado === "diverge") { const m = `✗ ${it.produto}: PRODUÇÃO ≠ HEAD: ${it.motivo}${pend} → publique (scripts/deploy-product.sh ${it.produto} --stage) ou declare htmlDynamic`; linhas.push(m); bloqueios.push(m); }
+    else { const m = `? ${it.produto}: sem prova (${it.motivo})${pend}`; linhas.push(m); semProva.push(m); if (n) bloqueios.push(m); }
+  }
+  return { linhas, bloqueios, semProva, itens };
+}
+
 // ------------------------------------------------------------------------------------ CLI
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   const repo = repoDe(rest);
   const stageTool = opt(rest, "--stage-tool") || STAGE_PADRAO(repo);
-  const positional = rest.filter((a, i) => !a.startsWith("--") && !(i > 0 && ["--repo", "--stage-tool", "--host", "--max-age-hours", "--commit", "--produto"].includes(rest[i - 1])));
+  const positional = rest.filter((a, i) => !a.startsWith("--") && !(i > 0 && ["--repo", "--stage-tool", "--host", "--max-age-hours", "--commit", "--produto", "--concurrency"].includes(rest[i - 1])));
   const bloquear = (falhas, titulo) => {
     if (!falhas.length) { console.log(`✓ deploy-integrity ${titulo}: passa`); return 0; }
     console.error(`✗ deploy-integrity ${titulo} BLOQUEOU:`); for (const f of falhas) console.error(`  ${f}`); return 1;
@@ -406,6 +498,16 @@ async function main() {
       if (r.falhas.length) { console.error("✗ NÃO PROVADO no ar:"); for (const f of r.falhas) console.error(`  ${f}`); process.exit(1); }
       console.log(`NO AR: ${positional[0]} (200, tipo plausível, corpo == ${r.arquivo} @ ${rest.includes("--work") ? "árvore" : r.commit.slice(0, 8)})`); process.exit(0);
     } catch (e) { console.error(`✗ prova-no-ar: ${e.message}`); process.exit(2); }
+  }
+  if (cmd === "status" && rest.includes("--prod")) {
+    const r = await statusProd(repo, stageTool, { concurrency: Number(opt(rest, "--concurrency") || 4) });
+    if (rest.includes("--json")) console.log(JSON.stringify(r.itens, null, 2));
+    else {
+      for (const l of r.linhas) console.log(l);
+      const n = r.itens.length;
+      console.log(`\n${n} produto(s): ${r.itens.filter((i) => i.estado === "ok" && !i.commitsSemDeploy.length).length} provados no ar, ${r.bloqueios.length} bloqueio(s), ${r.semProva.length} sem prova (pendência explícita)`);
+    }
+    process.exit(r.bloqueios.length || (rest.includes("--strict") && r.semProva.length) ? 1 : 0);
   }
   if (cmd === "status") {
     const { linhas, bloqueios } = status(repo, stageTool, { maxHoras: Number(opt(rest, "--max-age-hours") || 24) });
