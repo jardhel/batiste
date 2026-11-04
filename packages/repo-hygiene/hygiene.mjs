@@ -9,6 +9,7 @@
 //        --warn-only nada derruba (exit 0); só reporta.
 //        --json      saída JSON (pra CI/Batiste).
 //        --allow-unshipped  rebaixa CHECK 6 (committed≠shipped) de ERRO p/ WARN.
+//        --no-tasklog       pula CHECK 7 (TaskLog); o pre-commit usa, o fim de sessão NÃO.
 //
 //  Config opcional por repo: .hygiene.json na raiz do git
 //    { "allowDuplicateBasenames": ["favicon.svg"],
@@ -22,8 +23,12 @@
 //    5. stale-derived  — derivado mais velho que a fonte (.hygiene.json)  [ERRO]
 //    6. unshipped      — commit local não-pushado e sem PR aberto         [ERRO]
 //                        (committed ≠ shipped; --allow-unshipped → WARN)
+//                        Sem origin/main (repo local-only) o check NÃO fica mudo: usa o registro de
+//                        deploy do DEPLOYMENTS.md (commits do produto depois do último deploy).
+//    7. tasklog        — TaskLog parado/orfão/estado apodrecido (packages/tasklog-hygiene) [ERRO]
+//                        ligado por "tasklog": {"enabled": true, ...} no .hygiene.json; fim de sessão.
 // =============================================================================
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, dirname, basename, relative, resolve } from "node:path";
@@ -41,6 +46,7 @@ const WARN_ONLY = flags.has("--warn-only");
 const JSON_OUT = flags.has("--json");
 const NO_GIT_CLEAN = flags.has("--no-git-clean"); // pre-commit: staged != sujo
 const ALLOW_UNSHIPPED = flags.has("--allow-unshipped"); // CHECK 6 vira WARN
+const NO_TASKLOG = flags.has("--no-tasklog"); // CHECK 7 só no fim de sessão
 
 const findings = [];
 const add = (check, level, msg) => findings.push({ check, level, msg });
@@ -101,6 +107,37 @@ export function evaluateUnshipped({
   };
 }
 
+// --- CHECK 6 sem remote: registro de deploy (puro; o git é injetado pelo chamador) -----------
+// itens: [{ produto, ultimoDeploy, commits: [{sha, assunto}] }] — commits do produto DEPOIS do
+// último deploy registrado no DEPLOYMENTS.md. Devolve findings; vazio = tudo publicado.
+export function evaluateUnshippedRegistro({ itens = [], allowUnshipped = false } = {}) {
+  const level = allowUnshipped ? "warn" : "error";
+  return itens.filter((i) => i.commits && i.commits.length).map((i) => ({
+    check: "unshipped", level,
+    msg: `${i.produto}: ${i.commits.length} commit(s) depois do último deploy registrado (${i.ultimoDeploy}) — committed ≠ shipped ` +
+      `(CHECK 6 em modo registro de deploy: sem origin/main)\n    ` + i.commits.slice(0, 5).map((c) => `· ${c.sha} ${c.assunto}`).join("\n    ") +
+      (i.commits.length > 5 ? `\n    … +${i.commits.length - 5}` : "") +
+      `\n    → scripts/deploy-product.sh ${i.produto} --stage`,
+  }));
+}
+
+// --- CHECK 7: TaskLog (puro: recebe o JSON do tasklog-hygiene) --------------------------------
+// res: { pass, erros:[{regra,taskId,label,detalhe,sugestao}], avisos:[{regra,detalhe}] } ou { falhaLeitura }
+export function tasklogFindings(res, { warnOnly = false } = {}) {
+  if (!res) return [];
+  if (res.falhaLeitura) return [{ check: "tasklog", level: "warn", msg: `TaskLog ilegível — o gate NÃO rodou: ${res.falhaLeitura}` }];
+  const out = [];
+  const porRegra = {};
+  for (const v of res.erros || []) (porRegra[v.regra] ??= []).push(v);
+  for (const [regra, vs] of Object.entries(porRegra)) {
+    const ex = vs.slice(0, 5).map((v) => `${String(v.taskId).slice(0, 8)} ${String(v.label).slice(0, 70)} — ${v.detalhe}`);
+    out.push({ check: "tasklog", level: warnOnly ? "warn" : "error",
+      msg: `[${regra}] ${vs.length} tarefa(s)\n    ${ex.join("\n    ")}${vs.length > 5 ? `\n    … +${vs.length - 5}` : ""}\n    → ${vs[0].sugestao}` });
+  }
+  for (const a of res.avisos || []) out.push({ check: "tasklog", level: "warn", msg: `[${a.regra}] ${a.detalhe}` });
+  return out;
+}
+
 if (IS_MAIN) {
 let root = null;
 try { root = git("rev-parse --show-toplevel", target); } catch { /* not a repo */ }
@@ -135,19 +172,46 @@ if (!root) {
 
   // CHECK 2 — no-duplicate (hash)
   const byHash = new Map();
+  // Só lê o que pode ser duplicata. Conteúdo idêntico implica tamanho idêntico, então arquivo com
+  // tamanho único está descartado sem abrir. Importa porque statSync é metadado e readFileSync é
+  // conteúdo: num repo sincronizado por iCloud o stat custa microssegundos e a leitura de arquivo
+  // evicted custa centenas de milissegundos, cada. Neste monorepo o filtro dispensa 61% dos
+  // arquivos e derruba o volume lido de 6 GB pra 210 MB — a diferença entre o gate rodar em
+  // segundos e não terminar.
+  const porTamanho = new Map();
   for (const p of tracked) {
-    const abs = join(root, p);
     try {
-      if (!statSync(abs).isFile()) continue;
-      const h = createHash("sha256").update(readFileSync(abs)).digest("hex");
-      if (!byHash.has(h)) byHash.set(h, []);
-      byHash.get(h).push(p);
+      const st = statSync(join(root, p));
+      if (!st.isFile()) continue;
+      // arquivo vazio não é duplicata: __init__.py, .gitkeep e placeholders compartilham o hash
+      // do vazio e agrupavam dezenas de caminhos sem relação nenhuma.
+      if (st.size === 0) continue;
+      if (!porTamanho.has(st.size)) porTamanho.set(st.size, []);
+      porTamanho.get(st.size).push(p);
     } catch { /* */ }
+  }
+  for (const candidatos of porTamanho.values()) {
+    if (candidatos.length < 2) continue;
+    for (const p of candidatos) {
+      try {
+        const h = createHash("sha256").update(readFileSync(join(root, p))).digest("hex");
+        if (!byHash.has(h)) byHash.set(h, []);
+        byHash.get(h).push(p);
+      } catch { /* */ }
+    }
   }
   for (const [h, paths] of byHash) {
     if (paths.length < 2) continue;
     if (new Set(paths.map(dirname)).size < 2) continue;        // mesmo dir: ok
-    if (cfg.allowDuplicateBasenames.includes(basename(paths[0]))) continue;
+    // allowlist aceita nome exato OU padrão de sufixo ("*.woff2"): duplicata estrutural existe
+    // por regra (fonte self-host POR projeto Pages, template imutável de release), e afogar o
+    // gate em aviso estrutural esconde a duplicata que é entropia de verdade.
+    const bn = basename(paths[0]);
+    if (cfg.allowDuplicateBasenames.some((a) => (a.startsWith("*") ? bn.endsWith(a.slice(1)) : a === bn))) continue;
+    // duplicata contida INTEIRAMENTE num escopo imutável (releases são snapshots: reusam asset e
+    // template por definição) não é entropia. Se um único caminho do grupo estiver fora do escopo,
+    // o aviso continua: aí é arquivo de produto repetido, que é o que o gate existe pra pegar.
+    if ((cfg.duplicateScopeIgnore || []).some((sc) => paths.every((f) => f.startsWith(sc)))) continue;
     add("no-duplicate", "warn",
       `conteúdo idêntico (multi-source) em ${paths.length} pastas: ${paths.join("  ·  ")}  [${h.slice(0, 8)}]`);
   }
@@ -201,7 +265,8 @@ if (!root) {
     } catch { /* sem upstream */ }
 
     // commits além de origin/main (a referência de "embarcado" do projeto)
-    let aheadOrigin = 0, subjects = [];
+    let aheadOrigin = 0, subjects = [], semOrigin = false;
+    try { git("rev-parse --verify origin/main", root); } catch { semOrigin = true; }
     try {
       aheadOrigin = Number(git("rev-list --count origin/main..HEAD", root)) || 0;
       if (aheadOrigin > 0)
@@ -220,7 +285,34 @@ if (!root) {
 
     const r = evaluateUnshipped({ branch, aheadOrigin, hasUpstream, aheadUpstream, prState, subjects, allowUnshipped: ALLOW_UNSHIPPED });
     if (r) add("unshipped", r.level, r.msg);
+    if (semOrigin) {
+      // Repo local-only: "embarcado" = produção. Antes o check engolia a falta de origin/main e passava calado.
+      try {
+        const di = await import("../deploy-integrity/deploy-integrity.mjs");
+        const itens = [...new Map(di.produtosRegistrados(root).map((p) => [p.produto, p])).values()]
+          .filter((p) => existsSync(join(root, p.produto)))
+          .map((p) => { const ultimoDeploy = di.ultimoCommitDeploy(root, p.produto); let commits = []; try { commits = di.commitsSemDeploy(root, p.produto, ultimoDeploy) || []; } catch { /* sha fora do histórico */ } return { produto: p.produto, ultimoDeploy, commits }; });
+        for (const f of evaluateUnshippedRegistro({ itens, allowUnshipped: ALLOW_UNSHIPPED })) add(f.check, f.level, f.msg);
+      } catch (e) { add("unshipped", "warn", `CHECK 6 inativo: sem origin/main e o registro de deploy não pôde ser lido (${e.message})`); }
+    }
   } catch (e) { add("unshipped", "warn", `checagem de unshipped falhou: ${e.message}`); }
+
+  // CHECK 7 — TaskLog (fim de sessão; pre-commit passa --no-tasklog)
+  if (cfg.tasklog?.enabled && !NO_TASKLOG) {
+    const gate = join(dirname(fileURLToPath(import.meta.url)), "..", "tasklog-hygiene", "tasklog-hygiene.mjs");
+    if (!existsSync(gate)) add("tasklog", "warn", `tasklog-hygiene não encontrado em ${gate} — CHECK 7 não rodou`);
+    else {
+      const a = [gate, "check", "--repo", root, "--json"];
+      if (cfg.tasklog.staleDays) a.push("--stale-days", String(cfg.tasklog.staleDays));
+      if (cfg.tasklog.runningHours) a.push("--running-hours", String(cfg.tasklog.runningHours));
+      if (cfg.tasklog.prove === false) a.push("--no-prod");
+      const r = spawnSync(process.execPath, a, { encoding: "utf8", timeout: (cfg.tasklog.timeoutSec || 180) * 1000, maxBuffer: 64 * 1024 * 1024 });
+      let res;
+      if (r.status === 3 || r.error || !r.stdout) res = { falhaLeitura: (r.error?.message || r.stderr || `exit ${r.status}`).trim().split("\n")[0] };
+      else { try { res = JSON.parse(r.stdout); } catch { res = { falhaLeitura: "saída ilegível do tasklog-hygiene" }; } }
+      for (const f of tasklogFindings(res)) add(f.check, f.level, f.msg);
+    }
+  }
 }
 
 // relatório + exit

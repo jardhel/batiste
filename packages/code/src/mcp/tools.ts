@@ -27,15 +27,47 @@ export const ExecuteSandboxInput = z.object({
 });
 
 export const ManageTaskInput = z.object({
-  action: z.enum(['create', 'update', 'get', 'list', 'tree', 'clear']).describe('Task action'),
-  taskId: z.string().optional().describe('Task ID for update/get'),
-  label: z.string().optional().describe('Task label for create'),
+  action: z
+    .enum(['create', 'update', 'get', 'list', 'tree', 'clear', 'reconcile', 'stale', 'close', 'archive', 'renew', 'merge', 'triage', 'report'])
+    .describe('Task action'),
+  taskId: z.string().optional().describe('Task ID for update/get/close/archive/renew (alias: id)'),
+  sourceId: z.string().optional().describe('merge: task absorbed (archived as "mesclada em <targetId>")'),
+  targetId: z.string().optional().describe('merge: task that stays and absorbs notes/links/tags/children'),
+  label: z.string().optional().describe('Task label for create (short title, max 120 chars)'),
   parentId: z.string().optional().describe('Parent task ID'),
   status: z.enum(['pending', 'running', 'completed', 'failed']).optional(),
   toolOutput: z.object({
-    toolName: z.string(),
+    toolName: z.string().default('manual'),
     output: z.any(),
-  }).optional().describe('Cache tool output'),
+  }).optional().describe('Cache tool output (toolName optional)'),
+  since: z
+    .string()
+    .optional()
+    .describe('reconcile: git revision lower bound (default: persisted marker / recent window)'),
+  staleDays: z
+    .number()
+    .optional()
+    .describe('reconcile/stale: days untouched before a pending task is flagged stale (default 14)'),
+  runningStaleHours: z.number().optional().describe('stale: hours without update before a running task is flagged (default 48)'),
+  proof: z.string().optional().describe('close/update completed: evidence (commit, url, deploy id, prova-no-ar)'),
+  reason: z.string().optional().describe('archive/renew/reopen/merge: why'),
+  until: z.string().optional().describe('renew: YYYY-MM-DD or +Nd'),
+  reopen: z.boolean().optional().describe('update: allow leaving a terminal status (needs reason)'),
+  confirm: z.string().optional().describe('clear: "APAGAR <N> TAREFAS"; triage apply: "TRIAGE"'),
+  apply: z.boolean().optional().describe('triage: execute archive/merge candidates (default dry-run)'),
+  minGroup: z.number().optional().describe('triage: min open tasks sharing a prefix to flag the group'),
+  olderThanDays: z.number().optional().describe('list: only tasks untouched for more than N days'),
+  labelPrefix: z.string().optional().describe('list: label prefix filter'),
+  limit: z.number().optional().describe('list: max tasks returned'),
+  compact: z.boolean().optional().describe('list: omit context/toolOutputs'),
+  months: z.number().optional().describe('report: months of history'),
+  dedupeKey: z.string().optional().describe('create: idempotency key; an open task with the same key is returned instead of a duplicate'),
+  allowDuplicate: z.boolean().optional().describe('create: permit a second open task with the same normalized label (rare; default false = returns the existing one with deduped:true)'),
+  state: z.object({ next: z.string().optional(), gate: z.string().optional() }).optional().describe('Structured state (next step / gate) instead of label text'),
+  links: z.object({ commit: z.string().optional(), deploy: z.string().optional(), release: z.string().optional(), url: z.string().optional() }).optional(),
+  phase: z.enum(['todo', 'doing', 'built', 'deployed', 'verified']).optional(),
+  tags: z.array(z.string()).optional(),
+  note: z.string().optional().describe('Append-only timestamped note'),
 });
 
 export const RunTDDInput = z.object({
@@ -191,16 +223,40 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: 'manage_task',
-    description: 'Create, update, or query tasks in the persistent task DAG. Supports caching tool outputs to prevent duplicate work.',
+    description: 'Create, update, or query tasks in the persistent task DAG. Supports caching tool outputs, reconciling closures from git Task-done: trailers (with commit evidence + audit), and flagging stale pending/running tasks. Lifecycle actions: close (proof required), archive (reason required), renew, merge (correlated tasks are merged, not duplicated), triage (dry-run), report. create compares with open tasks: score >= 0.80 returns the existing one (merged:true, note appended), 0.50-0.79 creates and returns related[]. Accepts id as alias of taskId.',
     inputSchema: {
       type: 'object',
       properties: {
-        action: { type: 'string', enum: ['create', 'update', 'get', 'list', 'tree', 'clear'], description: 'Action to perform' },
-        taskId: { type: 'string', description: 'Task ID (for update/get)' },
-        label: { type: 'string', description: 'Task label (for create)' },
+        action: { type: 'string', enum: ['create', 'update', 'get', 'list', 'tree', 'clear', 'reconcile', 'stale', 'close', 'archive', 'renew', 'merge', 'triage', 'report'], description: 'Action to perform. Per-action help: batiste-direct manage_task <action> --help' },
+        taskId: { type: 'string', description: 'Task ID (update/get/close/archive/renew). Alias: id' },
+        sourceId: { type: 'string', description: 'merge: task absorbed and archived' },
+        targetId: { type: 'string', description: 'merge: task that absorbs notes/links/tags/children' },
+        label: { type: 'string', description: 'Task label (create); short title, max 120 chars' },
         parentId: { type: 'string', description: 'Parent task ID (for create subtask)' },
-        status: { type: 'string', enum: ['pending', 'running', 'completed', 'failed'], description: 'New status (for update)' },
-        toolOutput: { type: 'object', properties: { toolName: { type: 'string' }, output: {} }, description: 'Tool output to cache' },
+        status: { type: 'string', enum: ['pending', 'running', 'completed', 'failed'], description: 'New status (update; completed needs proof/reason, or use close)' },
+        toolOutput: { type: 'object', properties: { toolName: { type: 'string', description: 'optional, default "manual"' }, output: {} }, required: ['output'], description: 'Tool output to cache' },
+        since: { type: 'string', description: 'reconcile: git revision lower bound; only commits after it are scanned (default: persisted marker / recent window)' },
+        staleDays: { type: 'number', description: 'reconcile/stale/triage: days a pending task may sit untouched before being flagged stale (default 14; triage 60)' },
+        runningStaleHours: { type: 'number', description: 'stale: hours a running task may go without update (default 48)' },
+        proof: { type: 'string', description: 'close: evidence (commit sha, url, deploy id)' },
+        reason: { type: 'string', description: 'archive/renew/reopen: why' },
+        until: { type: 'string', description: 'renew: YYYY-MM-DD or +Nd' },
+        reopen: { type: 'boolean', description: 'update: leave a terminal status (needs reason)' },
+        confirm: { type: 'string', description: 'clear: "APAGAR <N> TAREFAS"; triage apply: "TRIAGE"' },
+        apply: { type: 'boolean', description: 'triage: execute (default dry-run)' },
+        minGroup: { type: 'number', description: 'triage: min open tasks per prefix to flag the group (default 5)' },
+        olderThanDays: { type: 'number', description: 'list filter' },
+        labelPrefix: { type: 'string', description: 'list filter' },
+        limit: { type: 'number', description: 'list: max tasks' },
+        compact: { type: 'boolean', description: 'list: omit context' },
+        months: { type: 'number', description: 'report: months of history (default 6)' },
+        dedupeKey: { type: 'string', description: 'create: idempotency key' },
+        allowDuplicate: { type: 'boolean', description: 'create: allow an open task with the same normalized label (default false: returns existing, deduped:true)' },
+        state: { type: 'object', properties: { next: { type: 'string' }, gate: { type: 'string' } }, description: 'Structured state; keep it out of the label' },
+        links: { type: 'object', properties: { commit: { type: 'string' }, deploy: { type: 'string' }, release: { type: 'string' }, url: { type: 'string' } } },
+        phase: { type: 'string', enum: ['todo', 'doing', 'built', 'deployed', 'verified'] },
+        tags: { type: 'array', items: { type: 'string' } },
+        note: { type: 'string', description: 'Append-only timestamped note' },
       },
       required: ['action'],
     },

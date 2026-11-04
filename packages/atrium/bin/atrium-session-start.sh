@@ -84,9 +84,12 @@ fi
 [ "$allowlist_match" -eq 1 ] || exit 0
 
 # Slugify the cwd the same way Claude Code names ~/.claude/projects dirs:
-# replace `/` with `-`, drop a leading `-`. We pass it as --cwd-filter so
-# only sessions for THIS repo get re-ingested.
-slug="$(printf '%s' "$cwd" | sed -E 's|/|-|g; s|^-||')"
+# Claude Code replaces every non-alphanumeric char (`/`, `_`, `.`, space)
+# with `-`, then drops a leading `-`. We must mirror that exactly or the
+# --cwd-filter substring misses repos whose path has `_`/`.` (e.g.
+# `cachola_tech` → dir `...-cachola-tech`). We pass the slug as --cwd-filter
+# so only sessions for THIS repo get re-ingested.
+slug="$(printf '%s' "$cwd" | sed -E 's|[^A-Za-z0-9]|-|g; s|^-||')"
 
 mkdir -p "$LOG_DIR" 2>/dev/null || true
 

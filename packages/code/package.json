@@ -26,9 +26,11 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "start": "node dist/mcp/server.js"
+    "start": "node dist/mcp/server.js",
+    "test:node": "node --test test/manage-task.node.test.mjs"
   },
   "dependencies": {
+    "@batiste-aidk/audit": "workspace:*",
     "@batiste-aidk/core": "workspace:*",
     "@batiste-aidk/graph": "workspace:*",
     "@batiste-aidk/gvs": "workspace:*",

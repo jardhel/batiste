@@ -10,7 +10,7 @@ Zero-trust runtime for AI agents — route, authorise, audit, and kill-switch ev
 [![pnpm](https://img.shields.io/badge/pnpm-%3E%3D9.0.0-orange)](https://pnpm.io)
 [![License: open-core](https://img.shields.io/badge/license-open--core-blue)](#license)
 
-[Quick start](#quick-start) · [Architecture](#architecture) · [CLI](#cli) · [Packages](#packages) · [History](./HISTORY.md) · [Contributing](./CONTRIBUTING.md)
+[**Ten-minute tour**](./TOUR.md) · [Quick start](#quick-start) · [Architecture](#architecture) · [CLI](#cli) · [Packages](#packages) · [History](./HISTORY.md) · [Contributing](./CONTRIBUTING.md)
 
 </div>
 
@@ -184,7 +184,11 @@ Honest scope: these are the discipline and audit gates. Running the verticals fu
 
 ## License
 
-Open-core. The runtime primitive packages are MIT-licensed (per-package `package.json`); the marketplace, parallel-execution, CLI, atrium, and repo-hygiene packages are source-available under a proprietary licence. Each package declares its own `license` field. Third-party dependency notices are reproduced in [NOTICE](./NOTICE).
+Open-core, declared per package. Each package's `package.json` carries its own `license` field, and that field is the authoritative statement for that package.
+
+In this tree, thirteen packages declare MIT: `aidk`, `audit`, `auth`, `code`, `connectors`, `core`, `graph`, `gvs`, `memory`, `rls`, `scope`, `sign`, `transport`. Seven declare `UNLICENSED` and are source-available under proprietary terms: `atrium`, `cli`, `credential-preflight`, `marketplace`, `parallel`, `pitch-integrity`, `repo-hygiene`. The `ui-consistency` package and the `deploy-lineage`, `dfam-preflight` and `web` directories carry no licence declaration. For anything not declared MIT, commercial terms are available on request: `jardhel@cachola.tech`.
+
+Third-party dependency notices are reproduced in [NOTICE](./NOTICE).
 
 ---
 

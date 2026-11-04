@@ -25,7 +25,16 @@ import {
   VaultIndexInput,
 } from './tools.js';
 import { loadVault, validateVault, AXES, type Axis } from '@batiste-aidk/gvs';
-import { SQLiteTaskStore, TaskManager, type TaskNode } from '@batiste-aidk/core/tasks';
+import {
+  SQLiteTaskStore,
+  TaskManager,
+  TaskReconciler,
+  SQLiteReconcileMarkerStore,
+  type Task,
+  type TaskNode,
+  type ReconcileAuditSink,
+} from '@batiste-aidk/core/tasks';
+import { EventLog } from '@batiste-aidk/audit';
 import { ContextBudgetMonitor, type BudgetCategory, type BudgetConfig } from '@batiste-aidk/core/context';
 import { ProcessSandbox } from '@batiste-aidk/core/sandbox';
 import { Orchestrator } from '@batiste-aidk/core/agents';
@@ -40,6 +49,12 @@ import { loadConfig } from '../utils/config.js';
 import { AutoFixer } from '../autofix/AutoFixer.js';
 import { GraphQuerier } from './graph-querier.js';
 import type { Graph } from '@batiste-aidk/graph';
+import {
+  TASK_ACTIONS, TaskInputError, normalizeTaskArgs, checkTransition, triage, burnReport,
+  filterTasks, compactTask, labelPrefix, isOpen, isObsolete, metaOf, RENEW_WARN_COUNT, similarOpen, relatedSuggestions, type TaskAction,
+} from './task-actions.js';
+import { planMerge } from './task-merge.js';
+import { THRESHOLD_SAME, THRESHOLD_RELATED, mergeCommand, phaseRank } from './task-similarity.js';
 
 /**
  * Per-tool input schemas, enforced at `handleTool` dispatch time.
@@ -112,6 +127,8 @@ export class ToolHandler {
   private dataDir: string;
   private taskManager: TaskManager | null = null;
   private store: SQLiteTaskStore | null = null;
+  private reconcileMarkerStore: SQLiteReconcileMarkerStore | null = null;
+  private auditEventLog: EventLog | null = null;
   private symbolResolver: SymbolResolver | null = null;
   private contextBudget: ContextBudgetMonitor | null = null;
   private orchestrator: Orchestrator | null = null;
@@ -147,7 +164,14 @@ export class ToolHandler {
     // boundary. If the input shape is wrong we fail **before** any
     // side effect, so the audit ledger sees a single tamper-evident
     // INPUT_VALIDATION_FAILED entry instead of a half-applied handler.
+    let warnings: string[] = [];
+    if (name === 'manage_task') {
+      const n = normalizeTaskArgs(args);
+      args = n.args;
+      warnings = n.warnings;
+    }
     const validated = validateInput(name, args);
+    if (name === 'manage_task' && warnings.length) validated.__warnings = warnings;
     switch (name) {
       case 'analyze_dependency': return this.analyzeDependency(validated);
       case 'validate_code': return this.validateCode(validated);
@@ -276,54 +300,404 @@ export class ToolHandler {
     }
   }
 
-  private async manageTask(args: Record<string, unknown>): Promise<unknown> {
-    const action = args.action as string;
+  /** Best-effort audit trail: a failure to write the event must never block the task mutation. */
+  private emitTaskEvent(event: string, payload: Record<string, unknown>): void {
+    try {
+      if (!this.auditEventLog) this.auditEventLog = new EventLog(join(this.dataDir, 'audit.db'));
+      this.auditEventLog.append({
+        ts: new Date().toISOString(),
+        event,
+        generator: 'batiste manage_task',
+        payload: { actor: process.env.BATISTE_ACTOR ?? process.env.USER ?? 'unknown', ...payload },
+      });
+    } catch {
+      /* fail-soft */
+    }
+  }
+
+  private async manageTask(rawArgs: Record<string, unknown>): Promise<unknown> {
+    const args = rawArgs;
+    const action = args.action as TaskAction;
+    const warnings = (args.__warnings as string[] | undefined) ?? [];
     const manager = await this.getTaskManager();
+    const nowSec = Math.floor(Date.now() / 1000);
+    const nowIso = new Date().toISOString();
+    const withWarnings = <T extends object>(r: T): T | (T & { warnings: string[] }) =>
+      warnings.length ? { ...r, warnings } : r;
+    const need = async (taskId: string): Promise<Task> => {
+      const t = await manager.getTask(taskId);
+      if (!t) {
+        throw new TaskInputError(
+          `tarefa nao encontrada: ${taskId}. Liste com {"action":"list","compact":true,"labelPrefix":"..."} e use o campo id.`
+        );
+      }
+      return t;
+    };
+    /** state/links/phase/tags/note -> metadata patch (note is append-only). */
+    const structured = (task: Task | null): Record<string, unknown> => {
+      const meta: Record<string, unknown> = {};
+      const old = task ? metaOf(task) : {};
+      if (args.state) meta.state = { ...((old.state as object) ?? {}), ...(args.state as object) };
+      if (args.links) meta.links = { ...((old.links as object) ?? {}), ...(args.links as object) };
+      if (args.phase) meta.phase = args.phase;
+      // progressAt: so avanco real (fase, estado next/gate, status). nota/touch NAO conta; o gate mede idade por aqui.
+      if ((args.phase && args.phase !== old.phase) || (args.state && JSON.stringify(meta.state) !== JSON.stringify(old.state ?? {}))) meta.progressAt = nowSec;
+      if (args.tags) meta.tags = args.tags;
+      if (typeof args.note === 'string') {
+        meta.notes = [...(((old.notes as unknown[]) ?? [])), { at: nowIso, text: args.note }];
+      }
+      return meta;
+    };
 
     switch (action) {
       case 'create': {
         const label = args.label as string;
         const parentId = args.parentId as string | undefined;
+        const dedupeKey = args.dedupeKey as string | undefined;
+        const all = await manager.recoverState();
+        const normLabel = (x: string) => String(x).trim().toLowerCase();
+        const existing = dedupeKey
+          ? all.find((t) => isOpen(t) && metaOf(t).dedupeKey === dedupeKey)
+          : args.allowDuplicate === true
+            ? undefined
+            : all.find((t) => isOpen(t) && normLabel(t.label) === normLabel(label));
+        if (existing) {
+          const porChave = !!dedupeKey;
+          const reason = porChave
+            ? `ja existe tarefa aberta com dedupeKey '${dedupeKey}' (taskId ${existing.id}); nada criado, devolvi a existente. Atualize-a com {"action":"update","taskId":"${existing.id}",...}.`
+            : `ja existe tarefa aberta com o mesmo label (taskId ${existing.id}); nada criado, devolvi a existente. Atualize-a, ou passe "allowDuplicate":true se duplicar for intencional.`;
+          return withWarnings({ created: false, duplicate: true, deduped: true, taskId: existing.id, reason, task: existing });
+        }
+        // correlatas (nao so label identico): similaridade contra as ABERTAS. dedupeKey explicita = identidade escolhida
+        // pelo chamador, entao so sugere (nunca mescla sozinha); allowDuplicate pula tudo.
+        let related: Array<{ taskId: string; label: string; score: number }> = [];
+        let similarHits: ReturnType<typeof similarOpen> = [];
+        if (args.allowDuplicate !== true) {
+          const ancestors = new Set<string>();
+          for (let cur = parentId; cur && !ancestors.has(cur); ) {
+            ancestors.add(cur);
+            cur = all.find((t) => t.id === cur)?.parentId;
+          }
+          const probe = {
+            id: '__novo__', label, status: 'pending',
+            context: { metadata: { ...(args.state ? { state: args.state } : {}), ...(args.links ? { links: args.links } : {}), ...(args.tags ? { tags: args.tags } : {}), ...(typeof args.note === 'string' ? { notes: [{ text: args.note }] } : {}) } },
+          };
+          similarHits = similarOpen(probe, all.filter(isOpen), { excludeIds: ancestors });
+          const top = similarHits[0];
+          if (top && top.score >= THRESHOLD_SAME && !dedupeKey) {
+            const host = all.find((t) => t.id === top.taskId)!;
+            const hm = metaOf(host);
+            const text = `[create correlato ${nowIso}, score ${top.score}] ${label}${typeof args.note === 'string' && args.note ? ` — ${args.note}` : ''}`;
+            const patch: Record<string, unknown> = { notes: [...((hm.notes as unknown[]) ?? []), { at: nowIso, text, via: 'create' }] };
+            if (args.links) patch.links = { ...((args.links as object) ?? {}), ...((hm.links as object) ?? {}) };
+            if (args.tags) patch.tags = [...new Set([...((hm.tags as string[]) ?? []), ...(args.tags as string[])])];
+            const updated = await manager.patchTask(host.id, { metadata: patch });
+            this.emitTaskEvent('task.deduped', { task_id: host.id, label, score: top.score, via: 'similarity' });
+            return withWarnings({
+              created: false, duplicate: true, merged: true, deduped: true, taskId: host.id, score: top.score,
+              reason: `tarefa correlata ja aberta (score ${top.score} >= ${THRESHOLD_SAME}; taskId ${host.id}); nada criado, a descricao nova foi anexada como note na existente. Passe "allowDuplicate":true se forem mesmo tarefas distintas.`,
+              task: updated,
+            });
+          }
+          related = similarHits.map((h) => ({ taskId: h.taskId, label: h.label, score: h.score }));
+        }
         const task = parentId
           ? await manager.spawnSubtask(parentId, label)
           : await manager.createRootGoal(label);
-        return { created: true, task };
+        const meta = { ...structured(null), ...(dedupeKey ? { dedupeKey } : {}) };
+        const saved = Object.keys(meta).length ? await manager.patchTask(task.id, { metadata: meta }) : task;
+        const prefix = labelPrefix(label);
+        const siblings = all.filter((t) => isOpen(t) && labelPrefix(t.label) === prefix).length;
+        const extra = [...warnings];
+        if (siblings >= 5) {
+          extra.push(`ja existem ${siblings} tarefas abertas com prefixo '${prefix}': considere uma tarefa-pai com filhas (parentId) ou dedupeKey`);
+        }
+        this.emitTaskEvent('task.created', { task_id: saved.id, label });
+        const relatedOut = related.slice(0, 5).map((r) => {
+          const other = all.find((t) => t.id === r.taskId)!;
+          // a existente e sempre mais antiga que a recem-criada (createdAt tem resolucao de 1 s): so perde se a nova ja nasce em fase maior
+          const target = phaseRank(saved) > phaseRank(other) ? saved : other;
+          const source = target.id === saved.id ? other.id : saved.id;
+          return { ...r, merge: mergeCommand(source, target.id) };
+        });
+        return {
+          created: true, task: saved,
+          ...(relatedOut.length ? { related: relatedOut, relatedHint: `tarefas correlatas (score ${THRESHOLD_RELATED}-${(THRESHOLD_SAME - 0.01).toFixed(2)}): se for a mesma entrega, mescle com o comando em related[].merge` } : {}),
+          ...(extra.length ? { warnings: extra } : {}),
+        };
       }
       case 'update': {
         const taskId = args.taskId as string;
-        const status = args.status as 'pending' | 'running' | 'completed' | 'failed' | undefined;
+        const before = await need(taskId);
+        const status = args.status as Task['status'] | undefined;
         const toolOutput = args.toolOutput as { toolName: string; output: unknown } | undefined;
-        if (status) await manager.updateStatus(taskId, status);
-        if (toolOutput) await manager.cacheToolOutput(taskId, toolOutput.toolName, toolOutput.output);
-        const task = await manager.getTask(taskId);
-        return { updated: true, task };
+        const meta = structured(before);
+        if (status && status !== before.status) {
+          meta.progressAt = nowSec;
+          checkTransition(before, status, { reopen: args.reopen as boolean | undefined, reason: args.reason as string | undefined });
+          if (status === 'completed') {
+            const proof = (args.proof as string | undefined) ?? (args.reason as string | undefined);
+            if (!proof) {
+              throw new TaskInputError(
+                `completed exige proof ou reason (ou use a acao close). Exemplo: {"action":"close","taskId":"${taskId}","proof":"commit abc1234"}`
+              );
+            }
+            meta.closed = { proof, at: nowSec };
+          }
+          if (before.status === 'completed' || (before.status === 'failed' && isObsolete(before))) {
+            meta.reopened = { reason: args.reason, at: nowSec };
+            if (isObsolete(before)) meta.obsolete = null;
+          }
+        }
+        let task: Task = before;
+        if (status || args.label !== undefined || Object.keys(meta).length) {
+          task = await manager.patchTask(taskId, {
+            ...(status ? { status } : {}),
+            ...(args.label !== undefined ? { label: args.label as string } : {}),
+            ...(Object.keys(meta).length ? { metadata: meta } : {}),
+          });
+        }
+        if (toolOutput) {
+          await manager.cacheToolOutput(taskId, toolOutput.toolName, toolOutput.output);
+          task = (await manager.getTask(taskId)) ?? task;
+        }
+        this.emitTaskEvent('task.updated', {
+          task_id: taskId, from_status: before.status, to_status: task.status,
+          ...(args.reason ? { reason: args.reason } : {}), ...(args.proof ? { proof: args.proof } : {}),
+        });
+        return withWarnings({ updated: true, task });
+      }
+      case 'close': {
+        const taskId = args.taskId as string;
+        const before = await need(taskId);
+        if (before.status === 'completed') {
+          return withWarnings({ closed: false, alreadyClosed: true, task: before });
+        }
+        checkTransition(before, 'completed', { reopen: before.status === 'failed' && isObsolete(before) ? false : undefined });
+        const meta = { ...structured(before), closed: { proof: args.proof, at: nowSec }, phase: (args.phase as string) ?? 'verified' };
+        const task = await manager.patchTask(taskId, { status: 'completed', metadata: meta });
+        this.emitTaskEvent('task.closed', { task_id: taskId, from_status: before.status, proof: args.proof });
+        return withWarnings({ closed: true, task });
+      }
+      case 'archive': {
+        const taskId = args.taskId as string;
+        const before = await need(taskId);
+        if (before.status === 'completed') {
+          throw new TaskInputError(`tarefa ${taskId} ja esta completed (terminal); arquivar so vale para abertas.`);
+        }
+        const meta = { ...structured(before), obsolete: { reason: args.reason, at: nowSec } };
+        const task = await manager.patchTask(taskId, { status: 'failed', metadata: meta });
+        this.emitTaskEvent('task.archived', { task_id: taskId, from_status: before.status, reason: args.reason });
+        return withWarnings({ archived: true, task });
+      }
+      case 'merge': {
+        const source = await need(args.sourceId as string);
+        const target = await need(args.targetId as string);
+        const all = await manager.recoverState();
+        const byId = new Map(all.map((t) => [t.id, t]));
+        const result = await this.applyMerge(manager, source, target, all, byId, { reason: args.reason as string | undefined, nowSec, nowIso, via: 'merge' });
+        return withWarnings(result);
+      }
+      case 'renew': {
+        const taskId = args.taskId as string;
+        const before = await need(taskId);
+        if (!isOpen(before)) throw new TaskInputError(`renew so vale para tarefa aberta (esta ${before.status}).`);
+        const prev = metaOf(before).renewedUntil as { count?: number } | undefined;
+        const count = (prev?.count ?? (prev ? 1 : 0)) + 1;
+        const renewedUntil = { until: args.until, reason: args.reason, at: nowSec, count };
+        const task = await manager.patchTask(taskId, { metadata: { ...structured(before), renewedUntil } });
+        if (count > RENEW_WARN_COUNT) warnings.push(`renovacao #${count} desta tarefa: renovar sem andar e arquivo disfarcado; feche ou arquive.`);
+        this.emitTaskEvent('task.renewed', { task_id: taskId, until: args.until, reason: args.reason });
+        return withWarnings({ renewed: true, task });
       }
       case 'get': {
-        const task = await manager.getTask(args.taskId as string);
-        return { task };
+        const task = await need(args.taskId as string);
+        return withWarnings({ task });
       }
       case 'list': {
         const tasks = await manager.recoverState();
-        return {
+        const filtered = filterTasks(tasks, {
+          status: args.status as string | undefined,
+          olderThanDays: args.olderThanDays as number | undefined,
+          labelPrefix: args.labelPrefix as string | undefined,
+          limit: args.limit as number | undefined,
+        }, nowSec);
+        return withWarnings({
           total: tasks.length,
           pending: tasks.filter(t => t.status === 'pending').length,
           running: tasks.filter(t => t.status === 'running').length,
           completed: tasks.filter(t => t.status === 'completed').length,
           failed: tasks.filter(t => t.status === 'failed').length,
-          tasks,
-        };
+          matched: filtered.length,
+          tasks: args.compact ? filtered.map(compactTask) : filtered,
+        });
       }
       case 'tree': {
         const tree = await manager.getTaskTree();
         return { tree: this.serializeTree(tree) };
       }
       case 'clear': {
+        const count = (await manager.recoverState()).length;
+        const expected = `APAGAR ${count} TAREFAS`;
+        if (args.confirm !== expected) {
+          throw new TaskInputError(
+            `clear apaga TODAS as ${count} tarefas. Para confirmar envie confirm exatamente "${expected}". ` +
+              `Para limpar so uma parte use archive (uma tarefa) ou triage. Exemplo: {"action":"clear","confirm":"${expected}"}`
+          );
+        }
+        const backupPath = join(this.dataDir, 'backups', `tasks-${nowIso.replace(/[:.]/g, '-')}.db`);
+        await mkdir(join(this.dataDir, 'backups'), { recursive: true });
+        this.store?.backupTo(backupPath);
         const deletedCount = await manager.clearAll();
-        return { cleared: true, deletedCount };
+        this.emitTaskEvent('task.cleared', { deleted: deletedCount, backup: backupPath });
+        return { cleared: true, deletedCount, backup: backupPath };
+      }
+      case 'reconcile': {
+        const reconciler = await this.getTaskReconciler();
+        const since = args.since as string | undefined;
+        const staleDays = args.staleDays as number | undefined;
+        const result = await reconciler.reconcileFromGit({
+          ...(since !== undefined ? { since } : {}),
+          ...(staleDays !== undefined ? { staleDays } : {}),
+        });
+        return { reconciled: true, ...result };
+      }
+      case 'stale': {
+        const reconciler = await this.getTaskReconciler();
+        const staleDays = args.staleDays as number | undefined;
+        const runningStaleHours = args.runningStaleHours as number | undefined;
+        const result = await reconciler.staleCheck({
+          ...(staleDays !== undefined ? { staleDays } : {}),
+          ...(runningStaleHours !== undefined ? { runningStaleHours } : {}),
+        });
+        return result;
+      }
+      case 'triage': {
+        const tasks = await manager.recoverState();
+        const candidates = triage(tasks, {
+          now: nowSec,
+          ...(args.staleDays !== undefined ? { staleDays: args.staleDays as number } : {}),
+          ...(args.minGroup !== undefined ? { minGroup: args.minGroup as number } : {}),
+        });
+        const byKind: Record<string, number> = {};
+        for (const c of candidates) byKind[c.kind] = (byKind[c.kind] ?? 0) + 1;
+        const suggestions = relatedSuggestions(tasks);
+        if (!args.apply) {
+          const clusters: Record<string, string[]> = {};
+          for (const c of candidates) if (c.kind === 'merge' && c.mergeInto) (clusters[c.mergeInto] ??= []).push(c.taskId);
+          return {
+            dryRun: true, candidates: candidates.length, byKind, items: candidates,
+            mergeClusters: Object.entries(clusters).map(([targetId, sources]) => ({
+              targetId, sources, commands: sources.map((sourceId) => mergeCommand(sourceId, targetId)),
+            })),
+            suggestions,
+            next: 'para aplicar archive/merge: {"action":"triage","apply":true,"confirm":"TRIAGE"}',
+          };
+        }
+        if (args.confirm !== 'TRIAGE') {
+          throw new TaskInputError('triage apply exige confirm "TRIAGE". Exemplo: {"action":"triage","apply":true,"confirm":"TRIAGE"}');
+        }
+        const applied: string[] = [];
+        const merged: Array<{ sourceId: string; targetId: string }> = [];
+        const errors: Array<{ taskId: string; error: string }> = [];
+        for (const c of candidates) {
+          if (c.kind === 'close-parent-done') continue; // fechar exige prova humana
+          if (c.kind === 'merge' && c.mergeInto) {
+            try {
+              const fresh = await manager.recoverState();
+              const byId2 = new Map(fresh.map((t) => [t.id, t]));
+              const src = byId2.get(c.taskId);
+              const tgt = byId2.get(c.mergeInto);
+              if (!src || !tgt || !isOpen(src) || !isOpen(tgt)) continue; // um lado ja foi tratado neste lote
+              await this.applyMerge(manager, src, tgt, fresh, byId2, { reason: `triage: ${c.reason}`, nowSec, nowIso, via: 'triage' });
+              merged.push({ sourceId: c.taskId, targetId: c.mergeInto });
+              applied.push(c.taskId);
+            } catch (e) {
+              errors.push({ taskId: c.taskId, error: e instanceof Error ? e.message : String(e) });
+            }
+            continue;
+          }
+          const reason = `triage: ${c.reason}`;
+          await manager.patchTask(c.taskId, { status: 'failed', metadata: { obsolete: { reason, at: nowSec } } });
+          this.emitTaskEvent('task.archived', { task_id: c.taskId, reason, via: 'triage' });
+          applied.push(c.taskId);
+        }
+        return { dryRun: false, archived: applied.length - merged.length, merged: merged.length, mergedPairs: merged, skipped: candidates.length - applied.length, ids: applied, ...(errors.length ? { errors } : {}) };
+      }
+      case 'report': {
+        const tasks = await manager.recoverState();
+        return burnReport(tasks, nowSec, (args.months as number | undefined) ?? 6);
       }
       default:
-        throw new Error(`Unknown task action: ${action}`);
+        throw new TaskInputError(`Unknown task action: ${String(action)}. Acoes: ${TASK_ACTIONS.join(', ')}`);
     }
+  }
+
+  /** Aplica um MergePlan: alvo absorve a origem; filhos reparentados; origem arquivada; eventos no audit.db. */
+  private async applyMerge(
+    manager: TaskManager,
+    source: Task,
+    target: Task,
+    all: Task[],
+    byId: Map<string, Task>,
+    o: { reason?: string | undefined; nowSec: number; nowIso: string; via: string }
+  ): Promise<Record<string, unknown>> {
+    const children = all.filter((t) => t.parentId === source.id);
+    const plan = planMerge({ source, target, sourceChildren: children, getById: (id) => byId.get(id), ...(o.reason ? { reason: o.reason } : {}), nowSec: o.nowSec, nowIso: o.nowIso });
+    if (plan.alreadyMerged) {
+      return { merged: false, alreadyMerged: true, sourceId: source.id, targetId: target.id, task: target };
+    }
+    const savedTarget = await manager.patchTask(target.id, { metadata: plan.targetPatch });
+    // reparent direto no store: patchTask nao mexe em parentId
+    for (const cid of plan.reparent) {
+      const child = await this.store!.get(cid);
+      if (child) await this.store!.save({ ...child, parentId: target.id });
+    }
+    const savedSource = await manager.patchTask(source.id, { status: 'failed', metadata: plan.sourcePatch });
+    this.emitTaskEvent('task.merged', {
+      source_id: source.id, target_id: target.id, reparented: plan.reparent.length, notes: plan.notesAppended,
+      ...(o.reason ? { reason: o.reason } : {}), via: o.via,
+    });
+    this.emitTaskEvent('task.archived', { task_id: source.id, from_status: source.status, reason: `mesclada em ${target.id}`, via: o.via });
+    return {
+      merged: true, sourceId: source.id, targetId: target.id, reparented: plan.reparent, notesAppended: plan.notesAppended,
+      target: savedTarget, source: savedSource,
+    };
+  }
+
+  /**
+   * Build a {@link TaskReconciler} bound to the project's git repo and the
+   * persistent reconcile marker. The audit sink is backed by the same
+   * `.batiste/audit.db` EventLog the rest of the CLI uses, so each closure
+   * lands as a `task.reconciled` event with the commit SHA as evidence.
+   */
+  private async getTaskReconciler(): Promise<TaskReconciler> {
+    const manager = await this.getTaskManager();
+    if (!this.reconcileMarkerStore) {
+      this.reconcileMarkerStore = new SQLiteReconcileMarkerStore(
+        join(this.dataDir, 'reconcile.db')
+      );
+    }
+    if (!this.auditEventLog) {
+      this.auditEventLog = new EventLog(join(this.dataDir, 'audit.db'));
+    }
+    const eventLog = this.auditEventLog;
+    const auditSink: ReconcileAuditSink = {
+      recordClosure: ({ taskId, label, commitSha, matchedBy }) => {
+        eventLog.append({
+          ts: new Date().toISOString(),
+          event: 'task.reconciled',
+          generator: 'batiste manage_task reconcile',
+          payload: { task_id: taskId, subject: label, commit_sha: commitSha, matched_by: matchedBy },
+        });
+      },
+    };
+    return new TaskReconciler(
+      manager,
+      this.projectRoot,
+      this.reconcileMarkerStore,
+      auditSink
+    );
   }
 
   private serializeTree(nodes: TaskNode[]): unknown[] {
@@ -884,6 +1258,14 @@ export class ToolHandler {
       this.store.close();
       this.store = null;
       this.taskManager = null;
+    }
+    if (this.reconcileMarkerStore) {
+      this.reconcileMarkerStore.close();
+      this.reconcileMarkerStore = null;
+    }
+    if (this.auditEventLog) {
+      this.auditEventLog.close();
+      this.auditEventLog = null;
     }
     if (this.symbolResolver) {
       await this.symbolResolver.stop();

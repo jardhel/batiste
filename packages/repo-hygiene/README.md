@@ -13,6 +13,7 @@ node hygiene.mjs [path] [--strict] [--warn-only] [--json] [--allow-unshipped]
 - `--strict` — WARN também derruba (exit 1).
 - `--warn-only` — nada derruba; só reporta.
 - `--json` — saída estruturada (CI/Batiste).
+- `--no-tasklog` — pula o CHECK `tasklog` (pre-commit; o fim de sessão roda inteiro).
 - `--allow-unshipped` — rebaixa o CHECK `unshipped` de ERRO p/ WARN (mesmo padrão de `--no-git-clean`).
 
 Exit 1 = falha (use no fim da sessão / pre-commit / CI). Exit 0 = limpo.
@@ -25,7 +26,8 @@ Exit 1 = falha (use no fim da sessão / pre-commit / CI). Exit 0 = limpo.
 | `drafts-scoped` | ERRO | rascunho/variante (`concepts/`, `_final_b`, `a.html`, `_v2`…) fora de `_scratch/` |
 | `canonical` | WARN | asset declarado em `*.brand.yaml` que não existe no disco |
 | `stale-derived` | ERRO | derivado mais velho que a fonte (regras `staleCheck` em `.hygiene.json`) |
-| `unshipped` | ERRO | commit local não-pushado **e** sem PR aberto — _committed ≠ shipped_ (rebaixa com `--allow-unshipped`) |
+| `unshipped` | ERRO | commit local não-pushado **e** sem PR aberto — _committed ≠ shipped_ (rebaixa com `--allow-unshipped`). **Sem `origin/main`** (repo local-only como o cachola_tech) o check usa o registro de deploy: commits do produto depois do último deploy do DEPLOYMENTS.md. Antes engolia a falta de remote e passava calado |
+| `tasklog` | ERRO | TaskLog parado/órfão/apodrecido (`packages/tasklog-hygiene`): pendente/running sem update > N dias sem `renewedUntil`, running sem batimento em 48 h, "FALTA deploy" já publicado. Liga por `"tasklog": {"enabled": true}` no `.hygiene.json`; é **fim de sessão** (o pre-commit passa `--no-tasklog`). Leitura falhou = WARN visível "o gate NÃO rodou", nunca silêncio |
 
 ERRO bloqueia (sem ambiguidade). WARN reporta pra julgamento humano (bundles de
 upload auto-contidos podem duplicar de propósito).
@@ -35,7 +37,8 @@ upload auto-contidos podem duplicar de propósito).
 {
   "allowDuplicateBasenames": ["favicon.svg", "og-image.png"],
   "draftPatterns": ["_wip\\b"],
-  "ignore": ["node_modules/", "dist/"]
+  "ignore": ["node_modules/", "dist/"],
+  "tasklog": { "enabled": true, "staleDays": 30, "runningHours": 48, "prove": true, "timeoutSec": 180 }
 }
 ```
 

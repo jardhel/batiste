@@ -211,6 +211,9 @@ importers:
 
   packages/code:
     dependencies:
+      '@batiste-aidk/audit':
+        specifier: workspace:*
+        version: link:../audit
       '@batiste-aidk/core':
         specifier: workspace:*
         version: link:../core
@@ -426,6 +429,22 @@ importers:
       typescript:
         specifier: ^5.4.0
         version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.42)
+
+  packages/router:
+    dependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.42
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.42)
@@ -1033,7 +1052,6 @@ packages:
   '@lancedb/lancedb@0.30.0':
     resolution: {integrity: sha512-d0FoEL6cthqgsulqAc7fck6kRXrSRGMTqlKYbhSGSazHU6vB2GEpD737Mu0HZd7fMyBUdhR9sD1W2C9uQZ5p0Q==}
     engines: {node: '>= 18'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
     peerDependencies:
       apache-arrow: '>=15.0.0 <=18.1.0'
@@ -5187,7 +5205,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 20.19.30
+      '@types/node': 20.19.42
       long: 5.3.2
 
   proxy-addr@2.0.7:

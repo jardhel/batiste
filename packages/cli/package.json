@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@batiste-aidk/cli",
   "version": "0.1.0",
   "description": "Batiste command-line interface — manage nodes, marketplace, and audit logs",

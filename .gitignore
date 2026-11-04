@@ -37,6 +37,8 @@ coverage/
 
 # Misc
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 
 # Batiste local state (machine-specific; not portable)
