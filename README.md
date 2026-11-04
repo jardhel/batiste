@@ -152,7 +152,7 @@ batiste vault index ./obs_vault/my-firm --axis decision
 
 ## Technology
 
-- Node.js 20+, TypeScript 5, ESM (NodeNext)
+- Node.js 20+ nos pacotes de biblioteca; os gates (`tasklog-hygiene`) importam `.ts` direto e exigem Node 22.18+ (o CI roda em Node 24 LTS), TypeScript 5, ESM (NodeNext)
 - pnpm workspaces, Turborepo
 - Model Context Protocol with StreamableHTTP transport
 - SQLite (WAL) for audit, billing, registry, and tasks

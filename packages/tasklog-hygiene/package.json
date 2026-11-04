@@ -5,5 +5,5 @@
   "type": "module",
   "description": "Gate do TaskLog: backlog nao cresce em silencio. Pendente/running parado reprova, estado no texto do label ja publicado reprova com o comando de fechamento, burn-down.",
   "bin": { "tasklog-hygiene": "./tasklog-hygiene.mjs" },
-  "scripts": { "check": "node tasklog-hygiene.mjs", "test": "node --test tasklog-hygiene.test.mjs" }
+  "scripts": { "check": "node tasklog-hygiene.mjs", "test": "sh -c 'node --test tasklog-hygiene.test.mjs' --" }
 }
