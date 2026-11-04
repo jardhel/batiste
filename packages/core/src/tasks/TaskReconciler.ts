@@ -39,6 +39,8 @@ export const TASK_DONE_TRAILER = 'Task-done';
 
 const SECONDS_PER_DAY = 86_400;
 const DEFAULT_STALE_DAYS = 14;
+/** A `running` task with no update for this long has no heartbeat: flag it. */
+const DEFAULT_RUNNING_STALE_HOURS = 48;
 /** When no marker exists, how many recent commits to inspect on first run. */
 const DEFAULT_INITIAL_COMMITS = 200;
 
@@ -51,6 +53,8 @@ export interface ReconcileOptions {
   since?: string;
   /** Stale threshold in days for the stale flags bundled into the result. */
   staleDays?: number;
+  /** Hours a `running` task may go without an update before it is flagged (default 48). */
+  runningStaleHours?: number;
   /** "now" override (epoch seconds) for deterministic tests. */
   now?: number;
 }
@@ -58,6 +62,8 @@ export interface ReconcileOptions {
 export interface StaleCheckOptions {
   /** Stale threshold in days (default 14). */
   staleDays?: number;
+  /** Hours a `running` task may go without an update before it is flagged (default 48). */
+  runningStaleHours?: number;
   /** "now" override (epoch seconds) for deterministic tests. */
   now?: number;
 }
@@ -90,11 +96,14 @@ export class TaskReconciler {
     const staleDays = opts.staleDays ?? DEFAULT_STALE_DAYS;
 
     const since = opts.since ?? this.markerStore.getLastSha() ?? undefined;
-    const commits = await this.readCommits(since);
+    const warnings: string[] = [];
+    const commits = await this.readCommits(since, warnings);
 
     const result: ReconcileResult = {
       closed: [],
       unmatched: [],
+      ambiguous: [],
+      warnings,
       stale: [],
       lastSha: this.markerStore.getLastSha(),
       commitsScanned: commits.length,
@@ -119,7 +128,12 @@ export class TaskReconciler {
     // newest commit AND so older closures register before newer ones.
     for (const commit of [...commits].reverse()) {
       for (const value of commit.doneTrailers) {
-        const match = this.resolveMatch(value, byId, byLabel);
+        const resolved = this.resolveMatch(value, byId, byLabel, allTasks);
+        if (resolved.ambiguous) {
+          result.ambiguous.push({ matchedBy: value, sha: commit.sha, candidates: resolved.ambiguous });
+          continue;
+        }
+        const match = resolved.task;
         if (!match) {
           result.unmatched.push({ matchedBy: value, sha: commit.sha });
           continue;
@@ -165,7 +179,12 @@ export class TaskReconciler {
       result.lastSha = newest.sha;
     }
 
-    result.stale = this.computeStale(allTasks, staleDays, now);
+    result.stale = this.computeStale(
+      allTasks,
+      staleDays,
+      now,
+      opts.runningStaleHours ?? DEFAULT_RUNNING_STALE_HOURS
+    );
     return result;
   }
 
@@ -178,47 +197,74 @@ export class TaskReconciler {
     const staleDays = opts.staleDays ?? DEFAULT_STALE_DAYS;
     const allTasks = await this.manager.recoverState();
     return {
-      stale: this.computeStale(allTasks, staleDays, now),
+      stale: this.computeStale(
+        allTasks,
+        staleDays,
+        now,
+        opts.runningStaleHours ?? DEFAULT_RUNNING_STALE_HOURS
+      ),
       thresholdDays: staleDays,
     };
   }
 
   // ==================== internals ====================
 
-  private computeStale(tasks: Task[], staleDays: number, now: number): StaleFlag[] {
+  private computeStale(
+    tasks: Task[],
+    staleDays: number,
+    now: number,
+    runningStaleHours: number = DEFAULT_RUNNING_STALE_HOURS
+  ): StaleFlag[] {
     const cutoff = now - staleDays * SECONDS_PER_DAY;
+    const runningCutoff = now - runningStaleHours * 3600;
     const flags: StaleFlag[] = [];
     for (const task of tasks) {
-      if (task.status !== 'pending') continue;
+      if (task.status !== 'pending' && task.status !== 'running') continue;
       // Unknown age (no updatedAt) is not treated as stale — we only flag
       // on positive evidence of staleness, mirroring the closure doctrine.
       if (task.updatedAt == null) continue;
-      if (task.updatedAt <= cutoff) {
+      const limit = task.status === 'running' ? runningCutoff : cutoff;
+      if (task.updatedAt <= limit) {
         flags.push({
           taskId: task.id,
           label: task.label,
           staleSince: task.updatedAt,
           ageDays: Math.floor((now - task.updatedAt) / SECONDS_PER_DAY),
+          status: task.status,
         });
       }
     }
     return flags;
   }
 
-  /** Resolve a `Task-done:` value to an open task, by id first then label. */
+  /**
+   * Resolve a `Task-done:` value to an open task: full id, then an id prefix
+   * (>= 8 chars), then exact label. More than one open candidate is reported
+   * as `ambiguous` instead of closing the first one.
+   */
   private resolveMatch(
     value: string,
     byId: Map<string, Task>,
-    byLabel: Map<string, Task[]>
-  ): Task | null {
+    byLabel: Map<string, Task[]>,
+    allTasks: Task[] = []
+  ): { task: Task | null; ambiguous?: string[] } {
     const byIdHit = byId.get(value);
-    if (byIdHit) return byIdHit;
+    if (byIdHit) return { task: byIdHit };
+
+    if (/^[0-9a-f-]{8,}$/i.test(value)) {
+      const lower = value.toLowerCase();
+      const hits = allTasks.filter((t) => t.id.toLowerCase().startsWith(lower));
+      const open = hits.filter((t) => t.status !== 'completed');
+      if (open.length > 1) return { task: null, ambiguous: open.map((t) => t.id) };
+      if (hits.length >= 1) return { task: open[0] ?? hits[0] ?? null };
+    }
 
     const labelHits = byLabel.get(value) ?? [];
-    // Prefer the first still-open task with this label; if all are already
-    // completed, return one so the run records it as a no-op (idempotent)
-    // rather than a spurious "unmatched".
-    return labelHits.find((t) => t.status !== 'completed') ?? labelHits[0] ?? null;
+    const openLabel = labelHits.filter((t) => t.status !== 'completed');
+    if (openLabel.length > 1) return { task: null, ambiguous: openLabel.map((t) => t.id) };
+    // If all are already completed, return one so the run records it as a
+    // no-op (idempotent) rather than a spurious "unmatched".
+    return { task: openLabel[0] ?? labelHits[0] ?? null };
   }
 
   /**
@@ -228,7 +274,7 @@ export class TaskReconciler {
    * with `-z` so records are NUL-terminated. The NUL separators make the
    * parse robust against any whitespace/newlines inside commit messages.
    */
-  private async readCommits(since?: string): Promise<ParsedCommit[]> {
+  private async readCommits(since?: string, warnings: string[] = []): Promise<ParsedCommit[]> {
     const args = ['-C', this.repoPath, 'log', '-z', '--format=%H%x00%B'];
     if (since) {
       args.push(`${since}..HEAD`);
@@ -247,7 +293,10 @@ export class TaskReconciler {
       // points at a commit no longer reachable) makes git exit non-zero.
       // Fall back to the recent window rather than crashing the board.
       if (since) {
-        return this.readCommits(undefined);
+        warnings.push(
+          `marker ref ${since.slice(0, 12)} is not reachable in ${this.repoPath}; scanned the last ${DEFAULT_INITIAL_COMMITS} commits instead (trailers older than that window may have been missed)`
+        );
+        return this.readCommits(undefined, warnings);
       }
       const e = err as Error & { stderr?: string };
       throw new Error(`git log failed in ${this.repoPath}: ${e.stderr ?? e.message}`, {

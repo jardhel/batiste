@@ -66,6 +66,8 @@ export interface StaleFlag {
   staleSince: number;
   /** Whole days since the last update at the time of the check. */
   ageDays: number;
+  /** Status of the flagged task (running tasks are flagged on hours, not days). */
+  status?: 'pending' | 'running';
 }
 
 /**
@@ -79,7 +81,15 @@ export interface ReconcileResult {
    * surfaced (not an error) so a human can spot typos or already-closed work.
    */
   unmatched: { matchedBy: string; sha: string }[];
-  /** Pending tasks flagged stale by the same pass (informational only). */
+  /**
+   * Trailers that matched MORE THAN ONE open task (duplicate labels or an
+   * id prefix shared by several). Never auto-closed: the first-open guess
+   * used to close the wrong twin silently.
+   */
+  ambiguous: { matchedBy: string; sha: string; candidates: string[] }[];
+  /** Non-fatal notices (e.g. the marker ref was lost and a window was scanned). */
+  warnings: string[];
+  /** Tasks flagged stale by the same pass (pending and long-running; informational only). */
   stale: StaleFlag[];
   /** The newest commit SHA reconciled, persisted for idempotent re-runs. */
   lastSha: string | null;

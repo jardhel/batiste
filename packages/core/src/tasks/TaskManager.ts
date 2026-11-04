@@ -86,6 +86,31 @@ export class TaskManager {
   }
 
   /**
+   * Patch status, label and/or metadata in ONE write (so a close carries its
+   * proof atomically). Metadata is shallow-merged into `context.metadata`.
+   * Returns the saved task.
+   */
+  async patchTask(
+    taskId: string,
+    patch: { status?: TaskStatus; label?: string; metadata?: Record<string, unknown> }
+  ): Promise<Task> {
+    const task = await this.store.get(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+    if (patch.status) task.status = patch.status;
+    if (patch.label !== undefined) task.label = patch.label;
+    if (patch.metadata) {
+      task.context = {
+        ...task.context,
+        metadata: { ...task.context.metadata, ...patch.metadata },
+      };
+    }
+    await this.store.save(task);
+    return (await this.store.get(taskId)) ?? task;
+  }
+
+  /**
    * Delete a task and optionally its subtasks
    */
   async deleteTask(taskId: string, cascade: boolean = false): Promise<void> {

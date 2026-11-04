@@ -203,6 +203,11 @@ export class SQLiteTaskStore implements ITaskStore {
     });
   }
 
+  /** Consistent point-in-time copy of the database (VACUUM INTO), used before destructive ops. */
+  backupTo(path: string): void {
+    this.db.prepare('VACUUM INTO ?').run(path);
+  }
+
   close(): void {
     this.db.close();
   }
