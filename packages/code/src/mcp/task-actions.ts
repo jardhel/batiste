@@ -70,7 +70,7 @@ export const ACTION_SPECS: Record<TaskAction, ActionSpec> = {
     ],
   },
   update: {
-    summary: 'muda status/estado. completed exige proof ou reason (ou use close). note e append-only.',
+    summary: 'muda status/estado. completed exige proof ou reason (ou use close). note e append-only. links e merge: string vazia ("commit":"") remove a chave.',
     required: ['taskId'],
     optional: ['status', 'label', 'toolOutput', 'proof', 'reason', 'reopen', ...COMMON_META],
     examples: [

@@ -339,7 +339,11 @@ export class ToolHandler {
       const meta: Record<string, unknown> = {};
       const old = task ? metaOf(task) : {};
       if (args.state) meta.state = { ...((old.state) ?? {}), ...(args.state) };
-      if (args.links) meta.links = { ...((old.links) ?? {}), ...(args.links) };
+      if (args.links) {
+        // string vazia remove a chave: corrige um vinculo enganoso sem apagar a tarefa (links e merge-only)
+        const merged = { ...((old.links) ?? {}), ...(args.links) };
+        meta.links = Object.fromEntries(Object.entries(merged).filter(([, v]) => v !== ''));
+      }
       if (args.phase) meta.phase = args.phase;
       // progressAt: so avanco real (fase, estado next/gate, status). nota/touch NAO conta; o gate mede idade por aqui.
       if ((args.phase && args.phase !== old.phase) || (args.state && JSON.stringify(meta.state) !== JSON.stringify(old.state ?? {}))) meta.progressAt = nowSec;

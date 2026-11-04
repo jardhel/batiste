@@ -147,6 +147,14 @@ test('progressAt: avanco de fase/status registra; nota nao', () => {
   assert.ok(p.json.task.context.metadata.progressAt > 0);
 });
 
+test('links: string vazia remove a chave (corrige vinculo enganoso) e preserva as demais', () => {
+  const root = sandbox();
+  const t = create(root, 'vinculo errado', { links: { commit: 'abc1234', deploy: 'd1' } });
+  const r = mt(root, { action: 'update', taskId: t.id, links: { commit: '' }, note: 'commit nao identificado' });
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(r.json.task.context.metadata.links, { deploy: 'd1' });
+});
+
 test('estado estruturado: state/links/phase/note (append-only) fora do label', () => {
   const root = sandbox();
   const t = create(root, 'estruturada', { state: { next: 'deploy', gate: 'prova-no-ar' }, phase: 'built' });
