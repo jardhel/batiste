@@ -145,6 +145,7 @@ describe('ToolHandler', () => {
         action: 'update',
         taskId: (created.task as Record<string, unknown>).id,
         status: 'completed',
+        reason: 'test evidence',
       })) as Record<string, unknown>;
 
       expect((updated.task as Record<string, unknown>).status).toBe('completed');
@@ -213,7 +214,7 @@ describe('ToolHandler', () => {
       const beforeClear = (await handler.handleTool('manage_task', { action: 'list' })) as Record<string, unknown>;
       expect(beforeClear.total).toBe(2);
 
-      const clearResult = (await handler.handleTool('manage_task', { action: 'clear' })) as Record<string, unknown>;
+      const clearResult = (await handler.handleTool('manage_task', { action: 'clear', confirm: 'APAGAR 2 TAREFAS' })) as Record<string, unknown>;
       expect(clearResult.cleared).toBe(true);
       expect(clearResult.deletedCount).toBe(2);
 
