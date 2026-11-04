@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import { execFileSync } from "node:child_process";
-import { resolverProduto, provaNoAr, diffTrees, hashTree, pre, post, status, normalizarHtml, htmlDinamico, referenciasQuebradas, tipoPlausivel, ultimoCommitDeploy, commitsSemDeploy, statusProd, classificarProva } from "./deploy-integrity.mjs";
+import { resolverProduto, provaNoAr, diffTrees, hashTree, pre, post, status, normalizarHtml, htmlDinamico, referenciasQuebradas, tipoPlausivel, ultimoCommitDeploy, commitsSemDeploy, statusProd, classificarProva, semBlocoGerenciado, fetchComRetry } from "./deploy-integrity.mjs";
 
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8" }).trim();
 const write = (p, c) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, c); };
@@ -376,4 +376,35 @@ test("ultimoCommitDeploy: vale o commit mais novo citado, qualquer que seja a or
   assert.equal(ultimoCommitDeploy(d, "products/demo"), novo);
   write(path.join(d, "DEPLOYMENTS.md"), CAB + `| demo.cachola.tech | \`demo-pages\` | \`products/demo/\` | nenhum | - | Deploy 1: commit \`${base}\` · Deploy 2: commit \`${novo}\` |\n`);
   assert.equal(ultimoCommitDeploy(d, "products/demo"), novo);
+});
+
+test("fetchComRetry: erro de rede passageiro e repetido; resposta HTTP nunca; esgotadas as tentativas, o erro sobe", async () => {
+  let n = 0;
+  const flaky = async () => { n++; if (n < 3) throw new Error("fetch failed"); return { status: 200 }; };
+  assert.equal((await fetchComRetry(flaky, "x", {}, { esperaMs: 1 })).status, 200);
+  assert.equal(n, 3);
+  let m = 0;
+  const http404 = async () => { m++; return { status: 404 }; };
+  assert.equal((await fetchComRetry(http404, "x", {}, { esperaMs: 1 })).status, 404);
+  assert.equal(m, 1, "404 e resposta, nao erro de rede: uma tentativa so");
+  await assert.rejects(fetchComRetry(async () => { throw new Error("fetch failed"); }, "x", {}, { esperaMs: 1 }), /fetch failed/);
+});
+
+test("robots.txt: o bloco 'Cloudflare Managed content' (prefacio de licenca + BEGIN..END) sai antes de comparar; o trecho nosso segue conferido", () => {
+  const nosso = "User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://x.test/sitemap.xml\n";
+  const gerenciado = "# As a condition of accessing this website, you agree to abide by the following\n# content signals:\n\n\n# BEGIN Cloudflare Managed content\n\nUser-agent: *\nContent-Signal: search=yes,ai-train=no\nAllow: /\n\n# END Cloudflare Managed Content\n\n";
+  assert.equal(semBlocoGerenciado(Buffer.from(gerenciado + nosso), "robots.txt").toString(), nosso);
+  assert.equal(semBlocoGerenciado(Buffer.from(nosso), "robots.txt").toString(), nosso, "sem bloco: intacto");
+  assert.notEqual(semBlocoGerenciado(Buffer.from(gerenciado + nosso.replace("/api/", "/")), "robots.txt").toString(), nosso, "nosso trecho adulterado continua detectavel");
+  const outro = Buffer.from(gerenciado + nosso);
+  assert.equal(semBlocoGerenciado(outro, "app.js"), outro, "so vale para robots.txt");
+});
+
+test("resolverProduto: o dominio RAIZ cachola.tech (landing da casa) tambem e registravel, nao so subdominios", () => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "di-apex-"));
+  fs.writeFileSync(path.join(d, "DEPLOYMENTS.md"), "| host | projeto | produto |\n|---|---|---|\n| cachola.tech | `cacholatech` | `products/cacholatech/` (landing) |\n| astrus.cachola.tech | `astrus` | `products/astrus-front/` |\n");
+  const r = resolverProduto(d, "products/cacholatech");
+  assert.equal(r.projeto, "cacholatech");
+  assert.equal(r.host, "https://cachola.tech");
+  assert.equal(resolverProduto(d, "products/astrus-front").host, "https://astrus.cachola.tech");
 });

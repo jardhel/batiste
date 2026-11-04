@@ -36,6 +36,26 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const sha = (b) => createHash("sha256").update(b).digest("hex");
+// A Cloudflare pode PREPENDAR ao robots.txt um bloco "Cloudflare Managed Content" (content signals / bloqueio de crawlers de IA), ligado na zona,
+// fora do deploy. Esse bloco nao e nosso: tira-se SO ele (BEGIN..END marcados pela propria Cloudflare) antes de comparar com o commit.
+// Erro de REDE passageiro (fetch failed, reset) nao pode reprovar um deploy de ~1.500 arquivos: 3 tentativas com espera crescente.
+// Resposta HTTP (404, 500, conteudo errado) NUNCA e repetida aqui: isso e achado de verdade e segue reprovando.
+export async function fetchComRetry(fetchFn, url, opts, { tentativas = 3, esperaMs = 400 } = {}) {
+  let erro;
+  for (let t = 1; t <= tentativas; t++) {
+    try { return await fetchFn(url, opts); } catch (e) { erro = e; if (t < tentativas) await new Promise((ok) => setTimeout(ok, esperaMs * t)); }
+  }
+  throw erro;
+}
+export function semBlocoGerenciado(buf, rel) {
+  if (!/(^|\/)robots\.txt$/.test(rel || "")) return buf;
+  const txt = Buffer.from(buf).toString("utf8");
+  const i = txt.search(/^# BEGIN Cloudflare Managed/m), m = /^# END Cloudflare Managed Content[^\n]*\n?/m.exec(txt);
+  if (i < 0 || !m) return buf;
+  // o texto de licenca ("As a condition of accessing this website...") vem ANTES do BEGIN, so com comentarios: sai junto
+  const antes = txt.slice(0, i), soComentario = antes.split("\n").every((l) => /^\s*(#.*)?$/.test(l));
+  return Buffer.from(((soComentario ? "" : antes) + txt.slice(m.index + m[0].length)).replace(/^\s+/, ""), "utf8");
+}
 
 // ------------------------------------------------------------------------------------ árvores
 export function hashTree(dir) {
@@ -250,7 +270,7 @@ export async function post(repo, produto, host, stageTool, { fetchFn = fetch } =
       if (/^_(headers|redirects|routes)/.test(rel) || rel === ".assetsignore") continue;
       const url = `${host.replace(/\/$/, "")}${urlDe(rel)}${urlDe(rel).includes("?") ? "&" : "?"}_di=${stamp}`;
       let r;
-      try { r = await fetchFn(url, { redirect: "follow" }); } catch (e) { falhas.push(`${urlDe(rel)}: sem resposta (${e.message})`); continue; }
+      try { r = await fetchComRetry(fetchFn, url, { redirect: "follow" }); } catch (e) { falhas.push(`${urlDe(rel)}: sem resposta apos 3 tentativas (${e.message})`); continue; }
       const ext = (rel.split(".").pop() || "").toLowerCase();
       const ct = r.headers.get("content-type") || "";
       const atrasDoPortao = gated.some((p) => rel.startsWith(p));
@@ -264,7 +284,7 @@ export async function post(repo, produto, host, stageTool, { fetchFn = fetch } =
       if (!tipoPlausivel(ext, ct)) { falhas.push(`${urlDe(rel)}: tipo "${ct}" para .${ext} (o arquivo não está no ar: o Pages devolveu a página inicial no lugar)`); continue; }
       if (ext !== "html") {
         const corpo = Buffer.from(await r.arrayBuffer());
-        if (sha(corpo) !== hash) falhas.push(`${urlDe(rel)}: conteúdo no ar diferente do commit ${head.slice(0, 8)} (sha256 não bate)`);
+        if (sha(semBlocoGerenciado(corpo, rel)) !== hash) falhas.push(`${urlDe(rel)}: conteúdo no ar diferente do commit ${head.slice(0, 8)} (sha256 não bate)`);
       } else if (!htmlDinamico(dinamicos, rel)) {
         const noAr = hashHtml(await r.text());
         const doCommit = hashHtml(fs.readFileSync(path.join(st.pub, rel), "utf8"));
@@ -283,7 +303,7 @@ export function produtosRegistrados(repo) {
   for (const l of fs.readFileSync(f, "utf8").split("\n")) {
     if (!l.startsWith("|")) continue;
     const col = l.split("|").map((c) => c.trim());
-    const host = (col[1] || "").match(/^[a-z0-9.-]+\.cachola\.tech$/i);
+    const host = (col[1] || "").match(/^([a-z0-9-]+\.)*cachola\.tech$/i); // subdominio OU o dominio raiz (a landing da casa e cachola.tech)
     const projeto = (col[2] || "").match(/^`([^`]+)`$/);
     const prod = (col[3] || "").match(/products\/[A-Za-z0-9._-]+/);
     if (host && projeto && prod) out.push({ produto: prod[0], projeto: projeto[1], host: `https://${host[0]}` });
@@ -341,13 +361,13 @@ export async function provaNoAr(repo, url, { produto, commit, work = false, stag
     if (ext === "html" && htmlDinamico(htmlDynamic(path.join(repo, prod)), arquivo)) { falhas.push(`${u.pathname}: HTML marcado como dinâmico (htmlDynamic) em .deploy-integrity.json; o corpo não é comparável`); return { falhas, commit: ref, arquivo }; }
     const alvo = new URL(u); alvo.searchParams.set("_di", String(Date.now()));
     let r;
-    try { r = await fetchFn(alvo.href, { redirect: "follow" }); } catch (e) { falhas.push(`${u.href}: sem resposta (${e.message})`); return { falhas, commit: ref, arquivo }; }
+    try { r = await fetchComRetry(fetchFn, alvo.href, { redirect: "follow" }); } catch (e) { falhas.push(`${u.href}: sem resposta (${e.message})`); return { falhas, commit: ref, arquivo }; }
     const ct = r.headers.get("content-type") || "";
     if (r.status !== 200) falhas.push(`${u.href}: HTTP ${r.status} (esperado 200)`);
     else if (!tipoPlausivel(ext, ct)) falhas.push(`${u.href}: content-type "${ct}" para .${ext} (o arquivo não está no ar: o Pages devolveu a página inicial no lugar)`);
     else if (ext === "html") {
       if (hashHtml(await r.text()) !== hashHtml(fs.readFileSync(path.join(st.pub, arquivo), "utf8"))) falhas.push(`HTML no ar difere do commit ${sha8}: ${u.pathname}`);
-    } else if (sha(Buffer.from(await r.arrayBuffer())) !== mapa.get(arquivo)) falhas.push(`${u.pathname}: conteúdo no ar diferente do commit ${sha8} (sha256 não bate)`);
+    } else if (sha(semBlocoGerenciado(Buffer.from(await r.arrayBuffer()), arquivo)) !== mapa.get(arquivo)) falhas.push(`${u.pathname}: conteúdo no ar diferente do commit ${sha8} (sha256 não bate)`);
   } finally { fs.rmSync(st.out, { recursive: true, force: true }); }
   return { falhas, commit: ref, arquivo };
 }
