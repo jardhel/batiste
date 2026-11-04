@@ -7,7 +7,8 @@
 
 import { resolve, dirname } from 'path';
 import { existsSync, statSync } from 'fs';
-import { TreeSitterAdapter, ParseResult } from '../parsers/TreeSitterAdapter.js';
+import type { ParseResult } from '../parsers/TreeSitterAdapter.js';
+import { TreeSitterAdapter } from '../parsers/TreeSitterAdapter.js';
 import type { CodeSymbol, ImportStatement } from '../config/LanguageStrategy.js';
 
 export interface DependencyNode {
@@ -94,7 +95,7 @@ export class RecursiveScout {
     visited: Set<string>,
     currentPath: string[],
     circularDeps: string[][],
-    depth: number = 0
+    depth = 0
   ): Promise<void> {
     if (depth > this.options.maxDepth) return;
 
@@ -136,8 +137,9 @@ export class RecursiveScout {
   }
 
   private async parseFile(filePath: string): Promise<ParseResult> {
-    if (this.parseCache.has(filePath)) {
-      return this.parseCache.get(filePath)!;
+    const cached = this.parseCache.get(filePath);
+    if (cached) {
+      return cached;
     }
 
     const result = await this.adapter.parseFile(filePath);
@@ -202,7 +204,7 @@ export class RecursiveScout {
     return null;
   }
 
-  async findSymbolDefinitions(
+  findSymbolDefinitions(
     symbolName: string,
     graph: DependencyGraph
   ): Promise<{ filePath: string; symbol: CodeSymbol }[]> {
@@ -216,10 +218,10 @@ export class RecursiveScout {
       }
     }
 
-    return results;
+    return Promise.resolve(results);
   }
 
-  async findCallSites(
+  findCallSites(
     symbolName: string,
     graph: DependencyGraph
   ): Promise<{ filePath: string; symbol: CodeSymbol }[]> {
@@ -233,7 +235,7 @@ export class RecursiveScout {
       }
     }
 
-    return results;
+    return Promise.resolve(results);
   }
 
   findImportPath(fromFile: string, toFile: string, graph: DependencyGraph): string[] | null {
@@ -241,7 +243,9 @@ export class RecursiveScout {
     const queue: { file: string; path: string[] }[] = [{ file: fromFile, path: [fromFile] }];
 
     while (queue.length > 0) {
-      const { file, path } = queue.shift()!;
+      const next = queue.shift();
+      if (!next) break;
+      const { file, path } = next;
 
       if (file === toFile) return path;
       if (visited.has(file)) continue;

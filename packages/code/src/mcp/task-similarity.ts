@@ -23,6 +23,20 @@
  * importa este arquivo direto com o type-stripping do Node, para nao haver duas implementacoes.
  */
 
+// Helpers locais (nao importar ./safe.js): este modulo roda direto como .ts via `node --test` (strip-types),
+// onde imports relativos com extensao .js nao resolvem; por isso ele nao tem dependencias.
+function asText(v: unknown): string {
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object' && v !== null) return JSON.stringify(v);
+  if (typeof v === 'function') return '';
+  return String(v);
+}
+
+function must<T>(v: T | undefined | null, what: string): T {
+  if (v === undefined || v === null) throw new Error(`invariante violada: ${what}`);
+  return v;
+}
+
 export const THRESHOLD_SAME = 0.8;
 export const THRESHOLD_RELATED = 0.5;
 
@@ -67,7 +81,7 @@ const STOP = new Set(
 );
 
 /** sinonimos de dominio (deterministico): canonicaliza antes do stemming leve. */
-const SYN: Array<[RegExp, string]> = [
+const SYN: [RegExp, string][] = [
   [/^(deploy\w*|publi\w+|subir|sobe|subida|ship\w*|lancar|lancamento|go-?live)$/, 'publicar'],
   [/^(producao|production|prod|ar)$/, 'prod'],
   [/^(pagina|paginas|page|pages|landing)$/, 'pagina'],
@@ -102,8 +116,8 @@ const RE_DATE = /\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b|\b\d{1
 /** designadores que separam irmas: b1, f3, os-01, etapa2, fase1, v0.3, v0.1.1 */
 const RE_DESIG = /(?<![a-z0-9])(?:[a-z]\d{1,2}(?:\.\d+)?|os-?\d{1,2}|etapa-?\d+|fase-?\d+|v\d+(?:\.\d+)*)(?![a-z0-9])/g;
 
-function normalizeText(raw: string): string {
-  return stripAccents(String(raw ?? '').toLowerCase());
+function normalizeText(raw: string | null | undefined): string {
+  return stripAccents((raw ?? '').toLowerCase());
 }
 
 /** tokens significativos: sem datas, numeros soltos, stopwords; com stem/sinonimo. */
@@ -126,22 +140,25 @@ export function tokenize(raw: string, opts: { keepNumbers?: boolean } = {}): str
 
 function bigrams(tokens: string[]): string[] {
   const out: string[] = [];
-  for (let i = 0; i + 1 < tokens.length; i++) out.push(`${tokens[i]}_${tokens[i + 1]}`);
+  for (let i = 0; i + 1 < tokens.length; i++) out.push(`${tokens[i] ?? ''}_${tokens[i + 1] ?? ''}`);
   return out;
 }
 
 /** Texto de contexto: state, notes, links, tags, toolOutputs resumidos. */
 export function contextText(t: SimTask): string {
-  const m = (t.context?.metadata ?? {}) as Record<string, unknown>;
+  const m = (t.context?.metadata ?? {});
   const parts: string[] = [];
   const st = m.state;
-  if (st && typeof st === 'object') parts.push(String((st as any).next ?? ''), String((st as any).gate ?? ''));
+  if (st && typeof st === 'object') {
+    const state = st as { next?: unknown; gate?: unknown };
+    parts.push(asText(state.next ?? ''), asText(state.gate ?? ''));
+  }
   else if (typeof st === 'string') parts.push(st);
-  for (const n of (m.notes as Array<{ text?: unknown }> | undefined) ?? []) if (typeof n?.text === 'string') parts.push(n.text);
+  for (const n of (m.notes as ({ text?: unknown } | null)[] | undefined) ?? []) if (typeof n?.text === 'string') parts.push(n.text);
   if (Array.isArray(m.tags)) parts.push((m.tags as unknown[]).map(String).join(' '));
   const links = m.links as Record<string, unknown> | undefined;
   if (links) parts.push(Object.values(links).map(String).join(' '));
-  const outs = t.context?.toolOutputs as Record<string, { output?: unknown }> | undefined;
+  const outs = t.context?.toolOutputs as Record<string, { output?: unknown } | null | undefined> | undefined;
   if (outs) {
     for (const [name, v] of Object.entries(outs).slice(0, 5)) {
       const o = v?.output;
@@ -154,7 +171,7 @@ export function contextText(t: SimTask): string {
 
 /** Referencias estaveis: url, sha, release, caminho/arquivo de repo, deploy id, dedupeKey. */
 export function extractRefs(t: SimTask): string[] {
-  const m = (t.context?.metadata ?? {}) as Record<string, unknown>;
+  const m = (t.context?.metadata ?? {});
   const text = `${t.label} ${contextText(t)}`;
   const refs = new Set<string>();
   const add = (kind: string, v: string) => {
@@ -179,13 +196,13 @@ export function extractRefs(t: SimTask): string[] {
 
 /** produto: tag product/produto/deploy:<x>, ou slug inicial do label ("astrus-bussola-..", "poseidon · ..", "x: .."). */
 export function productOf(t: SimTask): string | null {
-  const m = (t.context?.metadata ?? {}) as Record<string, unknown>;
+  const m = (t.context?.metadata ?? {});
   const explicit = [m.product, m.produto, ...(Array.isArray(m.tags) ? (m.tags as unknown[]).map((x) => String(x).replace(/^deploy:/, '')) : [])];
   for (const e of explicit) if (typeof e === 'string' && e.trim()) return normalizeText(e).trim();
   const label = normalizeText(t.label).trim();
   const first = label.split(/\s/)[0] ?? '';
   const after = label.slice(first.length).trimStart();
-  const slug = first.split('-')[0]!.replace(/[^a-z0-9]/g, '');
+  const slug = (first.split('-')[0] ?? '').replace(/[^a-z0-9]/g, '');
   if (!slug || slug.length < 3) return null;
   const hasSep = first.includes('-') || /^[·:—]/.test(after) || first.endsWith(':');
   return hasSep ? slug : null;
@@ -258,7 +275,7 @@ export function buildIndex(tasks: SimTask[]): SimIndex {
   const norms = new Map<string, number>();
   for (const [id, d] of docs) {
     let s = 0;
-    for (const [k, w] of d.feats) s += (w * idf.get(k)!) ** 2;
+    for (const [k, w] of d.feats) s += (w * (idf.get(k) ?? 0)) ** 2;
     norms.set(id, Math.sqrt(s));
   }
   return { docs, idf, df, refDf, norms };
@@ -273,16 +290,16 @@ export function classify(score: number): SimKind {
 
 /** Score entre duas tarefas JA indexadas. */
 export function scoreIndexed(ix: SimIndex, aId: string, bId: string): SimResult {
-  const a = ix.docs.get(aId)!;
-  const b = ix.docs.get(bId)!;
+  const a = must(ix.docs.get(aId), `tarefa ${aId} fora do indice`);
+  const b = must(ix.docs.get(bId), `tarefa ${bId} fora do indice`);
   let dot = 0;
   const [small, big] = a.feats.size <= b.feats.size ? [a, b] : [b, a];
   for (const [k, w] of small.feats) {
     const w2 = big.feats.get(k);
-    if (w2 !== undefined) dot += w * w2 * ix.idf.get(k)! ** 2;
+    if (w2 !== undefined) dot += w * w2 * (ix.idf.get(k) ?? 0) ** 2;
   }
-  const na = ix.norms.get(aId)!;
-  const nb = ix.norms.get(bId)!;
+  const na = ix.norms.get(aId) ?? 0;
+  const nb = ix.norms.get(bId) ?? 0;
   const cosine = na && nb ? dot / (na * nb) : 0;
 
   // contencao: o label curto esta (quase) inteiro dentro do outro. So alcanca a faixa 'correlata' (teto 0.75), nunca 'mesma'.
@@ -316,7 +333,7 @@ export function scoreIndexed(ix: SimIndex, aId: string, bId: string): SimResult 
   if (a.desig.size && b.desig.size) {
     const same = a.desig.size === b.desig.size && [...a.desig].every((d) => b.desig.has(d));
     if (!same) penalty += 0.2;
-    const kind = (d: string) => d.replace(/[\d.]+$/, '') || `#${d.length}`;
+    const kind = (d: string) => d.replace(/[\d.]+$/, '') || `#${String(d.length)}`;
     const ka = new Map([...a.desig].map((d) => [kind(d), d]));
     for (const d of b.desig) {
       const o = ka.get(kind(d));
@@ -371,32 +388,36 @@ export function allPairs(tasks: SimTask[], opts: { min?: number } = {}): SimPair
   const out: SimPair[] = [];
   for (let i = 0; i < tasks.length; i++) {
     for (let j = i + 1; j < tasks.length; j++) {
-      const r = scoreIndexed(ix, tasks[i]!.id, tasks[j]!.id);
-      if (r.score >= min) out.push({ a: tasks[i]!.id, b: tasks[j]!.id, score: r.score, kind: r.kind });
+      const ti = tasks[i];
+      const tj = tasks[j];
+      if (!ti || !tj) continue;
+      const r = scoreIndexed(ix, ti.id, tj.id);
+      if (r.score >= min) out.push({ a: ti.id, b: tj.id, score: r.score, kind: r.kind });
     }
   }
   return out.sort((x, y) => y.score - x.score || x.a.localeCompare(y.a) || x.b.localeCompare(y.b));
 }
 
 const PHASE_RANK: Record<string, number> = { todo: 0, doing: 1, built: 2, deployed: 3, verified: 4 };
-export const phaseRank = (t: SimTask): number => PHASE_RANK[String((t.context?.metadata as any)?.phase ?? 'todo')] ?? 0;
+export const phaseRank = (t: SimTask): number => PHASE_RANK[asText(t.context?.metadata?.phase ?? 'todo')] ?? 0;
 
 /** Alvo sugerido de um cluster: maior fase; empate -> o mais antigo (createdAt, resolucao de 1 s); empate -> ordem de entrada (a do banco). */
 export function pickTarget<T extends SimTask>(tasks: T[]): T {
-  return tasks
+  const best = tasks
     .map((t, i) => ({ t, i }))
-    .sort((a, b) => phaseRank(b.t) - phaseRank(a.t) || (a.t.createdAt ?? 0) - (b.t.createdAt ?? 0) || a.i - b.i)[0]!.t;
+    .sort((a, b) => phaseRank(b.t) - phaseRank(a.t) || (a.t.createdAt ?? 0) - (b.t.createdAt ?? 0) || a.i - b.i)[0];
+  return must(best, 'pickTarget exige ao menos uma tarefa').t;
 }
 
 export interface SimCluster {
   /** tarefas do cluster (alvo sugerido primeiro) */
-  members: Array<{ taskId: string; label: string }>;
+  members: { taskId: string; label: string }[];
   targetId: string;
   /** menor score de aresta usado para ligar o cluster */
   minEdge: number;
   maxEdge: number;
   /** origens -> alvo, ja com o comando merge exato */
-  merges: Array<{ sourceId: string; targetId: string; score: number; command: string }>;
+  merges: { sourceId: string; targetId: string; score: number; command: string }[];
 }
 
 export const mergeCommand = (sourceId: string, targetId: string, reason?: string): string =>
@@ -408,11 +429,14 @@ export function clusterSimilar(tasks: SimTask[], opts: { threshold?: number } = 
   const pairs = allPairs(tasks, { min: threshold });
   const parent = new Map<string, string>(tasks.map((t) => [t.id, t.id]));
   const find = (x: string): string => {
-    while (parent.get(x) !== x) {
-      parent.set(x, parent.get(parent.get(x)!)!);
-      x = parent.get(x)!;
+    let cur = x;
+    for (;;) {
+      const p = parent.get(cur);
+      if (p === undefined || p === cur) return cur;
+      const gp = parent.get(p) ?? p;
+      parent.set(cur, gp);
+      cur = gp;
     }
-    return x;
   };
   for (const p of pairs) parent.set(find(p.a), find(p.b));
   const groups = new Map<string, SimTask[]>();
@@ -425,7 +449,7 @@ export function clusterSimilar(tasks: SimTask[], opts: { threshold?: number } = 
   for (const t of tasks) {
     if (!inCluster.has(t.id)) continue;
     const r = find(t.id);
-    groups.set(r, [...(groups.get(r) ?? []), byId.get(t.id)!]);
+    groups.set(r, [...(groups.get(r) ?? []), byId.get(t.id) ?? t]);
   }
   const out: SimCluster[] = [];
   const ix = buildIndex(tasks);

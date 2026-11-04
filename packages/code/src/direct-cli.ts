@@ -37,11 +37,11 @@ import { formatHelp, TaskInputError } from './mcp/task-actions.js';
 
 // Suppress stderr logs unless BATISTE_DEBUG is set
 if (!process.env.BATISTE_DEBUG) {
-  const origStderrWrite = process.stderr.write.bind(process.stderr);
+  const origStderrWrite = process.stderr.write.bind(process.stderr) as (chunk: string | Uint8Array, ...rest: unknown[]) => boolean;
   process.stderr.write = (chunk: string | Uint8Array, ...rest: unknown[]) => {
     const str = typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString();
     if (str.startsWith('[batiste:')) return true;
-    return (origStderrWrite as Function)(chunk, ...rest);
+    return origStderrWrite(chunk, ...rest);
   };
 }
 
@@ -54,7 +54,7 @@ const PKG_ROOT = join(HERE, '..');
 
 function pkgVersion(): string {
   try {
-    return JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')).version as string;
+    return (JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')) as { version: string }).version;
   } catch {
     return 'unknown';
   }
@@ -86,7 +86,7 @@ function pingMcp(timeoutMs: number): Promise<{ ok: boolean; ms: number; detail: 
   return new Promise((resolve) => {
     const serverJs = join(HERE, 'mcp', 'server.js');
     const t0 = Date.now();
-    if (!existsSync(serverJs)) return resolve({ ok: false, ms: 0, detail: `ausente: ${serverJs}` });
+    if (!existsSync(serverJs)) { resolve({ ok: false, ms: 0, detail: `ausente: ${serverJs}` }); return; }
     const child = spawn(process.execPath, [serverJs], {
       cwd: PROJECT_ROOT,
       env: { ...process.env, PROJECT_ROOT, DATA_DIR },
@@ -102,15 +102,15 @@ function pingMcp(timeoutMs: number): Promise<{ ok: boolean; ms: number; detail: 
       resolve(r);
     };
     const timer = setTimeout(
-      () => finish({ ok: false, ms: Date.now() - t0, detail: `sem resposta ao initialize em ${timeoutMs} ms` }),
+      () => { finish({ ok: false, ms: Date.now() - t0, detail: `sem resposta ao initialize em ${String(timeoutMs)} ms` }); },
       timeoutMs
     );
     child.stdout.on('data', (c: Buffer) => {
       buf += c.toString();
       if (buf.includes('"result"')) finish({ ok: true, ms: Date.now() - t0, detail: 'initialize respondeu' });
     });
-    child.on('error', (e) => finish({ ok: false, ms: Date.now() - t0, detail: `spawn falhou: ${e.message}` }));
-    child.on('exit', (code) => finish({ ok: false, ms: Date.now() - t0, detail: `processo saiu (code ${code}) antes de responder` }));
+    child.on('error', (e) => { finish({ ok: false, ms: Date.now() - t0, detail: `spawn falhou: ${e.message}` }); });
+    child.on('exit', (code) => { finish({ ok: false, ms: Date.now() - t0, detail: `processo saiu (code ${String(code)}) antes de responder` }); });
     child.stdin.write(JSON.stringify({
       jsonrpc: '2.0', id: 1, method: 'initialize',
       params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'batiste-doctor', version: '1' } },
@@ -145,13 +145,13 @@ async function doctor(): Promise<number> {
     try {
       const handler = new ToolHandler(PROJECT_ROOT, DATA_DIR);
       const r = (await handler.handleTool('manage_task', { action: 'list', compact: true, limit: 0 })) as Record<string, number>;
-      row(true, `tasks.db legivel: ${r.total} tarefas (${r.pending} pending, ${r.running} running, ${r.completed} completed, ${r.failed} failed)`);
+      row(true, `tasks.db legivel: ${String(r.total)} tarefas (${String(r.pending)} pending, ${String(r.running)} running, ${String(r.completed)} completed, ${String(r.failed)} failed)`);
     } catch (e) {
       row(false, `tasks.db ilegivel: ${(e as Error).message}`);
     }
   }
   const mcp = await pingMcp(Number(process.env.BATISTE_DOCTOR_TIMEOUT_MS ?? 8000));
-  row(mcp.ok, `MCP ping: ${mcp.detail} (${mcp.ms} ms)`);
+  row(mcp.ok, `MCP ping: ${mcp.detail} (${String(mcp.ms)} ms)`);
   // Causa raiz do CONNECT_TIMEOUT (docs/MCP-CONNECT-TIMEOUT.md): arquivos do servidor evictados pelo iCloud.
   const mf = readManifest();
   if (!mf) {
@@ -159,8 +159,8 @@ async function doctor(): Promise<number> {
   } else {
     const cold = listDataless(mf);
     row(cold.length === 0, cold.length === 0
-      ? `iCloud: os ${mf.length} arquivos que o servidor carrega estao locais`
-      : `iCloud: ${cold.length}/${mf.length} arquivos do servidor EVICTADOS (boot frio leva minutos em serie, ~25 s com launch.js)`);
+      ? `iCloud: os ${String(mf.length)} arquivos que o servidor carrega estao locais`
+      : `iCloud: ${String(cold.length)}/${String(mf.length)} arquivos do servidor EVICTADOS (boot frio leva minutos em serie, ~25 s com launch.js)`);
   }
   const bootLog = join(DATA_DIR, 'mcp-boot.log');
   row(existsSync(bootLog) ? true : null, existsSync(bootLog) ? `boot log: ${bootLog}` : `sem ${bootLog} (o servidor grava la a cada boot)`);
@@ -178,7 +178,7 @@ function toolHelp(tool: string, action?: string): string {
 function parseArgs(argsJson: string | undefined, tool: string): Record<string, unknown> {
   if (!argsJson) return {};
   try {
-    const parsed = JSON.parse(argsJson);
+    const parsed: unknown = JSON.parse(argsJson);
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('esperado um objeto JSON');
     return parsed as Record<string, unknown>;
   } catch (e) {
@@ -252,11 +252,11 @@ Environment:
   console.log(JSON.stringify(result, null, 2));
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   if (err instanceof TaskInputError) {
     console.error(`Error: ${err.message}`);
   } else {
-    console.error('Error:', err.message ?? err);
+    console.error('Error:', err instanceof Error ? err.message : err);
   }
   process.exit(1);
 });

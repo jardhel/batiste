@@ -30,7 +30,10 @@ export class TypeScriptValidator implements IValidator {
 
     // Create a temp tsconfig that only checks the specified files
     const tempTsconfig = join(dirname(tsconfigPath), '.batiste-tscheck.json');
-    const tsconfig = JSON.parse(await readFile(tsconfigPath, 'utf-8'));
+    const tsconfig = JSON.parse(await readFile(tsconfigPath, 'utf-8')) as {
+      include?: string[];
+      compilerOptions?: Record<string, unknown>;
+    };
     tsconfig.include = paths;
     tsconfig.compilerOptions = {
       ...tsconfig.compilerOptions,
@@ -71,22 +74,22 @@ export class TypeScriptValidator implements IValidator {
     }
   }
 
-  private parseTscOutput(output: string): Array<{
+  private parseTscOutput(output: string): {
     file: string;
     line: number;
     column: number;
     message: string;
     rule: string;
     severity: 'error';
-  }> {
-    const errors: Array<{
+  }[] {
+    const errors: {
       file: string;
       line: number;
       column: number;
       message: string;
       rule: string;
       severity: 'error';
-    }> = [];
+    }[] = [];
 
     // Format: file(line,col): error TSxxxx: message
     const pattern = /^(.+?)\((\d+),(\d+)\):\s+error\s+(TS\d+):\s+(.+)$/gm;
@@ -94,11 +97,11 @@ export class TypeScriptValidator implements IValidator {
 
     while ((match = pattern.exec(output)) !== null) {
       errors.push({
-        file: match[1]!,
-        line: parseInt(match[2]!, 10),
-        column: parseInt(match[3]!, 10),
-        message: match[5]!,
-        rule: match[4]!,
+        file: match[1] ?? '',
+        line: parseInt(match[2] ?? '0', 10),
+        column: parseInt(match[3] ?? '0', 10),
+        message: match[5] ?? '',
+        rule: match[4] ?? '',
         severity: 'error',
       });
     }

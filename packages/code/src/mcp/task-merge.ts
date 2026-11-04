@@ -9,6 +9,7 @@
  *   - origem: arquivada (status failed + obsolete 'mesclada em <targetId>'), como o archive
  */
 
+import { asText } from './safe.js';
 import type { Task } from '@batiste-aidk/core/tasks';
 import { TaskInputError, metaOf, isOpen, isObsolete, PHASES } from './task-actions.js';
 
@@ -36,10 +37,11 @@ export interface MergePlan {
 const isClosed = (t: Task): boolean => t.status === 'completed' || (t.status === 'failed' && isObsolete(t));
 const short = (id: string): string => id.slice(0, 8);
 
-type Note = { at?: string; text?: string; [k: string]: unknown };
+interface Note { at?: string; text?: string; [k: string]: unknown }
+type TextNote = Note & { text: string };
 
 const uniq = <T>(a: T[]): T[] => [...new Set(a)];
-const phaseIdx = (t: Task): number => Math.max(0, (PHASES as readonly string[]).indexOf(String(metaOf(t).phase ?? 'todo')));
+const phaseIdx = (t: Task): number => Math.max(0, (PHASES as readonly string[]).indexOf(asText(metaOf(t).phase ?? 'todo')));
 
 export function planMerge(inp: MergeInput): MergePlan {
   const { source, target, nowIso, nowSec } = inp;
@@ -78,7 +80,7 @@ export function planMerge(inp: MergeInput): MergePlan {
     text: `[mesclada de ${short(source.id)}] "${source.label}"${inp.reason ? ` — ${inp.reason}` : ''}`,
     mergedFrom: source.id,
   };
-  const srcNotes = ((sm.notes as Note[] | undefined) ?? []).filter((n) => typeof n?.text === 'string');
+  const srcNotes = ((sm.notes as (Note | null)[] | undefined) ?? []).filter((n): n is TextNote => typeof n?.text === 'string');
   const moved: Note[] = srcNotes.map((n) => ({
     at: nowIso,
     text: `[de ${short(source.id)}${n.at ? ` em ${n.at}` : ''}] ${n.text}`,
@@ -106,16 +108,16 @@ export function planMerge(inp: MergeInput): MergePlan {
   const tags = uniq([...(Array.isArray(tm.tags) ? (tm.tags as string[]) : []), ...(Array.isArray(sm.tags) ? (sm.tags as string[]) : [])]);
   const refs = uniq([...(Array.isArray(tm.refs) ? (tm.refs as string[]) : []), ...(Array.isArray(sm.refs) ? (sm.refs as string[]) : [])]);
 
-  const mergedFrom = [...((tm.mergedFrom as Array<{ id: string }> | undefined) ?? [])];
+  const mergedFrom = [...((tm.mergedFrom as { id: string }[] | undefined) ?? [])];
   if (!mergedFrom.some((m) => m.id === source.id)) {
     mergedFrom.push({
       id: source.id, label: source.label, at: nowSec, status: source.status,
       ...(inp.reason ? { reason: inp.reason } : {}), notes: srcNotes.length,
-      ...(Array.isArray(sm.mergedFrom) && (sm.mergedFrom as unknown[]).length ? { carried: (sm.mergedFrom as Array<{ id: string }>).map((m) => m.id) } : {}),
+      ...(Array.isArray(sm.mergedFrom) && (sm.mergedFrom as unknown[]).length ? { carried: (sm.mergedFrom as { id: string }[]).map((m) => m.id) } : {}),
     } as { id: string });
   }
   // o alvo herda o historico de mesclas anteriores da origem
-  for (const m of (sm.mergedFrom as Array<{ id: string }> | undefined) ?? []) if (!mergedFrom.some((x) => x.id === m.id)) mergedFrom.push(m);
+  for (const m of (sm.mergedFrom as { id: string }[] | undefined) ?? []) if (!mergedFrom.some((x) => x.id === m.id)) mergedFrom.push(m);
 
   const targetPatch: Record<string, unknown> = {
     notes: [...((tm.notes as Note[] | undefined) ?? []), header, ...moved],

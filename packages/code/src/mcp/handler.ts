@@ -7,7 +7,7 @@
 
 import { join, isAbsolute } from 'path';
 import { mkdir } from 'fs/promises';
-import { z } from 'zod';
+import type { z } from 'zod';
 import {
   type ToolName,
   AnalyzeDependencyInput,
@@ -53,6 +53,7 @@ import {
   TASK_ACTIONS, TaskInputError, normalizeTaskArgs, checkTransition, triage, burnReport,
   filterTasks, compactTask, labelPrefix, isOpen, isObsolete, metaOf, RENEW_WARN_COUNT, similarOpen, relatedSuggestions, type TaskAction,
 } from './task-actions.js';
+import { must } from './safe.js';
 import { planMerge } from './task-merge.js';
 import { THRESHOLD_SAME, THRESHOLD_RELATED, mergeCommand, phaseRank } from './task-similarity.js';
 
@@ -100,8 +101,8 @@ const INPUT_SCHEMAS: Record<ToolName, z.ZodTypeAny> = {
 };
 
 function validateInput(name: ToolName, args: unknown): Record<string, unknown> {
+  if (!Object.hasOwn(INPUT_SCHEMAS, name)) throw new Error(`Unknown tool: ${name}`);
   const schema = INPUT_SCHEMAS[name];
-  if (!schema) throw new Error(`Unknown tool: ${String(name)}`);
   const parsed = schema.safeParse(args);
   if (!parsed.success) {
     throw new ValidationError(name, parsed.error.issues);
@@ -186,7 +187,7 @@ export class ToolHandler {
       case 'orchestrate_agents': return this.orchestrateAgents(validated);
       case 'vault_validate': return this.vaultValidate(validated);
       case 'vault_index': return this.vaultIndex(validated);
-      default: throw new Error(`Unknown tool: ${name}`);
+      default: throw new Error(`Unknown tool: ${String(name)}`);
     }
   }
 
@@ -228,7 +229,7 @@ export class ToolHandler {
       p.startsWith('/') ? p : join(this.projectRoot, p)
     );
     const fix = args.fix as boolean | undefined;
-    const maxIssues = (args.maxIssues as number) ?? 10;
+    const maxIssues = (args.maxIssues as number | undefined) ?? 10;
 
     const gatekeeper = new Gatekeeper();
     const result = await gatekeeper.preflightCheck(paths, { fix });
@@ -266,7 +267,7 @@ export class ToolHandler {
       durationMs: result.durationMs,
       validators: validatorResults,
       hint: result.totalErrors > 0
-        ? `Use maxIssues parameter to see more (showing ${maxIssues} per validator)`
+        ? `Use maxIssues parameter to see more (showing ${String(maxIssues)} per validator)`
         : undefined,
     };
   }
@@ -303,7 +304,7 @@ export class ToolHandler {
   /** Best-effort audit trail: a failure to write the event must never block the task mutation. */
   private emitTaskEvent(event: string, payload: Record<string, unknown>): void {
     try {
-      if (!this.auditEventLog) this.auditEventLog = new EventLog(join(this.dataDir, 'audit.db'));
+      this.auditEventLog ??= new EventLog(join(this.dataDir, 'audit.db'));
       this.auditEventLog.append({
         ts: new Date().toISOString(),
         event,
@@ -337,14 +338,14 @@ export class ToolHandler {
     const structured = (task: Task | null): Record<string, unknown> => {
       const meta: Record<string, unknown> = {};
       const old = task ? metaOf(task) : {};
-      if (args.state) meta.state = { ...((old.state as object) ?? {}), ...(args.state as object) };
-      if (args.links) meta.links = { ...((old.links as object) ?? {}), ...(args.links as object) };
+      if (args.state) meta.state = { ...((old.state) ?? {}), ...(args.state) };
+      if (args.links) meta.links = { ...((old.links) ?? {}), ...(args.links) };
       if (args.phase) meta.phase = args.phase;
       // progressAt: so avanco real (fase, estado next/gate, status). nota/touch NAO conta; o gate mede idade por aqui.
       if ((args.phase && args.phase !== old.phase) || (args.state && JSON.stringify(meta.state) !== JSON.stringify(old.state ?? {}))) meta.progressAt = nowSec;
       if (args.tags) meta.tags = args.tags;
       if (typeof args.note === 'string') {
-        meta.notes = [...(((old.notes as unknown[]) ?? [])), { at: nowIso, text: args.note }];
+        meta.notes = [...(((old.notes as unknown[] | undefined) ?? [])), { at: nowIso, text: args.note }];
       }
       return meta;
     };
@@ -355,7 +356,7 @@ export class ToolHandler {
         const parentId = args.parentId as string | undefined;
         const dedupeKey = args.dedupeKey as string | undefined;
         const all = await manager.recoverState();
-        const normLabel = (x: string) => String(x).trim().toLowerCase();
+        const normLabel = (x: string) => x.trim().toLowerCase();
         const existing = dedupeKey
           ? all.find((t) => isOpen(t) && metaOf(t).dedupeKey === dedupeKey)
           : args.allowDuplicate === true
@@ -370,8 +371,8 @@ export class ToolHandler {
         }
         // correlatas (nao so label identico): similaridade contra as ABERTAS. dedupeKey explicita = identidade escolhida
         // pelo chamador, entao so sugere (nunca mescla sozinha); allowDuplicate pula tudo.
-        let related: Array<{ taskId: string; label: string; score: number }> = [];
-        let similarHits: ReturnType<typeof similarOpen> = [];
+        let related: { taskId: string; label: string; score: number }[] = [];
+        let similarHits: ReturnType<typeof similarOpen>;
         if (args.allowDuplicate !== true) {
           const ancestors = new Set<string>();
           for (let cur = parentId; cur && !ancestors.has(cur); ) {
@@ -385,17 +386,17 @@ export class ToolHandler {
           similarHits = similarOpen(probe, all.filter(isOpen), { excludeIds: ancestors });
           const top = similarHits[0];
           if (top && top.score >= THRESHOLD_SAME && !dedupeKey) {
-            const host = all.find((t) => t.id === top.taskId)!;
+            const host = must(all.find((t) => t.id === top.taskId), `tarefa ${top.taskId} ausente do estado`);
             const hm = metaOf(host);
-            const text = `[create correlato ${nowIso}, score ${top.score}] ${label}${typeof args.note === 'string' && args.note ? ` — ${args.note}` : ''}`;
-            const patch: Record<string, unknown> = { notes: [...((hm.notes as unknown[]) ?? []), { at: nowIso, text, via: 'create' }] };
-            if (args.links) patch.links = { ...((args.links as object) ?? {}), ...((hm.links as object) ?? {}) };
-            if (args.tags) patch.tags = [...new Set([...((hm.tags as string[]) ?? []), ...(args.tags as string[])])];
+            const text = `[create correlato ${nowIso}, score ${String(top.score)}] ${label}${typeof args.note === 'string' && args.note ? ` — ${args.note}` : ''}`;
+            const patch: Record<string, unknown> = { notes: [...((hm.notes as unknown[] | undefined) ?? []), { at: nowIso, text, via: 'create' }] };
+            if (args.links) patch.links = { ...(args.links), ...((hm.links) ?? {}) };
+            if (args.tags) patch.tags = [...new Set([...((hm.tags as string[] | undefined) ?? []), ...(args.tags as string[])])];
             const updated = await manager.patchTask(host.id, { metadata: patch });
             this.emitTaskEvent('task.deduped', { task_id: host.id, label, score: top.score, via: 'similarity' });
             return withWarnings({
               created: false, duplicate: true, merged: true, deduped: true, taskId: host.id, score: top.score,
-              reason: `tarefa correlata ja aberta (score ${top.score} >= ${THRESHOLD_SAME}; taskId ${host.id}); nada criado, a descricao nova foi anexada como note na existente. Passe "allowDuplicate":true se forem mesmo tarefas distintas.`,
+              reason: `tarefa correlata ja aberta (score ${String(top.score)} >= ${String(THRESHOLD_SAME)}; taskId ${host.id}); nada criado, a descricao nova foi anexada como note na existente. Passe "allowDuplicate":true se forem mesmo tarefas distintas.`,
               task: updated,
             });
           }
@@ -410,11 +411,11 @@ export class ToolHandler {
         const siblings = all.filter((t) => isOpen(t) && labelPrefix(t.label) === prefix).length;
         const extra = [...warnings];
         if (siblings >= 5) {
-          extra.push(`ja existem ${siblings} tarefas abertas com prefixo '${prefix}': considere uma tarefa-pai com filhas (parentId) ou dedupeKey`);
+          extra.push(`ja existem ${String(siblings)} tarefas abertas com prefixo '${prefix}': considere uma tarefa-pai com filhas (parentId) ou dedupeKey`);
         }
         this.emitTaskEvent('task.created', { task_id: saved.id, label });
         const relatedOut = related.slice(0, 5).map((r) => {
-          const other = all.find((t) => t.id === r.taskId)!;
+          const other = must(all.find((t) => t.id === r.taskId), `tarefa ${r.taskId} ausente do estado`);
           // a existente e sempre mais antiga que a recem-criada (createdAt tem resolucao de 1 s): so perde se a nova ja nasce em fase maior
           const target = phaseRank(saved) > phaseRank(other) ? saved : other;
           const source = target.id === saved.id ? other.id : saved.id;
@@ -422,7 +423,7 @@ export class ToolHandler {
         });
         return {
           created: true, task: saved,
-          ...(relatedOut.length ? { related: relatedOut, relatedHint: `tarefas correlatas (score ${THRESHOLD_RELATED}-${(THRESHOLD_SAME - 0.01).toFixed(2)}): se for a mesma entrega, mescle com o comando em related[].merge` } : {}),
+          ...(relatedOut.length ? { related: relatedOut, relatedHint: `tarefas correlatas (score ${String(THRESHOLD_RELATED)}-${(THRESHOLD_SAME - 0.01).toFixed(2)}): se for a mesma entrega, mescle com o comando em related[].merge` } : {}),
           ...(extra.length ? { warnings: extra } : {}),
         };
       }
@@ -474,7 +475,7 @@ export class ToolHandler {
           return withWarnings({ closed: false, alreadyClosed: true, task: before });
         }
         checkTransition(before, 'completed', { reopen: before.status === 'failed' && isObsolete(before) ? false : undefined });
-        const meta = { ...structured(before), closed: { proof: args.proof, at: nowSec }, phase: (args.phase as string) ?? 'verified' };
+        const meta = { ...structured(before), closed: { proof: args.proof, at: nowSec }, phase: (args.phase as string | undefined) ?? 'verified' };
         const task = await manager.patchTask(taskId, { status: 'completed', metadata: meta });
         this.emitTaskEvent('task.closed', { task_id: taskId, from_status: before.status, proof: args.proof });
         return withWarnings({ closed: true, task });
@@ -506,7 +507,7 @@ export class ToolHandler {
         const count = (prev?.count ?? (prev ? 1 : 0)) + 1;
         const renewedUntil = { until: args.until, reason: args.reason, at: nowSec, count };
         const task = await manager.patchTask(taskId, { metadata: { ...structured(before), renewedUntil } });
-        if (count > RENEW_WARN_COUNT) warnings.push(`renovacao #${count} desta tarefa: renovar sem andar e arquivo disfarcado; feche ou arquive.`);
+        if (count > RENEW_WARN_COUNT) warnings.push(`renovacao #${String(count)} desta tarefa: renovar sem andar e arquivo disfarcado; feche ou arquive.`);
         this.emitTaskEvent('task.renewed', { task_id: taskId, until: args.until, reason: args.reason });
         return withWarnings({ renewed: true, task });
       }
@@ -538,10 +539,10 @@ export class ToolHandler {
       }
       case 'clear': {
         const count = (await manager.recoverState()).length;
-        const expected = `APAGAR ${count} TAREFAS`;
+        const expected = `APAGAR ${String(count)} TAREFAS`;
         if (args.confirm !== expected) {
           throw new TaskInputError(
-            `clear apaga TODAS as ${count} tarefas. Para confirmar envie confirm exatamente "${expected}". ` +
+            `clear apaga TODAS as ${String(count)} tarefas. Para confirmar envie confirm exatamente "${expected}". ` +
               `Para limpar so uma parte use archive (uma tarefa) ou triage. Exemplo: {"action":"clear","confirm":"${expected}"}`
           );
         }
@@ -598,8 +599,8 @@ export class ToolHandler {
           throw new TaskInputError('triage apply exige confirm "TRIAGE". Exemplo: {"action":"triage","apply":true,"confirm":"TRIAGE"}');
         }
         const applied: string[] = [];
-        const merged: Array<{ sourceId: string; targetId: string }> = [];
-        const errors: Array<{ taskId: string; error: string }> = [];
+        const merged: { sourceId: string; targetId: string }[] = [];
+        const errors: { taskId: string; error: string }[] = [];
         for (const c of candidates) {
           if (c.kind === 'close-parent-done') continue; // fechar exige prova humana
           if (c.kind === 'merge' && c.mergeInto) {
@@ -649,9 +650,10 @@ export class ToolHandler {
     }
     const savedTarget = await manager.patchTask(target.id, { metadata: plan.targetPatch });
     // reparent direto no store: patchTask nao mexe em parentId
+    const store = must(this.store, 'store de tarefas nao inicializado');
     for (const cid of plan.reparent) {
-      const child = await this.store!.get(cid);
-      if (child) await this.store!.save({ ...child, parentId: target.id });
+      const child = await store.get(cid);
+      if (child) await store.save({ ...child, parentId: target.id });
     }
     const savedSource = await manager.patchTask(source.id, { status: 'failed', metadata: plan.sourcePatch });
     this.emitTaskEvent('task.merged', {
@@ -673,14 +675,10 @@ export class ToolHandler {
    */
   private async getTaskReconciler(): Promise<TaskReconciler> {
     const manager = await this.getTaskManager();
-    if (!this.reconcileMarkerStore) {
-      this.reconcileMarkerStore = new SQLiteReconcileMarkerStore(
-        join(this.dataDir, 'reconcile.db')
-      );
-    }
-    if (!this.auditEventLog) {
-      this.auditEventLog = new EventLog(join(this.dataDir, 'audit.db'));
-    }
+    this.reconcileMarkerStore ??= new SQLiteReconcileMarkerStore(
+      join(this.dataDir, 'reconcile.db')
+    );
+    this.auditEventLog ??= new EventLog(join(this.dataDir, 'audit.db'));
     const eventLog = this.auditEventLog;
     const auditSink: ReconcileAuditSink = {
       recordClosure: ({ taskId, label, commitSha, matchedBy }) => {
@@ -858,7 +856,7 @@ export class ToolHandler {
   }
 
   private async indexCodebase(args: Record<string, unknown>): Promise<unknown> {
-    const mode = (args.mode as string) ?? 'incremental';
+    const mode = (args.mode as string | undefined) ?? 'incremental';
     const includeUncommitted = args.includeUncommitted !== false;
 
     const config = loadConfig({
@@ -916,10 +914,10 @@ export class ToolHandler {
   }
 
   private async summarizeCodebase(args: Record<string, unknown>): Promise<unknown> {
-    const scope = (args.scope as string) ?? '';
-    const depth = (args.depth as string) ?? 'overview';
-    const focus = (args.focus as string[]) ?? ['architecture', 'entry-points'];
-    const maxTokens = (args.maxTokens as number) ?? 2000;
+    const scope = (args.scope as string | undefined) ?? '';
+    const depth = (args.depth as string | undefined) ?? 'overview';
+    const focus = (args.focus as string[] | undefined) ?? ['architecture', 'entry-points'];
+    const maxTokens = (args.maxTokens as number | undefined) ?? 2000;
     const cluster = args.cluster as string | undefined;
 
     // Phase 3 graph-backed path. When a graph is attached, we layer
@@ -951,7 +949,7 @@ export class ToolHandler {
     const fileIndex = new FileIndex(this.dataDir, this.projectRoot);
     await fileIndex.load();
 
-    let limitedEntryPoints: string[] = [];
+    let limitedEntryPoints: string[];
     let allIndexedFiles: string[] = [];
 
     if (fileIndex.size > 0) {
@@ -1021,7 +1019,7 @@ export class ToolHandler {
       };
 
       if (depth === 'detailed') {
-        const exports: Array<{ file: string; symbols: string[] }> = [];
+        const exports: { file: string; symbols: string[] }[] = [];
         for (const entryPoint of limitedEntryPoints.slice(0, 3)) {
           const node = graph.nodes.get(entryPoint);
           if (node) {
@@ -1053,9 +1051,7 @@ export class ToolHandler {
   }
 
   private getContextBudget(): ContextBudgetMonitor {
-    if (!this.contextBudget) {
-      this.contextBudget = new ContextBudgetMonitor(DEFAULT_BUDGET_CONFIG);
-    }
+    this.contextBudget ??= new ContextBudgetMonitor(DEFAULT_BUDGET_CONFIG);
     return this.contextBudget;
   }
 
@@ -1075,7 +1071,7 @@ export class ToolHandler {
         };
       }
       case 'add': {
-        const category = (args.category as BudgetCategory) ?? 'other';
+        const category = (args.category as BudgetCategory | undefined) ?? 'other';
         let tokens: number;
         if (args.content) {
           tokens = monitor.addContent(category, args.content as string);
@@ -1125,9 +1121,9 @@ export class ToolHandler {
       p.startsWith('/') ? p : join(this.projectRoot, p)
     );
     const dryRun = args.dryRun !== false;
-    const maxFixes = (args.maxFixes as number) ?? 20;
-    const minConfidence = (args.confidence as 'high' | 'medium' | 'low') ?? 'high';
-    const maxIterations = (args.maxIterations as number) ?? 5;
+    const maxFixes = (args.maxFixes as number | undefined) ?? 20;
+    const minConfidence = (args.confidence as 'high' | 'medium' | 'low' | undefined) ?? 'high';
+    const maxIterations = (args.maxIterations as number | undefined) ?? 5;
 
     const fixer = new AutoFixer({ projectRoot: this.projectRoot });
     const result = await fixer.fix(paths, {
@@ -1163,15 +1159,13 @@ export class ToolHandler {
       hint: dryRun
         ? "Set dryRun: false to apply these fixes"
         : result.status === 'partial'
-          ? `Fixed some errors but ${result.remainingErrors} remain`
+          ? `Fixed some errors but ${String(result.remainingErrors)} remain`
           : undefined,
     };
   }
 
   private getOrchestrator(): Orchestrator {
-    if (!this.orchestrator) {
-      this.orchestrator = new Orchestrator();
-    }
+    this.orchestrator ??= new Orchestrator();
     return this.orchestrator;
   }
 
@@ -1203,7 +1197,7 @@ export class ToolHandler {
         const pool = orch.getPool(role);
         if (!pool) throw new Error(`No pool for role: ${role}. Create a pool first.`);
         const taskId = await pool.submitTask({
-          taskId: `task-${Date.now()}`,
+          taskId: `task-${String(Date.now())}`,
           description: task.description,
           context: task.context,
           priority: task.priority ?? 'normal',
@@ -1278,10 +1272,10 @@ export class ToolHandler {
   }
 
   private async vaultValidate(args: Record<string, unknown>): Promise<unknown> {
-    const vaultPath = this.resolvePath(args['path'] as string);
-    const repoRootArg = args['repoRoot'] as string | undefined;
-    const skipCanonical = (args['skipCanonical'] as boolean | undefined) ?? false;
-    const maxIssues = (args['maxIssues'] as number | undefined) ?? 50;
+    const vaultPath = this.resolvePath(args.path as string);
+    const repoRootArg = args.repoRoot as string | undefined;
+    const skipCanonical = (args.skipCanonical as boolean | undefined) ?? false;
+    const maxIssues = (args.maxIssues as number | undefined) ?? 50;
 
     const vault = await loadVault(vaultPath);
     const report = await validateVault(vault, {
@@ -1307,8 +1301,8 @@ export class ToolHandler {
   }
 
   private async vaultIndex(args: Record<string, unknown>): Promise<unknown> {
-    const vaultPath = this.resolvePath(args['path'] as string);
-    const axisFilter = args['axis'] as Axis | undefined;
+    const vaultPath = this.resolvePath(args.path as string);
+    const axisFilter = args.axis as Axis | undefined;
 
     const vault = await loadVault(vaultPath);
     const axesToReturn = axisFilter ? [axisFilter] : [...AXES];
@@ -1318,9 +1312,9 @@ export class ToolHandler {
       byAxis[axis] = vault.notesByAxis[axis].map((n) => ({
         title: n.title,
         path: n.relativePath,
-        status: n.frontmatter['status'] ?? null,
-        tags: n.frontmatter['tags'] ?? [],
-        canonical: n.frontmatter['canonical'] ?? null,
+        status: n.frontmatter.status ?? null,
+        tags: n.frontmatter.tags ?? [],
+        canonical: n.frontmatter.canonical ?? null,
         wikilinks: n.wikilinks,
       }));
     }

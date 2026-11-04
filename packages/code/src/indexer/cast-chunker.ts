@@ -53,15 +53,14 @@ const DEFAULT_MAX_LINES = 400;
 /** Structural symbol kinds that bound a chunk. `call` is a reference, not a region. */
 const STRUCTURAL = new Set<CodeSymbol['type']>(['function', 'method', 'class']);
 
-type Region = { start: number; end: number }; // 1-indexed inclusive line range
+interface Region { start: number; end: number } // 1-indexed inclusive line range
 
 /** Count of non-whitespace characters in a slice of lines [start, end] (1-indexed). */
 function nonWsSize(lines: string[], start: number, end: number): number {
   let n = 0;
   for (let i = start - 1; i < end && i < lines.length; i++) {
-    const line = lines[i]!;
-    for (let c = 0; c < line.length; c++) {
-      if (!/\s/.test(line[c]!)) n++;
+    for (const ch of lines[i] ?? '') {
+      if (!/\s/.test(ch)) n++;
     }
   }
   return n;
@@ -90,7 +89,7 @@ export function chunkSource(source: string, parse: ParseResult, opts: CastOption
   const symbols = parse.symbols
     .filter((s) => STRUCTURAL.has(s.type) && s.endLine >= s.startLine && s.startLine >= 1)
     .filter((s) => {
-      const key = `${s.startLine}:${s.endLine}:${s.name}`;
+      const key = `${String(s.startLine)}:${String(s.endLine)}:${s.name}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -147,7 +146,7 @@ function packRegion(
 
   // Build an ordered cover of the region: gap segments between symbols, and
   // one block per root symbol.
-  type Block = { region: Region; sym?: CodeSymbol };
+  interface Block { region: Region; sym?: CodeSymbol }
   const blocks: Block[] = [];
   let cursor = region.start;
   for (const sym of roots) {
@@ -197,7 +196,7 @@ function packRegion(
     if (bufStart !== null && nonWsSize(lines, bufStart, block.region.end) > maxNonWs) {
       flush();
     }
-    if (bufStart === null) bufStart = block.region.start;
+    bufStart ??= block.region.start;
     bufEnd = block.region.end;
   }
   flush();

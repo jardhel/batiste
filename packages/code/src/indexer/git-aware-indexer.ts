@@ -12,7 +12,7 @@ import { join, dirname } from 'path';
 import { GitTracker, type GitDiffResult } from './git-tracker.js';
 import { FileIndex, type IndexedFileInfo } from './file-index.js';
 import { Crawler, type FileInfo } from './crawler.js';
-import { Config } from '../utils/config.js';
+import type { Config } from '../utils/config.js';
 import { logger } from '../utils/logger.js';
 
 const INDEX_STATE_FILE = 'index-state.json';
@@ -231,7 +231,7 @@ export class GitAwareIndexer {
       filesToRemove,
       renamedFiles,
       isFullReindex: false,
-      reason: `Git-based incremental: ${gitDiff.added.length} added, ${gitDiff.modified.length} modified, ${gitDiff.deleted.length} deleted`,
+      reason: `Git-based incremental: ${String(gitDiff.added.length)} added, ${String(gitDiff.modified.length)} modified, ${String(gitDiff.deleted.length)} deleted`,
       gitDiff,
       stats: {
         totalFilesInRepo: currentFiles.length,
@@ -260,7 +260,7 @@ export class GitAwareIndexer {
       renamedFiles: new Map(),
       isFullReindex:
         !this.fileIndex.isLoaded() || this.fileIndex.size === 0,
-      reason: `File-based incremental: ${changedFiles.length} changed, ${deletedFiles.length} deleted`,
+      reason: `File-based incremental: ${String(changedFiles.length)} changed, ${String(deletedFiles.length)} deleted`,
       stats: {
         totalFilesInRepo: currentFiles.length,
         filesToAdd: changedFiles.filter(
@@ -374,7 +374,7 @@ export class GitAwareIndexer {
 
     await this.saveState(state);
     this.log.info(
-      `Recorded index success: ${totalFiles} files at commit ${headCommit?.slice(0, 8) ?? 'unknown'}`
+      `Recorded index success: ${String(totalFiles)} files at commit ${headCommit?.slice(0, 8) ?? 'unknown'}`
     );
   }
 

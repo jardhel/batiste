@@ -31,7 +31,7 @@ interface FileIndexData {
 export class FileIndex {
   private dataDir: string;
   private projectRoot: string;
-  private files: Map<string, IndexedFileInfo> = new Map();
+  private files = new Map<string, IndexedFileInfo>();
   private log = logger.child('file-index');
   private loaded = false;
 
@@ -51,7 +51,7 @@ export class FileIndex {
 
       if (data.version !== FILE_INDEX_VERSION) {
         this.log.warn(
-          `File index version mismatch (expected ${FILE_INDEX_VERSION}, got ${data.version}). Starting fresh.`
+          `File index version mismatch (expected ${String(FILE_INDEX_VERSION)}, got ${String(data.version)}). Starting fresh.`
         );
         this.files = new Map();
         this.loaded = true;
@@ -66,7 +66,7 @@ export class FileIndex {
       }
 
       this.files = new Map(Object.entries(data.files));
-      this.log.info(`Loaded file index with ${this.files.size} files`);
+      this.log.info(`Loaded file index with ${String(this.files.size)} files`);
       this.loaded = true;
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -88,7 +88,7 @@ export class FileIndex {
 
     await mkdir(dirname(this.filePath), { recursive: true });
     await writeFile(this.filePath, JSON.stringify(data, null, 2));
-    this.log.debug(`Saved file index with ${this.files.size} files`);
+    this.log.debug(`Saved file index with ${String(this.files.size)} files`);
   }
 
   async clear(): Promise<void> {

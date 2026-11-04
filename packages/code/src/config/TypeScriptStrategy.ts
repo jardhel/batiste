@@ -1,4 +1,4 @@
-import Parser from 'tree-sitter';
+import type Parser from 'tree-sitter';
 import TypeScript from 'tree-sitter-typescript';
 import type {
   LanguageStrategy,

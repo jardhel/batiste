@@ -17,7 +17,7 @@ class Logger {
 
   constructor(prefix: string, level: LogLevel = 'info') {
     this.prefix = prefix;
-    this.level = (process.env.LOG_LEVEL as LogLevel) ?? level;
+    this.level = (process.env.LOG_LEVEL as LogLevel | undefined) ?? level;
   }
 
   child(name: string): Logger {

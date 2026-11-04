@@ -41,7 +41,7 @@ export function materialize(files: string[], concurrency = 32): Promise<{ files:
       stdio: ['pipe', 'ignore', 'ignore'],
     });
     child.on('error', reject);
-    child.on('close', () => resolve({ files: files.length, ms: Date.now() - t0 }));
+    child.on('close', () => { resolve({ files: files.length, ms: Date.now() - t0 }); });
     child.stdin.on('error', () => undefined);
     child.stdin.end(files.join('\0') + '\0');
   });

@@ -12,14 +12,16 @@ import { join } from 'path';
 import { createRequire } from 'module';
 import fastGlob from 'fast-glob';
 import { createHash } from 'crypto';
-import { Config, getLanguageFromExtension, LANGUAGE_EXTENSIONS } from '../utils/config.js';
+import type { Config} from '../utils/config.js';
+import { getLanguageFromExtension, LANGUAGE_EXTENSIONS } from '../utils/config.js';
 import { logger } from '../utils/logger.js';
 import { GitTracker } from './git-tracker.js';
+import type { Ignore as IgnoreInstance, Options as IgnoreOptions } from 'ignore';
 
 // Use createRequire for CJS module compatibility
 const require = createRequire(import.meta.url);
-const ignore = require('ignore') as typeof import('ignore').default;
-type Ignore = ReturnType<typeof ignore>;
+const ignore = require('ignore') as (options?: IgnoreOptions) => IgnoreInstance;
+type Ignore = IgnoreInstance;
 
 export interface FileInfo {
   path: string;
@@ -46,8 +48,8 @@ export class Crawler {
   private ignorer: Ignore;
   private log = logger.child('crawler');
   private gitTracker: GitTracker | null = null;
-  private gitRecentFiles: Map<string, number> = new Map();
-  private gitUncommitted: Set<string> = new Set();
+  private gitRecentFiles = new Map<string, number>();
+  private gitUncommitted = new Set<string>();
 
   constructor(config: Config) {
     this.config = config;
@@ -109,7 +111,7 @@ export class Crawler {
     });
 
     this.log.info(
-      `Git tracking enabled: ${recentFiles.length} recent files, ${uncommitted.length} uncommitted`
+      `Git tracking enabled: ${String(recentFiles.length)} recent files, ${String(uncommitted.length)} uncommitted`
     );
     return true;
   }
@@ -185,13 +187,13 @@ export class Crawler {
     }
 
     this.log.info(
-      `Found ${files.length} files across ${Object.keys(languages).length} languages`
+      `Found ${String(files.length)} files across ${String(Object.keys(languages).length)} languages`
     );
     if (gitAware) {
       const uncommittedCount = files.filter(f => f.hasUncommittedChanges).length;
       const prioritizedCount = files.filter(f => (f.gitPriority ?? 0) > 0).length;
       this.log.info(
-        `Git-aware: ${uncommittedCount} uncommitted, ${prioritizedCount} recently modified`
+        `Git-aware: ${String(uncommittedCount)} uncommitted, ${String(prioritizedCount)} recently modified`
       );
     }
 

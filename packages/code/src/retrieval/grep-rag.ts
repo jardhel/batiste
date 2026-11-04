@@ -41,7 +41,7 @@ export interface RetrievalHit {
  */
 export function mergeOverlappingHits(
   hits: RetrievalHit[],
-  fileLines: Map<string, string[]> = new Map(),
+  fileLines = new Map<string, string[]>(),
   gap = 1,
 ): RetrievalHit[] {
   const byFile = new Map<string, RetrievalHit[]>();
@@ -150,8 +150,8 @@ export function rerankByBm25(
   }
 
   const scored = hits.map((hit, i) => {
-    const doc = docs[i]!;
-    const dl = docLens[i]!;
+    const doc = docs[i] ?? [];
+    const dl = docLens[i] ?? 0;
     const tf = new Map<string, number>();
     for (const term of doc) tf.set(term, (tf.get(term) ?? 0) + 1);
 

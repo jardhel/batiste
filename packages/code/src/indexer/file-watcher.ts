@@ -21,7 +21,7 @@ export class FileWatcher extends EventEmitter {
   private rootDir: string;
   private options: Required<FileWatcherOptions>;
   private watcher: FSWatcher | null = null;
-  private pendingChanges: Set<string> = new Set();
+  private pendingChanges = new Set<string>();
   private debounceTimer: NodeJS.Timeout | null = null;
   private watching = false;
 
@@ -39,27 +39,34 @@ export class FileWatcher extends EventEmitter {
     };
   }
 
-  async start(): Promise<void> {
-    if (this.watching) return;
-
-    this.watcher = watch(
-      this.rootDir,
-      { recursive: this.options.recursive },
-      (_eventType, filename) => {
-        if (filename) {
-          this.handleChange(filename);
-        }
+  start(): Promise<void> {
+    // Executor do Promise: erro sincrono de watch() vira rejeicao, como no antigo `async`.
+    return new Promise<void>((resolve) => {
+      if (this.watching) {
+        resolve();
+        return;
       }
-    );
 
-    this.watcher.on('error', (error) => {
-      this.emit('error', error);
+      this.watcher = watch(
+        this.rootDir,
+        { recursive: this.options.recursive },
+        (_eventType, filename) => {
+          if (filename) {
+            this.handleChange(filename);
+          }
+        }
+      );
+
+      this.watcher.on('error', (error) => {
+        this.emit('error', error);
+      });
+
+      this.watching = true;
+      resolve();
     });
-
-    this.watching = true;
   }
 
-  async stop(): Promise<void> {
+  stop(): Promise<void> {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
@@ -72,6 +79,7 @@ export class FileWatcher extends EventEmitter {
 
     this.pendingChanges.clear();
     this.watching = false;
+      return Promise.resolve();
   }
 
   isWatching(): boolean {

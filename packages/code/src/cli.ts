@@ -6,7 +6,7 @@
 
 import { start } from './mcp/server.js';
 
-start().catch((err) => {
+start().catch((err: unknown) => {
   console.error('Failed to start @batiste-aidk/code:', err);
   process.exit(1);
 });

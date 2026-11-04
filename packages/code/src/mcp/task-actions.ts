@@ -22,6 +22,7 @@
  */
 
 import type { Task } from '@batiste-aidk/core/tasks';
+import { asText } from './safe.js';
 import { clusterSimilar, findSimilar, allPairs, pickTarget, mergeCommand, THRESHOLD_SAME, THRESHOLD_RELATED, type SimTask } from './task-similarity.js';
 
 export const TASK_ACTIONS = [
@@ -58,9 +59,9 @@ const COMMON_META = ['state', 'links', 'phase', 'tags', 'note'];
 
 export const ACTION_SPECS: Record<TaskAction, ActionSpec> = {
   create: {
-    summary: `cria tarefa. label curto (ate ${LABEL_MAX} chars); estado vai em state/links, nunca no label. ` +
-      `Compara com as ABERTAS: score >= ${THRESHOLD_SAME} = mesma tarefa (nao cria; devolve a existente com merged:true e anexa a descricao como note); ` +
-      `${THRESHOLD_RELATED}-${(THRESHOLD_SAME - 0.01).toFixed(2)} = correlata (cria e devolve related[] com o comando merge). allowDuplicate:true pula tudo.`,
+    summary: `cria tarefa. label curto (ate ${String(LABEL_MAX)} chars); estado vai em state/links, nunca no label. ` +
+      `Compara com as ABERTAS: score >= ${String(THRESHOLD_SAME)} = mesma tarefa (nao cria; devolve a existente com merged:true e anexa a descricao como note); ` +
+      `${String(THRESHOLD_RELATED)}-${(THRESHOLD_SAME - 0.01).toFixed(2)} = correlata (cria e devolve related[] com o comando merge). allowDuplicate:true pula tudo.`,
     required: ['label'],
     optional: ['parentId', 'dedupeKey', 'allowDuplicate', ...COMMON_META],
     examples: [
@@ -142,7 +143,7 @@ export const ACTION_SPECS: Record<TaskAction, ActionSpec> = {
     ],
   },
   triage: {
-    summary: `lista candidatas a fechar/arquivar/mesclar. 'mesclar' usa similaridade (>= ${THRESHOLD_SAME}, clusters A~B~C com alvo sugerido); correlatas ${THRESHOLD_RELATED}-${(THRESHOLD_SAME - 0.01).toFixed(2)} saem em suggestions. Dry-run por padrao; apply:true + confirm:"TRIAGE" arquiva as de arquivar e MESCLA as de mesclar.`,
+    summary: `lista candidatas a fechar/arquivar/mesclar. 'mesclar' usa similaridade (>= ${String(THRESHOLD_SAME)}, clusters A~B~C com alvo sugerido); correlatas ${String(THRESHOLD_RELATED)}-${(THRESHOLD_SAME - 0.01).toFixed(2)} saem em suggestions. Dry-run por padrao; apply:true + confirm:"TRIAGE" arquiva as de arquivar e MESCLA as de mesclar.`,
     required: [],
     optional: ['staleDays', 'minGroup', 'apply', 'confirm'],
     examples: ['{"action":"triage"}', '{"action":"triage","staleDays":60,"minGroup":5}'],
@@ -165,22 +166,21 @@ const ALL_KEYS = new Set<string>([
 const ALIASES: Record<string, string> = { id: 'taskId', task_id: 'taskId', task: 'taskId', evidence: 'proof', motivo: 'reason' };
 
 function levenshtein(a: string, b: string): number {
-  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...new Array(b.length).fill(0)]);
-  for (let j = 0; j <= b.length; j++) dp[0]![j] = j;
+  let prev: number[] = Array.from({ length: b.length + 1 }, (_, j) => j);
   for (let i = 1; i <= a.length; i++) {
+    const cur: number[] = [i];
     for (let j = 1; j <= b.length; j++) {
-      dp[i]![j] = Math.min(
-        dp[i - 1]![j]! + 1,
-        dp[i]![j - 1]! + 1,
-        dp[i - 1]![j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1)
-      );
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur.push(Math.min((prev[j] ?? 0) + 1, (cur[j - 1] ?? 0) + 1, (prev[j - 1] ?? 0) + cost));
     }
+    prev = cur;
   }
-  return dp[a.length]![b.length]!;
+  return prev[b.length] ?? 0;
 }
 
 export function didYouMean(key: string): string | null {
-  if (ALIASES[key]) return ALIASES[key]!;
+  const alias = ALIASES[key];
+  if (alias) return alias;
   let best: string | null = null;
   let bestD = 3;
   for (const k of ALL_KEYS) {
@@ -191,7 +191,7 @@ export function didYouMean(key: string): string | null {
 }
 
 export function exampleFor(action: TaskAction): string {
-  return ACTION_SPECS[action].examples[0]!;
+  return ACTION_SPECS[action].examples[0] ?? '';
 }
 
 export interface NormalizedTaskArgs {
@@ -224,7 +224,7 @@ export function normalizeTaskArgs(raw: Record<string, unknown>): NormalizedTaskA
       } else if (args[canon] !== args[alias]) {
         throw new TaskInputError(`'${alias}' e '${canon}' foram enviados com valores diferentes; envie so '${canon}'.`);
       }
-      delete args[alias];
+      Reflect.deleteProperty(args, alias);
     }
   }
 
@@ -250,10 +250,10 @@ export function normalizeTaskArgs(raw: Record<string, unknown>): NormalizedTaskA
   }
 
   if (action === 'create') {
-    const label = String(args.label).trim();
+    const label = asText(args.label).trim();
     if (label.length > LABEL_MAX) {
       throw new TaskInputError(
-        `label com ${label.length} chars (limite ${LABEL_MAX}). Label e titulo, nao estado: ` +
+        `label com ${String(label.length)} chars (limite ${String(LABEL_MAX)}). Label e titulo, nao estado: ` +
           `mova o resto para state ({"next":"...","gate":"..."}), links ou note. Exemplo: ${exampleFor('create')}`
       );
     }
@@ -268,11 +268,11 @@ export function normalizeTaskArgs(raw: Record<string, unknown>): NormalizedTaskA
       );
     }
     if (typeof args.label === 'string' && args.label.length > LABEL_MAX) {
-      throw new TaskInputError(`label com ${args.label.length} chars (limite ${LABEL_MAX}); use note/state para o resto.`);
+      throw new TaskInputError(`label com ${String(args.label.length)} chars (limite ${String(LABEL_MAX)}); use note/state para o resto.`);
     }
   }
-  if (args.phase !== undefined && !(PHASES as readonly string[]).includes(String(args.phase))) {
-    throw new TaskInputError(`phase invalida '${String(args.phase)}'. Use: ${PHASES.join(', ')}.`);
+  if (args.phase !== undefined && !(PHASES as readonly string[]).includes(asText(args.phase))) {
+    throw new TaskInputError(`phase invalida '${asText(args.phase)}'. Use: ${PHASES.join(', ')}.`);
   }
   if (args.toolOutput !== undefined) {
     const to = args.toolOutput as Record<string, unknown> | null;
@@ -285,18 +285,18 @@ export function normalizeTaskArgs(raw: Record<string, unknown>): NormalizedTaskA
     args.toolOutput = { toolName: typeof to.toolName === 'string' && to.toolName ? to.toolName : 'manual', output: to.output };
   }
   if (action === 'merge') {
-    if (String(args.sourceId).trim() === String(args.targetId).trim()) {
+    if (asText(args.sourceId).trim() === asText(args.targetId).trim()) {
       throw new TaskInputError(`merge: sourceId e targetId sao a mesma tarefa. Exemplo: ${exampleFor('merge')}`);
     }
-    args.sourceId = String(args.sourceId).trim();
-    args.targetId = String(args.targetId).trim();
-    if (args.reason !== undefined) args.reason = String(args.reason).trim();
+    args.sourceId = asText(args.sourceId).trim();
+    args.targetId = asText(args.targetId).trim();
+    if (args.reason !== undefined) args.reason = asText(args.reason).trim();
   }
   if (action === 'renew') {
-    args.until = parseUntil(String(args.until));
-    const reason = String(args.reason ?? '').trim();
+    args.until = parseUntil(asText(args.until));
+    const reason = asText(args.reason ?? '').trim();
     if (reason.length < RENEW_MIN_REASON) {
-      throw new TaskInputError(`reason do renew precisa de ao menos ${RENEW_MIN_REASON} caracteres (explique o bloqueio de verdade). Exemplo: ${exampleFor('renew')}`);
+      throw new TaskInputError(`reason do renew precisa de ao menos ${String(RENEW_MIN_REASON)} caracteres (explique o bloqueio de verdade). Exemplo: ${exampleFor('renew')}`);
     }
     args.reason = reason;
   }
@@ -319,7 +319,7 @@ export function parseUntil(until: string, now: Date = new Date()): string {
 function capUntil(iso: string, now: Date): string {
   const days = Math.floor((Date.parse(iso) - now.getTime()) / (DAY * 1000));
   if (days > RENEW_MAX_DAYS) {
-    throw new TaskInputError(`until ${iso} esta ${days} dias a frente; o teto do renew e ${RENEW_MAX_DAYS} dias. Passou disso: arquive ou feche.`);
+    throw new TaskInputError(`until ${iso} esta ${String(days)} dias a frente; o teto do renew e ${String(RENEW_MAX_DAYS)} dias. Passou disso: arquive ou feche.`);
   }
   return iso;
 }
@@ -347,7 +347,7 @@ export function formatHelp(action?: string): string {
 // ------------------------------------------------------------------ metadados e transicoes
 
 export type Meta = Record<string, unknown>;
-export const metaOf = (t: Task): Meta => (t.context.metadata ?? {}) as Meta;
+export const metaOf = (t: Task): Meta => (t.context.metadata ?? {});
 export const isOpen = (t: Task): boolean => t.status === 'pending' || t.status === 'running';
 export const isObsolete = (t: Task): boolean => !!metaOf(t).obsolete;
 
@@ -398,7 +398,7 @@ export function triage(tasks: Task[], opts: { now: number; staleDays?: number; m
   const byId = new Map(tasks.map((t) => [t.id, t]));
   const renewed = (t: Task) => {
     const r = metaOf(t).renewedUntil as { until?: string; reason?: string; at?: number } | undefined;
-    if (!r?.until || String(r.reason ?? '').trim().length < RENEW_MIN_REASON) return false;
+    if (!r?.until || (r.reason ?? '').trim().length < RENEW_MIN_REASON) return false;
     const until = Date.parse(r.until);
     return until >= opts.now * 1000 && until <= ((r.at ?? opts.now) + RENEW_MAX_DAYS * DAY) * 1000 + DAY * 1000;
   };
@@ -406,22 +406,24 @@ export function triage(tasks: Task[], opts: { now: number; staleDays?: number; m
   for (const t of open) {
     const text = `${t.label} ${JSON.stringify(metaOf(t).state ?? '')}`;
     if (OBSOLETE_RE.test(text) && !renewed(t)) {
-      push({ kind: 'archive', taskId: t.id, label: t.label, ageDays: ageDays(t, opts.now), prefix: labelPrefix(t.label), reason: `marcada como obsoleta no texto (${OBSOLETE_RE.exec(text)?.[0]})` });
+      push({ kind: 'archive', taskId: t.id, label: t.label, ageDays: ageDays(t, opts.now), prefix: labelPrefix(t.label), reason: `marcada como obsoleta no texto (${OBSOLETE_RE.exec(text)?.[0] ?? ''})` });
     }
   }
   for (const t of open) {
     if (t.status === 'running' && t.updatedAt != null && opts.now - t.updatedAt > runningHours * 3600 && !renewed(t)) {
-      push({ kind: 'abandon-running', taskId: t.id, label: t.label, ageDays: ageDays(t, opts.now), prefix: labelPrefix(t.label), reason: `running sem update ha mais de ${runningHours} h` });
+      push({ kind: 'abandon-running', taskId: t.id, label: t.label, ageDays: ageDays(t, opts.now), prefix: labelPrefix(t.label), reason: `running sem update ha mais de ${String(runningHours)} h` });
     }
   }
   // correlatas/duplicadas: similaridade >= THRESHOLD_SAME (label identico = 1.0). Cluster A~B~C -> um alvo
   // (maior fase, depois o mais antigo); as demais viram candidatas 'merge' (nao arquivar a toa: o merge preserva notas).
-  const clusters = clusterSimilar(open as SimTask[], { threshold: THRESHOLD_SAME });
+  const clusters = clusterSimilar(open, { threshold: THRESHOLD_SAME });
   for (const cl of clusters) {
-    const target = byId.get(cl.targetId)!;
+    const target = byId.get(cl.targetId);
+    if (!target) continue;
     for (const m of cl.merges) {
-      const src = byId.get(m.sourceId)!;
-      push({ kind: 'merge', taskId: src.id, label: src.label, ageDays: ageDays(src, opts.now), prefix: labelPrefix(src.label), reason: `correlata de ${target.id.slice(0, 8)} (score ${m.score})`, mergeInto: target.id, score: m.score });
+      const src = byId.get(m.sourceId);
+      if (!src) continue;
+      push({ kind: 'merge', taskId: src.id, label: src.label, ageDays: ageDays(src, opts.now), prefix: labelPrefix(src.label), reason: `correlata de ${target.id.slice(0, 8)} (score ${String(m.score)})`, mergeInto: target.id, score: m.score });
     }
   }
   // grupos de prefixo inteiros parados: proposta-* com >= minGroup abertas e todas antigas
@@ -433,7 +435,7 @@ export function triage(tasks: Task[], opts: { now: number; staleDays?: number; m
     if (!allOld) continue;
     for (const t of group) {
       if (renewed(t)) continue;
-      push({ kind: 'archive', taskId: t.id, label: t.label, ageDays: ageDays(t, opts.now), prefix, reason: `${group.length} abertas com prefixo '${prefix}', todas paradas ha mais de ${staleDays} dias` });
+      push({ kind: 'archive', taskId: t.id, label: t.label, ageDays: ageDays(t, opts.now), prefix, reason: `${String(group.length)} abertas com prefixo '${prefix}', todas paradas ha mais de ${String(staleDays)} dias` });
     }
   }
   // filha pendente de pai ja concluido
@@ -447,21 +449,24 @@ export function triage(tasks: Task[], opts: { now: number; staleDays?: number; m
 }
 
 /** Correlatas 0.50-0.79 entre abertas (sugestao; nunca candidata de apply). */
-export function relatedSuggestions(tasks: Task[], limit = 20): Array<{ a: string; b: string; labelA: string; labelB: string; score: number; command: string }> {
+export function relatedSuggestions(tasks: Task[], limit = 20): { a: string; b: string; labelA: string; labelB: string; score: number; command: string }[] {
   const open = tasks.filter(isOpen) as SimTask[];
   const byId = new Map(open.map((t) => [t.id, t]));
   const ix = clusterPairs(open);
-  return ix.slice(0, limit).map((p) => ({ a: p.a, b: p.b, labelA: byId.get(p.a)!.label, labelB: byId.get(p.b)!.label, score: p.score, command: p.command }));
+  return ix.slice(0, limit).map((p) => ({ a: p.a, b: p.b, labelA: byId.get(p.a)?.label ?? p.a, labelB: byId.get(p.b)?.label ?? p.b, score: p.score, command: p.command }));
 }
 
-function clusterPairs(open: SimTask[]): Array<{ a: string; b: string; score: number; command: string }> {
+function clusterPairs(open: SimTask[]): { a: string; b: string; score: number; command: string }[] {
   const byId = new Map(open.map((t) => [t.id, t]));
   return allPairs(open, { min: THRESHOLD_RELATED })
     .filter((p) => p.score < THRESHOLD_SAME)
-    .map((p) => {
-      const target = pickTarget([byId.get(p.a)!, byId.get(p.b)!]);
+    .flatMap((p) => {
+      const ta = byId.get(p.a);
+      const tb = byId.get(p.b);
+      if (!ta || !tb) return [];
+      const target = pickTarget([ta, tb]);
       const source = target.id === p.a ? p.b : p.a;
-      return { a: p.a, b: p.b, score: p.score, command: mergeCommand(source, target.id) };
+      return [{ a: p.a, b: p.b, score: p.score, command: mergeCommand(source, target.id) }];
     });
 }
 
@@ -477,7 +482,7 @@ export function similarOpen(
 
 export function percentile(sorted: number[], p: number): number {
   if (!sorted.length) return 0;
-  return sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))]!;
+  return sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))] ?? 0;
 }
 
 export function burnReport(tasks: Task[], now: number, months = 6) {
@@ -500,7 +505,9 @@ export function burnReport(tasks: Task[], now: number, months = 6) {
   const completed = tasks.filter((t) => t.status === 'completed');
   const withProof = completed.filter((t) => {
     const m = metaOf(t);
-    return !!(m.closed || m.reconciledFromCommit || (m.links && Object.keys(m.links as object).length));
+    const links = m.links;
+    const hasLinks = typeof links === 'object' && links !== null && Object.keys(links).length > 0;
+    return Boolean(m.closed) || Boolean(m.reconciledFromCommit) || hasLinks;
   });
   return {
     total: tasks.length,
@@ -519,8 +526,10 @@ export function filterTasks(
 ): Task[] {
   let r = tasks;
   if (f.status) r = r.filter((t) => t.status === f.status);
-  if (f.olderThanDays != null) r = r.filter((t) => t.updatedAt != null && now - t.updatedAt > f.olderThanDays! * DAY);
-  if (f.labelPrefix) r = r.filter((t) => t.label.toLowerCase().startsWith(f.labelPrefix!.toLowerCase()));
+  const olderThanDays = f.olderThanDays;
+  if (olderThanDays != null) r = r.filter((t) => t.updatedAt != null && now - t.updatedAt > olderThanDays * DAY);
+  const prefix = f.labelPrefix;
+  if (prefix) r = r.filter((t) => t.label.toLowerCase().startsWith(prefix.toLowerCase()));
   if (f.limit != null) r = r.slice(0, f.limit);
   return r;
 }

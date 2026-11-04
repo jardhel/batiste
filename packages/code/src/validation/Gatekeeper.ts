@@ -16,7 +16,7 @@ import { TypeScriptValidator } from './TypeScriptValidator.js';
 import { logger } from '../utils/logger.js';
 
 export class GatekeeperRegistry {
-  private validators: Map<string, IValidator> = new Map();
+  private validators = new Map<string, IValidator>();
 
   register(validator: IValidator): void {
     this.validators.set(validator.id, validator);

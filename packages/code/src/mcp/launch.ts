@@ -27,7 +27,7 @@ log('launch');
 const manifest = process.env.BATISTE_RECORD === '1' ? null : readManifest();
 const w = await warm(manifest);
 log('warmed', { manifest: w.manifest, dataless: w.dataless, warmMs: w.ms });
-if (w.dataless > 0) console.error(`[batiste-mcp] ${w.dataless} arquivos evictados pelo iCloud baixados em ${w.ms} ms`);
+if (w.dataless > 0) console.error(`[batiste-mcp] ${String(w.dataless)} arquivos evictados pelo iCloud baixados em ${String(w.ms)} ms`);
 
 // Gravacao do fecho carregado (so quando nao ha manifest): ESM via hook de load, CJS via Module._extensions.
 const seen = new Set<string>();

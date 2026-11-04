@@ -81,7 +81,7 @@ export class GraphQuerier {
       const cluster = cId ? this.graph.cluster(cId) : null;
       return {
         node,
-        cluster: cluster ? { id: cluster.id as string, label: cluster.label } : null,
+        cluster: cluster ? { id: cluster.id, label: cluster.label } : null,
       };
     });
   }
@@ -129,12 +129,12 @@ export class GraphQuerier {
     }
     for (const id of iterable as Iterable<unknown>) {
       const cId = this.graph.clusterOf(id as never);
-      if (!cId || seen.has(cId as string)) continue;
-      seen.add(cId as string);
+      if (!cId || seen.has(cId)) continue;
+      seen.add(cId);
       const c = this.graph.cluster(cId);
       if (!c) continue;
       rows.push({
-        id: c.id as string,
+        id: c.id,
         label: c.label,
         memberCount: c.members.length,
         ...(c.cohesion !== undefined ? { cohesion: c.cohesion } : {}),

@@ -43,7 +43,7 @@ export interface GitStatus {
 export class GitTracker {
   private projectRoot: string;
   private log = logger.child('git-tracker');
-  private _isGitRepo: boolean = false;
+  private _isGitRepo = false;
 
   constructor(projectRoot: string) {
     this.projectRoot = projectRoot;
@@ -122,7 +122,7 @@ export class GitTracker {
     try {
       const output = await Promise.resolve(
         execSync(
-          `git log --all --name-only --pretty=format:"%H|%aI|%an" -n ${limit * 2}`,
+          `git log --all --name-only --pretty=format:"%H|%aI|%an" -n ${String(limit * 2)}`,
           {
             cwd: this.projectRoot,
             stdio: 'pipe',

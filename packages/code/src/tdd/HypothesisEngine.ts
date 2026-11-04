@@ -89,7 +89,7 @@ export class HypothesisEngine {
       if (!validation.passed) {
         const errorSummary = Array.from(validation.validatorResults.entries())
           .filter(([, r]) => !r.passed)
-          .map(([id, r]) => `${id}: ${r.errors.length} errors`)
+          .map(([id, r]) => `${id}: ${String(r.errors.length)} errors`)
           .join(', ');
 
         return {

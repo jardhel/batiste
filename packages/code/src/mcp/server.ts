@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { createMcpServer, startMcpServer } from '@batiste-aidk/core/mcp';
 import { TOOL_DEFINITIONS } from './tools.js';
 import { ToolHandler } from './handler.js';
+import { asText } from './safe.js';
 
 const PROJECT_ROOT = process.env.PROJECT_ROOT ?? process.cwd();
 const DATA_DIR = process.env.DATA_DIR ?? join(PROJECT_ROOT, '.batiste');
@@ -40,8 +41,8 @@ function isMain(): boolean {
   }
 }
 if (isMain()) {
-  start().catch((err) => {
-    bootLog('failed', { error: String(err?.message ?? err) });
+  start().catch((err: unknown) => {
+    bootLog('failed', { error: err instanceof Error ? err.message : asText(err) });
     console.error(err);
     process.exit(1);
   });

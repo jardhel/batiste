@@ -76,7 +76,7 @@ interface PendingRequest {
 export class LSPClient extends EventEmitter {
   private process: ChildProcess | null = null;
   private requestId = 0;
-  private pendingRequests: Map<number, PendingRequest> = new Map();
+  private pendingRequests = new Map<number, PendingRequest>();
   private log = logger.child('lsp-client');
   private _initialized = false;
   private buffer = '';
@@ -162,14 +162,14 @@ export class LSPClient extends EventEmitter {
 
     try {
       const content = await readFile(filePath, 'utf-8');
-      await this.openDocument(filePath, content);
+      this.openDocument(filePath, content);
 
       const result = await this.sendRequest('textDocument/definition', {
         textDocument: { uri: `file://${filePath}` },
         position: { line, character: column },
       });
 
-      await this.closeDocument(filePath);
+      this.closeDocument(filePath);
 
       if (!result) {
         return [];
@@ -205,7 +205,7 @@ export class LSPClient extends EventEmitter {
 
     try {
       const content = await readFile(filePath, 'utf-8');
-      await this.openDocument(filePath, content);
+      this.openDocument(filePath, content);
 
       const result = await this.sendRequest('textDocument/references', {
         textDocument: { uri: `file://${filePath}` },
@@ -213,7 +213,7 @@ export class LSPClient extends EventEmitter {
         context: { includeDeclaration: true },
       });
 
-      await this.closeDocument(filePath);
+      this.closeDocument(filePath);
 
       if (!result) {
         return [];
@@ -246,14 +246,14 @@ export class LSPClient extends EventEmitter {
 
     try {
       const content = await readFile(filePath, 'utf-8');
-      await this.openDocument(filePath, content);
+      this.openDocument(filePath, content);
 
       const result = await this.sendRequest('textDocument/hover', {
         textDocument: { uri: `file://${filePath}` },
         position: { line, character: column },
       });
 
-      await this.closeDocument(filePath);
+      this.closeDocument(filePath);
 
       if (!result) {
         return null;
@@ -306,7 +306,7 @@ export class LSPClient extends EventEmitter {
 
   // -- Private helpers --
 
-  private async openDocument(filePath: string, content: string): Promise<void> {
+  private openDocument(filePath: string, content: string): void {
     const languageId = this.detectLanguageId(filePath);
     this.sendNotification('textDocument/didOpen', {
       textDocument: {
@@ -318,7 +318,7 @@ export class LSPClient extends EventEmitter {
     });
   }
 
-  private async closeDocument(filePath: string): Promise<void> {
+  private closeDocument(filePath: string): void {
     this.sendNotification('textDocument/didClose', {
       textDocument: { uri: `file://${filePath}` },
     });
@@ -356,7 +356,7 @@ export class LSPClient extends EventEmitter {
       this.pendingRequests.set(id, { resolve, reject });
 
       const content = JSON.stringify(message);
-      const header = `Content-Length: ${Buffer.byteLength(content)}\r\n\r\n`;
+      const header = `Content-Length: ${String(Buffer.byteLength(content))}\r\n\r\n`;
 
       this.process.stdin.write(header + content);
 
@@ -383,7 +383,7 @@ export class LSPClient extends EventEmitter {
     };
 
     const content = JSON.stringify(message);
-    const header = `Content-Length: ${Buffer.byteLength(content)}\r\n\r\n`;
+    const header = `Content-Length: ${String(Buffer.byteLength(content))}\r\n\r\n`;
 
     this.process.stdin.write(header + content);
   }
@@ -403,7 +403,7 @@ export class LSPClient extends EventEmitter {
       }
 
       const headerPart = this.buffer.substring(0, headerEnd);
-      const contentLengthMatch = headerPart.match(/Content-Length:\s*(\d+)/i);
+      const contentLengthMatch = /Content-Length:\s*(\d+)/i.exec(headerPart);
       if (!contentLengthMatch?.[1]) {
         // Malformed header, skip past the double CRLF
         this.buffer = this.buffer.substring(headerEnd + 4);
@@ -434,7 +434,7 @@ export class LSPClient extends EventEmitter {
 
       // Check if this is a response (has an id field)
       if ('id' in message && typeof message.id === 'number') {
-        const response = message as LSPResponse;
+        const response = message;
         const pending = this.pendingRequests.get(response.id);
         if (pending) {
           this.pendingRequests.delete(response.id);

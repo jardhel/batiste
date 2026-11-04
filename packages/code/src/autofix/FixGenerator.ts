@@ -93,14 +93,14 @@ export class FixGenerator {
         const returnType = this.inferReturnType(context);
         if (!returnType) return null;
 
-        const match = lineContent.match(/^(.*\([^)]*\))\s*(\{?)(.*)$/);
+        const match = /^(.*\([^)]*\))\s*(\{?)(.*)$/.exec(lineContent);
         if (match) {
           const [, beforeBrace, brace, after] = match;
           return {
             file: error.file,
             line: error.line,
             action: 'replace',
-            replacement: `${beforeBrace}: ${returnType} ${brace}${after}`.trim(),
+            replacement: `${String(beforeBrace)}: ${returnType} ${String(brace)}${String(after)}`.trim(),
             confidence: 'medium',
             description: `Add return type annotation: ${returnType}`,
           };
@@ -139,7 +139,7 @@ export class FixGenerator {
         let result = '';
 
         for (let i = 0; i < lineContent.length; i++) {
-          const char = lineContent[i]!;
+          const char = lineContent[i] ?? '';
           const prevChar = lineContent[i - 1];
 
           if (!inString && (char === '"' || char === "'")) {
@@ -168,10 +168,10 @@ export class FixGenerator {
 
   private inferReturnType(context: string[]): string | null {
     const fullContext = context.join('\n');
-    const returnMatch = fullContext.match(/return\s+([^;]+)/);
+    const returnMatch = /return\s+([^;]+)/.exec(fullContext);
     if (!returnMatch) return 'void';
 
-    const returnExpr = returnMatch[1]!.trim();
+    const returnExpr = (returnMatch[1] ?? '').trim();
 
     if (returnExpr.startsWith('`') || returnExpr.startsWith('"') || returnExpr.startsWith("'")) {
       return 'string';
@@ -205,7 +205,7 @@ export class FixGenerator {
           const lineIndex = error.line - 1;
           if (lineIndex < 0 || lineIndex >= lines.length) continue;
 
-          const lineContent = lines[lineIndex]!;
+          const lineContent = lines[lineIndex] ?? '';
           const contextStart = Math.max(0, lineIndex - 5);
           const contextEnd = Math.min(lines.length, lineIndex + 6);
           const context = lines.slice(contextStart, contextEnd);

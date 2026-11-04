@@ -8,8 +8,10 @@
  */
 
 import { Gatekeeper } from '../validation/Gatekeeper.js';
-import { DiffTracker, FileDiff } from './DiffTracker.js';
-import { FixGenerator, FixSuggestion } from './FixGenerator.js';
+import type { FileDiff } from './DiffTracker.js';
+import { DiffTracker } from './DiffTracker.js';
+import type { FixSuggestion } from './FixGenerator.js';
+import { FixGenerator } from './FixGenerator.js';
 import type { ValidationError } from '../validation/types.js';
 
 export interface AutoFixOptions {

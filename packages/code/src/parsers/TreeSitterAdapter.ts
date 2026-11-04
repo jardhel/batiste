@@ -160,7 +160,7 @@ export class TreeSitterAdapter {
 
     const sourceHash = this.hashSource(source);
     const cached = this.cache.get(filePath);
-    if (cached && cached.sourceHash === sourceHash) {
+    if (cached?.sourceHash === sourceHash) {
       return cached.result;
     }
 
@@ -168,8 +168,8 @@ export class TreeSitterAdapter {
     const errors: string[] = [];
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      this.parser.setLanguage(resolvedStrategy.getParser() as never);
+       
+      this.parser.setLanguage(resolvedStrategy.getParser());
       const tree = this.parser.parse(source);
 
       if (tree.rootNode.hasError) {

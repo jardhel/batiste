@@ -27,7 +27,7 @@ interface FileSnapshot {
 }
 
 export class DiffTracker {
-  private snapshots: Map<string, FileSnapshot> = new Map();
+  private snapshots = new Map<string, FileSnapshot>();
 
   async snapshot(paths: string[]): Promise<void> {
     const readPromises = paths.map(async (path) => {
@@ -147,13 +147,12 @@ export class DiffTracker {
     const n = b.length;
     const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0) as number[]);
 
+    const at = (r: number, c: number): number => dp[r]?.[c] ?? 0;
     for (let i = 1; i <= m; i++) {
+      const row = dp[i];
+      if (!row) continue;
       for (let j = 1; j <= n; j++) {
-        if (a[i - 1] === b[j - 1]) {
-          dp[i]![j] = dp[i - 1]![j - 1]! + 1;
-        } else {
-          dp[i]![j] = Math.max(dp[i - 1]![j]!, dp[i]![j - 1]!);
-        }
+        row[j] = a[i - 1] === b[j - 1] ? at(i - 1, j - 1) + 1 : Math.max(at(i - 1, j), at(i, j - 1));
       }
     }
 
@@ -161,10 +160,10 @@ export class DiffTracker {
     let i = m, j = n;
     while (i > 0 && j > 0) {
       if (a[i - 1] === b[j - 1]) {
-        lcs.unshift(a[i - 1]!);
+        lcs.unshift(a[i - 1] ?? '');
         i--;
         j--;
-      } else if (dp[i - 1]![j]! > dp[i]![j - 1]!) {
+      } else if (at(i - 1, j) > at(i, j - 1)) {
         i--;
       } else {
         j--;
@@ -182,12 +181,12 @@ export class DiffTracker {
     const totalDeletions = diffs.reduce((sum, d) => sum + d.deletions, 0);
 
     const parts: string[] = [
-      `${diffs.length} file${diffs.length !== 1 ? 's' : ''} changed`,
-      `${totalChanges} change${totalChanges !== 1 ? 's' : ''}`,
+      `${String(diffs.length)} file${diffs.length !== 1 ? 's' : ''} changed`,
+      `${String(totalChanges)} change${totalChanges !== 1 ? 's' : ''}`,
     ];
 
-    if (totalAdditions > 0) parts.push(`+${totalAdditions}`);
-    if (totalDeletions > 0) parts.push(`-${totalDeletions}`);
+    if (totalAdditions > 0) parts.push(`+${String(totalAdditions)}`);
+    if (totalDeletions > 0) parts.push(`-${String(totalDeletions)}`);
 
     return parts.join(', ');
   }
