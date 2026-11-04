@@ -267,6 +267,8 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.30)
 
+  packages/confidential-gate: {}
+
   packages/connectors:
     dependencies:
       pdfjs-dist:
@@ -312,6 +314,8 @@ importers:
         version: 2.1.9(@types/node@20.19.30)
 
   packages/credential-preflight: {}
+
+  packages/deploy-integrity: {}
 
   packages/graph:
     dependencies:
@@ -477,6 +481,8 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.30)
 
+  packages/secret-scan: {}
+
   packages/sign:
     dependencies:
       typescript:
@@ -492,6 +498,8 @@ importers:
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.30)
+
+  packages/tasklog-hygiene: {}
 
   packages/transport:
     dependencies:
@@ -519,6 +527,12 @@ importers:
     dependencies:
       '@playwright/test':
         specifier: '*'
+        version: 1.60.0
+
+  packages/ui-geometry:
+    devDependencies:
+      playwright:
+        specifier: 1.60.0
         version: 1.60.0
 
 packages:
@@ -2243,9 +2257,10 @@ packages:
     resolution: {integrity: sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw==}
     hasBin: true
 
-  jschardet@3.1.4:
-    resolution: {integrity: sha512-/kmVISmrwVwtyYU40iQUOp3SUPk2dhNCMsZBQX0R1/jZ8maaXJ/oZIzUOiyOqcgtLnETFKYChbJ5iDC/eWmFHg==}
-    engines: {node: '>=0.1.90'}
+  jschardet@4.1.0:
+    resolution: {integrity: sha512-ighRZ11mb6l4m+xSKoivuqNj44qkObODXsAnnkkfYcY4JfYRnEgAe/w1c3mbnJtTQmLtfebAUfXGsUGUJImexg==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   json-bignum@0.0.3:
     resolution: {integrity: sha512-2WHyXj3OfHSgNyuzDbSxI1w2jgw5gkWSWhS7Qg4bWXx1nLk3jnbwfUeS0PSba3IzpTUWdHxBieELUzXRjQB2zg==}
@@ -3653,7 +3668,7 @@ snapshots:
   '@microsoft/eslint-formatter-sarif@3.1.0':
     dependencies:
       eslint: 8.57.1
-      jschardet: 3.1.4
+      jschardet: 4.1.0
       lodash: 4.18.1
       utf8: 3.0.0
     transitivePeerDependencies:
@@ -4897,7 +4912,7 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  jschardet@3.1.4: {}
+  jschardet@4.1.0: {}
 
   json-bignum@0.0.3: {}
 

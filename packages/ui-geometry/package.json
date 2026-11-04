@@ -6,6 +6,7 @@
   "type": "module",
   "bin": { "ui-geometry": "./ui-geometry.mjs" },
   "scripts": { "test": "sh -c 'node --test' --" },
-  "peerDependencies": { "playwright": "*" },
+  "peerDependencies": { "playwright": "^1.60.0" },
+  "devDependencies": { "playwright": "1.60.0" },
   "license": "UNLICENSED"
 }
