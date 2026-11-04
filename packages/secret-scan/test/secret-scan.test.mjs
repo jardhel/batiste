@@ -59,3 +59,10 @@ test("allowlist: valor pinado libera; pin sha256 libera só a linha exata", () =
 test("--allowlist inexistente falha alto", () => {
   const d = repo({ "a.md": "oi\n" }); assert.notEqual(run(d, "--allowlist", "nao-existe.json").code, 0);
 });
+
+test("arquivo com acento/travessao no nome e VARRIDO (antes o git show falhava e o arquivo passava sem scan)", () => {
+  const d = repo({ "notas/decisão — gate.md": "senha_admin = \"Hunter2-real-9f8e7d6c5b4a\"\n" });
+  const r = run(d);
+  assert.notEqual(r.code, 0, r.out);
+  assert.doesNotMatch(r.out, /fatal/i);
+});

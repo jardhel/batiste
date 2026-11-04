@@ -100,7 +100,8 @@ function permitido(A, path, linha, padraoId) {
 
 // ---------------------------------------------------------------------------- fontes de conteúdo
 export const gitRoot = (cwd = process.cwd()) => execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd, encoding: "utf8" }).trim();
-const stagedFiles = (root) => execFileSync("git", ["diff", "--cached", "--name-only", "--diff-filter=ACMR"], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
+// -z: nome com acento/travessao sai CRU (sem aspas e octal); sem isso o `git show :<path>` falhava e o arquivo ficava SEM varredura
+const stagedFiles = (root) => execFileSync("git", ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMR"], { cwd: root, encoding: "utf8" }).split("\0").filter(Boolean);
 const allFiles = (root) => execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8", maxBuffer: 1 << 26 }).split("\n").filter(Boolean);
 function conteudo(root, path, staged) {
   try {
