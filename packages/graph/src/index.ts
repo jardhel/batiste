@@ -29,9 +29,14 @@ export {
   type Graph,
   type BuildDiagnostics,
   type BuildResult,
+  type Source,
+  type SourceWeightConfig,
+  type SourceWeightedQuery,
+  type ScoredNode,
   nodeId,
   clusterId,
   edgeId,
+  SOURCE_METADATA_KEY,
 } from './types.js';
 
 // Abstract contracts (Phase 2 implementations plug in here)
@@ -52,3 +57,6 @@ export { InMemoryGraphBuilder, type ExtendedGraphInput } from './builder.js';
 
 // Phase 2c — community-detection clustering (Louvain; Leiden in 2c.1)
 export { CommunityDetectionClusterer, type RichClusterOverlay } from './clusterer.js';
+
+// Phase 2d — Vault Graph RAG: source-weighted retrieval / ranking
+export { retrieveWeighted, rankBySource, resolveSource, weightForSource } from './retrieval.js';

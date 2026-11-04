@@ -228,6 +228,107 @@ export interface Graph {
 }
 
 // ---------------------------------------------------------------------------
+// Source-weighted retrieval (Phase 2d — Vault Graph RAG)
+// ---------------------------------------------------------------------------
+
+/**
+ * Well-known metadata key carrying a node's *source* — the provenance
+ * silo it came from (e.g. `vault`, `code`, `audit`, `external`, or a
+ * vault GVS axis). Source-weighted retrieval reads this key off
+ * {@link Node.metadata} to look the node's weight up in a
+ * {@link SourceWeightConfig}.
+ *
+ * `gvs:` prefix matches the vault's six-axis GVS convention referenced
+ * elsewhere in this package; using a namespaced key keeps it from
+ * colliding with parser-emitted keys like `tree-sitter:kind`.
+ */
+export const SOURCE_METADATA_KEY = 'gvs:source';
+
+/**
+ * Opaque source label. A string at runtime; any value that appears as
+ * `metadata[SOURCE_METADATA_KEY]` (or, as a fallback, a {@link NodeKind})
+ * is a valid `Source`. Whitelabel tenants drive their own vocabulary
+ * here via config — there is no closed union.
+ */
+export type Source = string;
+
+/**
+ * Per-source multipliers applied during source-weighted retrieval.
+ *
+ * `weights` maps a {@link Source} to a non-negative multiplier. A
+ * weight of `1` is neutral; `> 1` boosts that source; `0` suppresses it
+ * (the node can still appear at score 0 unless `dropZeroWeight` prunes
+ * it). Sources absent from the map fall back to {@link defaultWeight}.
+ *
+ * The config is the whitelabel knob the benchmark turns: holding the
+ * corpus, embedder, traversal, and seed fixed and varying ONLY
+ * `weights` isolates the marginal effect of source-weighting on
+ * ranking — the apples-to-apples discipline of the benchmark SPEC.
+ */
+export interface SourceWeightConfig {
+  /** Source → non-negative multiplier. */
+  readonly weights: Readonly<Record<Source, number>>;
+  /** Multiplier for sources absent from {@link weights}. Default: `1`. */
+  readonly defaultWeight?: number;
+  /**
+   * When `true`, candidates whose effective source weight is `0` are
+   * omitted from results entirely (a hard source filter) rather than
+   * returned with score `0`. Default: `false`.
+   */
+  readonly dropZeroWeight?: boolean;
+}
+
+/**
+ * Options for source-weighted retrieval over a {@link Graph}.
+ *
+ * Retrieval is seeded by one or more nodes (the lexical/embedding
+ * pre-selection upstream is out of scope for this package — see the
+ * benchmark SPEC §4: this layer is the GRAPH expansion/re-ranking that
+ * Benchmark B ablates against a flat baseline). From the seeds it walks
+ * up to {@link maxHops} hops, decaying proximity by {@link hopDecay}
+ * per hop, then multiplies by the per-source weight.
+ */
+export interface SourceWeightedQuery {
+  /** Seed node(s) the retrieval expands from. At least one is required. */
+  readonly seeds: readonly NodeId[];
+  /** Per-source weighting. Required — it is the point of this call. */
+  readonly sources: SourceWeightConfig;
+  /** Max hop distance to expand from any seed. Default: `2`. */
+  readonly maxHops?: number;
+  /**
+   * Proximity decay per hop, in `(0, 1]`. A seed scores `1`; a node at
+   * hop `h` scores `hopDecay ** h` before the source multiplier.
+   * Default: `0.5`.
+   */
+  readonly hopDecay?: number;
+  /** Restrict candidates to these node kinds. Default: no filter. */
+  readonly kinds?: readonly NodeKind[];
+  /** Include the seed nodes themselves in the ranked output. Default: `true`. */
+  readonly includeSeeds?: boolean;
+  /** Maximum number of scored nodes to return. Default: `100`. */
+  readonly limit?: number;
+}
+
+/**
+ * A node paired with its retrieval score and the provenance of that
+ * score. Returned by source-weighted retrieval, ranked by `score`
+ * descending with a deterministic NodeId tie-break.
+ */
+export interface ScoredNode {
+  readonly node: Node;
+  /** Final score: `proximity * sourceWeight`. */
+  readonly score: number;
+  /** Hop distance from the nearest seed (`0` for a seed). */
+  readonly hops: number;
+  /** Proximity component before the source multiplier (`hopDecay ** hops`). */
+  readonly proximity: number;
+  /** The {@link Source} resolved for this node. */
+  readonly source: Source;
+  /** The multiplier applied for that source. */
+  readonly sourceWeight: number;
+}
+
+// ---------------------------------------------------------------------------
 // Result envelopes (for Phase 2 builders)
 // ---------------------------------------------------------------------------
 
