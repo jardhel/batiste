@@ -55,6 +55,11 @@ const EXCEPTIONS = Object.freeze({
   '@img/sharp-libvips-linux-x64@1.2.4':      { license: 'LGPL-3.0-or-later', reason: 'prebuilt libvips, dynamic linking', approver: 'Jardhel Cachola', date: '2026-06-10' },
   '@img/sharp-libvips-linuxmusl-x64@1.2.4':  { license: 'LGPL-3.0-or-later', reason: 'prebuilt libvips, dynamic linking', approver: 'Jardhel Cachola', date: '2026-06-10' },
   '@img/sharp-libvips-darwin-arm64@1.2.4':   { license: 'LGPL-3.0-or-later', reason: 'prebuilt libvips, dynamic linking', approver: 'Jardhel Cachola', date: '2026-06-10' },
+  // 2026-11-07: sharp 0.35.5 (override de seguranca) trouxe libvips 1.3.4; mesma licenca,
+  // mesmo uso (linking dinamico), mesma excecao do §8 renovada para a versao nova.
+  '@img/sharp-libvips-linux-x64@1.3.4':      { license: 'LGPL-3.0-or-later', reason: 'prebuilt libvips, dynamic linking (renovacao de versao da excecao de 2026-06-10)', approver: 'Jardhel Cachola', date: '2026-06-10' },
+  '@img/sharp-libvips-linuxmusl-x64@1.3.4':  { license: 'LGPL-3.0-or-later', reason: 'prebuilt libvips, dynamic linking (renovacao de versao da excecao de 2026-06-10)', approver: 'Jardhel Cachola', date: '2026-06-10' },
+  '@img/sharp-libvips-darwin-arm64@1.3.4':   { license: 'LGPL-3.0-or-later', reason: 'prebuilt libvips, dynamic linking (renovacao de versao da excecao de 2026-06-10)', approver: 'Jardhel Cachola', date: '2026-06-10' },
 });
 
 function log(msg) { if (!QUIET) process.stderr.write(msg + '\n'); }
