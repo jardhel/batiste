@@ -23,13 +23,13 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "graphology": "^0.26.0",
-    "graphology-communities-louvain": "^2.0.2",
-    "graphology-types": "^0.24.7"
+    "graphology": "0.26.0",
+    "graphology-communities-louvain": "2.0.2",
+    "graphology-types": "0.24.8"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "vitest": "^5.1.0"
+    "@types/node": "24.19.2",
+    "vitest": "5.1.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

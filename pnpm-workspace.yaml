@@ -1,2 +1,69 @@
 packages:
   - 'packages/*'
+
+# Quarentena de versao nova (pnpm >= 10.16): so resolve versao publicada ha mais de 3 dias
+# (minutos). Janela em que a maioria dos pacotes sequestrados no npm e removida.
+# Nao vale para versao ja fixada no pnpm-lock.yaml (instalacao congelada).
+minimumReleaseAge: 4320
+
+# Pacotes da casa saem da quarentena (nos publicamos, nos confiamos).
+#
+# CORRECAO DE SEGURANCA URGENTE (< 3 dias): adicione o pacote@versao exata aqui
+# (ex.: 'protobufjs@7.6.7'), rode 'pnpm install', commite junto com o lockfile e
+# REMOVA a linha na sequencia, quando a versao completar 3 dias. Alternativa pontual
+# sem editar arquivo: PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 pnpm install (nao commitar nada).
+minimumReleaseAgeExclude:
+  - '@batiste/*'
+  - '@batiste-aidk/*'
+  - '@rollup/rollup-android-arm-eabi@4.68.0'
+  - '@rollup/rollup-linux-arm64-musl@4.68.0'
+  - '@rollup/rollup-darwin-arm64@4.68.0'
+  - '@rollup/rollup-openharmony-arm64@4.68.0'
+  - '@rollup/rollup-linux-arm-gnueabihf@4.68.0'
+  - '@rollup/rollup-linux-arm64-gnu@4.68.0'
+  - '@rollup/rollup-linux-loong64-gnu@4.68.0'
+  - '@rollup/rollup-freebsd-x64@4.68.0'
+  - '@rollup/rollup-linux-ppc64-musl@4.68.0'
+  - '@rollup/rollup-linux-arm-musleabihf@4.68.0'
+  - '@rollup/rollup-linux-s390x-gnu@4.68.0'
+  - '@rollup/rollup-win32-arm64-msvc@4.68.0'
+  - '@rollup/rollup-linux-riscv64-musl@4.68.0'
+  - '@rollup/rollup-win32-x64-msvc@4.68.0'
+  - '@rollup/rollup-android-arm64@4.68.0'
+  - '@rollup/rollup-freebsd-arm64@4.68.0'
+  - '@rollup/rollup-linux-riscv64-gnu@4.68.0'
+  - '@rollup/rollup-linux-loong64-musl@4.68.0'
+  - '@rollup/rollup-linux-x64-gnu@4.68.0'
+  - '@rollup/rollup-win32-x64-gnu@4.68.0'
+  - '@rollup/rollup-win32-ia32-msvc@4.68.0'
+  - '@rollup/rollup-linux-ppc64-gnu@4.68.0'
+  - '@rollup/rollup-linux-x64-musl@4.68.0'
+  - '@rollup/rollup-darwin-x64@4.68.0'
+  - '@rollup/rollup-openbsd-x64@4.68.0'
+  - '@rollup/rollup-android-x64@4.68.0'
+  - '@isaacs/nonrecursive-glob-match@1.1.0'
+  - 'rollup@4.68.0'
+  - 'hono@4.13.17'
+  - 'minimatch@11.0.5'
+
+# Scripts de instalacao (preinstall/install/postinstall) so rodam para esta lista.
+# Qualquer dependencia nova com script fica bloqueada e aparece em 'pnpm ignored-builds'.
+onlyBuiltDependencies:
+  # modulo nativo, compila/baixa binario; core/audit dependem dele
+  - better-sqlite3
+
+# Scripts bloqueados DE PROPOSITO (provado: build, typecheck e testes verdes sem eles):
+#  - esbuild: binario vem do pacote opcional da plataforma; o postinstall so valida
+#  - protobufjs: postinstall so ajusta esquema de versao
+#  - onnxruntime-node: postinstall so baixa binarios CUDA no Linux (nao usamos GPU)
+#  - tree-sitter*: prebuilds ja vem no tarball (node-gyp-build)
+ignoredBuiltDependencies:
+  - esbuild
+  - protobufjs
+  - onnxruntime-node
+  - tree-sitter
+  - tree-sitter-go
+  - tree-sitter-javascript
+  - tree-sitter-python
+  - tree-sitter-rust
+  - tree-sitter-typescript

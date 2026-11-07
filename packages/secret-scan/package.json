@@ -4,7 +4,11 @@
   "version": "0.1.0",
   "description": "Gate de pre-commit contra credencial/token em arquivo versionado (código, releases, md/txt). Exceção só por allowlist pinada.",
   "type": "module",
-  "bin": { "secret-scan": "./secret-scan.mjs" },
-  "scripts": { "test": "sh -c 'node --test' --" },
+  "bin": {
+    "secret-scan": "./secret-scan.mjs"
+  },
+  "scripts": {
+    "test": "sh -c 'node --test' --"
+  },
   "license": "UNLICENSED"
 }

@@ -32,7 +32,7 @@
   },
   "author": "Cachola Tech Holding B.V.",
   "devDependencies": {
-    "typescript": "^5.4.0",
-    "vitest": "^5.1.0"
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
   }
 }

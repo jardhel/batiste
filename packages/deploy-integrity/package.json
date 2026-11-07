@@ -4,5 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Guardião de deploy: o que foi testado é o que sobe, sem referência quebrada, e o que está no ar é o que subiu. Sentinela de defasagem (pronto e não publicado).",
-  "scripts": { "test": "sh -c 'node --test deploy-integrity.test.mjs' --" }
+  "scripts": {
+    "test": "sh -c 'node --test deploy-integrity.test.mjs' --"
+  }
 }

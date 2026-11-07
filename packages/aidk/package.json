@@ -44,11 +44,11 @@
     "@batiste-aidk/auth": "workspace:*",
     "@batiste-aidk/scope": "workspace:*",
     "@batiste-aidk/audit": "workspace:*",
-    "zod": "^4.6.7"
+    "zod": "4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "vitest": "^5.1.0"
+    "@types/node": "24.19.2",
+    "vitest": "5.1.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

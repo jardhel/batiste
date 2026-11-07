@@ -4,7 +4,11 @@
   "version": "0.1.0",
   "description": "Prova por shell que PDF interno sai com marca d'água CONFIDENCIAL e que peça de cliente sai sem credencial.",
   "type": "module",
-  "bin": { "confidential-gate": "./confidential-gate.mjs" },
-  "scripts": { "test": "sh -c 'node --test' --" },
+  "bin": {
+    "confidential-gate": "./confidential-gate.mjs"
+  },
+  "scripts": {
+    "test": "sh -c 'node --test' --"
+  },
   "license": "UNLICENSED"
 }
