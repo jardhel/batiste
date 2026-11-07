@@ -31,6 +31,6 @@ Emergencies (SEV-0 / SEV-1 hotfix) bypass the normal queue but not the reviewer 
 
 - PR history on GitHub.
 - Signed release artefacts.
-- SBOMs (`sbom.cdx.json`) per release.
+- SBOM (`sbom.spdx.json`) per release.
 - Changelog.
 - CI logs retained 6 months.

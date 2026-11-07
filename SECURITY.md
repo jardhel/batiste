@@ -68,7 +68,7 @@ Our default window is 90 days from initial report to public disclosure. The wind
 ## Supply chain
 
 - Releases are signed with [sigstore / cosign](https://www.sigstore.dev/). Signature verification is documented in `docs/verify-release.md`.
-- CycloneDX SBOMs are attached to every release (`sbom.cdx.json`).
+- An SPDX SBOM (`sbom.spdx.json`, from the GitHub dependency graph) is attached, signed and attested on every release.
 - Dependency policy and vulnerability handling are in [`compliance/policies/vendor-management-policy.md`](./compliance/policies/vendor-management-policy.md) and [`compliance/policies/change-management-policy.md`](./compliance/policies/change-management-policy.md).
 
 ## Hall of fame

@@ -24,8 +24,7 @@ Politica de reporte e SLA: ver [`../SECURITY.md`](../SECURITY.md).
 
 ## Release e SBOM
 
-`release.yml` gera: SBOM CycloneDX (`scripts/generate-sbom.sh`), SBOM SPDX 2.3 (API nativa de dependency graph do GitHub, sem instalar ferramenta), assinatura keyless com cosign e atestado de proveniencia.
+`release.yml` gera o SBOM SPDX 2.3 via `scripts/generate-sbom.sh` (API nativa de dependency graph do GitHub; nenhuma ferramenta de terceiros e baixada ou executada), com assinatura keyless (cosign) e atestado de proveniencia (`attest-build-provenance`) do tarball e do SBOM. Nao ha mais SBOM CycloneDX: reintroduzir so com a ferramenta como devDependency exata no lockfile, via `pnpm exec`, nunca npx/@latest/docker.
 
 ## Pendencias conhecidas
 
-- `scripts/generate-sbom.sh` ainda chama `npx --yes @cyclonedx/cdxgen@latest` (versao nao fixada) e, na ausencia de `syft`, `docker run anchore/syft:latest` (imagem nao fixada). Fixar versao/digest e decisao de quem mantem `scripts/`.

@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# generate-sbom.sh — emits SPDX + CycloneDX SBOMs for the Batiste monorepo.
+# generate-sbom.sh — emite o SBOM SPDX do monorepo Batiste.
 #
-# Invoked by .github/workflows/release.yml (release gate) and reproducible
-# locally with: bash scripts/generate-sbom.sh
+# Fonte: dependency graph do GitHub (API oficial), que devolve SPDX JSON sem
+# baixar nem executar nenhum codigo de terceiros (sem npx, dlx, docker, syft,
+# cdxgen). Requer `gh` autenticado (GH_TOKEN no CI) e o repo no GitHub.
 #
-# Outputs (idempotent):
+# Invocado por .github/workflows/release.yml e reproduzivel localmente:
+#   GITHUB_REPOSITORY=jardhel/batiste bash scripts/generate-sbom.sh
+#
+# Saidas (idempotente):
 #   reports/sbom.spdx.json
-#   reports/sbom.cdx.json
+#   reports/sbom.sha256
 #
-# Tool choice: @cyclonedx/cyclonedx-npm (CycloneDX) and
-# @spdx/tools-node via `npx spdx-sbom-generator` fallback. Both are
-# invoked through `npx --yes` so no global install is required.
-#
-# E6-DD-22: auditable supply-chain manifest signed in release.yml with
-# cosign keyless. GDPR Art. 32, NIS2 Art. 21(2)(e), DORA Art. 28.
+# O release.yml assina (cosign keyless) e atesta (attest-build-provenance)
+# o arquivo. GDPR Art. 32, NIS2 Art. 21(2)(e), DORA Art. 28.
 
 set -euo pipefail
 
@@ -21,72 +21,30 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPORTS="$REPO_ROOT/reports"
 mkdir -p "$REPORTS"
 
-VERSION="$(node -p "require('./package.json').version || '0.0.0'")"
-COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo 'unknown')"
-TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
-echo "▶ sbom: batiste@${VERSION} commit=${COMMIT:0:12} at ${TS}"
-
-# ---------- CycloneDX ----------
-# cdxgen lê pnpm-lock.yaml nativamente — cyclonedx-npm exigia package-lock.json
-# (npm) e quebrava o release em repo pnpm ("No evidence: no package lock file").
-echo "▶ cdx: @cyclonedx/cdxgen (pnpm-aware)"
-npx --yes @cyclonedx/cdxgen@latest \
-  -t pnpm \
-  --no-install-deps \
-  -o "$REPORTS/sbom.cdx.json" \
-  "$REPO_ROOT" \
-  || {
-    echo "✖ cdxgen failed" >&2
-    exit 1
-  }
-
-# ---------- SPDX ----------
-# @anchore/syft is the de-facto standard for SPDX JSON and handles pnpm
-# workspaces correctly. We call it via `syft` binary if present,
-# otherwise via the Docker image as a last resort.
-echo "▶ spdx: syft"
-if command -v syft >/dev/null 2>&1; then
-  syft "dir:$REPO_ROOT" -o "spdx-json=$REPORTS/sbom.spdx.json" --quiet
-elif command -v docker >/dev/null 2>&1; then
-  docker run --rm -v "$REPO_ROOT:/src" anchore/syft:latest \
-    "dir:/src" -o spdx-json > "$REPORTS/sbom.spdx.json"
-else
-  # Minimal hand-rolled SPDX 2.3 fallback so release gate never blocks
-  # on tooling availability. CI installs syft explicitly; this branch
-  # only triggers on dev machines without syft.
-  node - <<NODE > "$REPORTS/sbom.spdx.json"
-    const fs = require('node:fs');
-    const path = require('node:path');
-    const root = process.cwd();
-    const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-    const out = {
-      spdxVersion: 'SPDX-2.3',
-      dataLicense: 'CC0-1.0',
-      SPDXID: 'SPDXRef-DOCUMENT',
-      name: pkg.name + '-' + pkg.version,
-      documentNamespace: 'https://batiste.network/sbom/' + pkg.name + '-' + pkg.version + '-' + Date.now(),
-      creationInfo: {
-        created: '${TS}',
-        creators: ['Tool: batiste-generate-sbom-fallback'],
-      },
-      packages: [{
-        SPDXID: 'SPDXRef-Package-batiste',
-        name: pkg.name,
-        versionInfo: pkg.version,
-        downloadLocation: 'NOASSERTION',
-        filesAnalyzed: false,
-        licenseConcluded: pkg.license || 'NOASSERTION',
-      }],
-    };
-    process.stdout.write(JSON.stringify(out, null, 2));
-NODE
+REPO="${GITHUB_REPOSITORY:-}"
+if [ -z "$REPO" ]; then
+  REPO="$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' || true)"
+fi
+if [ -z "$REPO" ]; then
+  echo "✖ defina GITHUB_REPOSITORY=owner/repo" >&2
+  exit 1
 fi
 
-# ---------- Checksums ----------
+COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo 'unknown')"
+echo "▶ sbom: ${REPO} commit=${COMMIT:0:12}"
+
+gh api "repos/${REPO}/dependency-graph/sbom" --jq .sbom > "$REPORTS/sbom.spdx.json"
+
+node -e '
+const s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+if (!s.spdxVersion || !(s.packages || []).length) { console.error("✖ SPDX invalido ou vazio"); process.exit(1); }
+console.log("✔", s.spdxVersion, s.packages.length, "packages");
+' "$REPORTS/sbom.spdx.json"
+
 (
   cd "$REPORTS"
-  sha256sum sbom.spdx.json sbom.cdx.json > sbom.sha256
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum sbom.spdx.json > sbom.sha256
+  else shasum -a 256 sbom.spdx.json > sbom.sha256; fi
 )
 
 echo "✔ sbom done"

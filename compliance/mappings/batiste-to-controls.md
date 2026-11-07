@@ -63,7 +63,7 @@ Abbreviations: `SOC2` = Trust Services Criteria · `ISO` = ISO/IEC 27001:2022 An
 | Feature | Evidence | SOC2 | ISO | NIS2 | DORA | GDPR | AIA |
 |---|---|---|---|---|---|---|---|
 | Signed releases (sigstore/cosign) | GitHub release artifacts `*.sig` | CC7.1, CC8.1 | A.8.30, A.8.32 | Art. 21(2)(e) | Art. 9(4)(f) | Art. 32 | Art. 15(1) |
-| SBOM (CycloneDX) per release | `sbom.cdx.json` attached to each GH release | CC7.1 | A.8.30 | Art. 21(2)(j) | Art. 28(4) | — | Art. 15(1) |
+| SBOM (SPDX) per release | `sbom.spdx.json` attached to each GH release | CC7.1 | A.8.30 | Art. 21(2)(j) | Art. 28(4) | — | Art. 15(1) |
 | Reproducible build | `pnpm build --frozen-lockfile`, `turbo.json` cache keyed on input hash | CC8.1 | A.8.32 | Art. 21(2)(e) | Art. 9(4)(f) | — | Art. 12(2) |
 | Static analysis + SAST gate | `eslint.config.js`, CI workflow (when published) | CC7.1, CC8.1 | A.8.28, A.8.29 | Art. 21(2)(e) | Art. 9(4)(f) | — | Art. 15(4) |
 | Dependency vulnerability gate | `pnpm audit` in CI; `.batiste/eixo5_code_quality.md` | CC7.1 | A.8.8 | Art. 21(2)(e) | Art. 9(4)(f) | — | — |
