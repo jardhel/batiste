@@ -5,20 +5,27 @@ on:
     tags: ["v*.*.*"]
 
 permissions:
-  contents: write
-  id-token: write   # needed for sigstore keyless signing
-  attestations: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build-sign-publish:
     name: build · sbom · sign · publish
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write       # criar o GitHub Release
+      id-token: write       # sigstore keyless signing + attestation
+      attestations: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Verify tag matches CHANGELOG
         run: |
@@ -29,9 +36,9 @@ jobs:
           fi
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - name: Setup Node 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
           cache: pnpm
@@ -45,11 +52,19 @@ jobs:
       - name: Test (release gate)
         run: pnpm -r test
 
-      - name: Install syft (SPDX)
-        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-
       - name: Generate SBOM (SPDX + CycloneDX)
         run: bash scripts/generate-sbom.sh
+
+      # SPDX 2.3 nativo do GitHub (dependency graph): sem instalar ferramenta nao
+      # vetada. Sobrescreve o SPDX do script, que sem syft cai em docker
+      # anchore/syft:latest ou num stub minimo.
+      - name: SPDX SBOM from GitHub dependency graph
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/sbom" --jq .sbom > reports/sbom.spdx.json
+          node -e "const s=JSON.parse(require('fs').readFileSync('reports/sbom.spdx.json','utf8'));if(!s.spdxVersion||!(s.packages||[]).length)process.exit(1);console.log(s.spdxVersion,s.packages.length,'packages')"
+          (cd reports && sha256sum sbom.spdx.json sbom.cdx.json > sbom.sha256)
 
       - name: Generate license report + NOTICE
         run: |
@@ -57,7 +72,7 @@ jobs:
           node scripts/generate-notice.mjs --write
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
 
       - name: Sign SBOMs (keyless)
         run: |
@@ -91,12 +106,12 @@ jobs:
             ${{ steps.pack.outputs.tarball }}
 
       - name: Attest provenance
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: ${{ steps.pack.outputs.tarball }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           generate_release_notes: true
           files: |

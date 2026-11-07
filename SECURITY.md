@@ -1,31 +1,39 @@
 # Security Policy
 
+Vulnerabilidade de seguranca e tratada como SEV0 neste projeto.
+
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| 1.0.x | yes |
-| 0.1.x (beta) | no (upgrade to 1.0.x) |
+| `main` (HEAD) | yes |
+| 1.2.x (pre-release, `v1.2.0-alpha.*`) | yes |
+| 1.1.x | security fixes only (critical and high) |
+| 1.0.x and older, 0.x (beta) | no (upgrade) |
 
-Security fixes are released as patch versions on the supported minor. Older minors receive security fixes only for critical severity for 90 days after the next minor is released.
+Security fixes ship as patch versions on the supported line. A fix for a critical issue may also be backported to the previous minor for 90 days.
 
 ## Reporting a vulnerability
 
-Please report vulnerabilities privately — **do not** open public GitHub issues for security reports.
+Report privately. **Do not** open public issues, pull requests or discussions for security reports.
 
-**Email:** `security@cachola.tech`
-**PGP:** see `compliance/security-pgp-key.asc` (fingerprint published in release notes).
-**Response SLA:**
-- Acknowledgement within 2 business days.
-- Triage and initial severity within 5 business days.
-- Fix or mitigation for critical findings within 30 days; others per our [Incident Response policy](./compliance/policies/incident-response-policy.md).
+1. Preferred: GitHub private vulnerability reporting, at <https://github.com/jardhel/batiste/security/advisories/new>.
+2. Alternative: email `jardhel@cachola.tech` with subject `[batiste security]`.
 
-When reporting, please include:
+Please include: version (git SHA or release tag), environment (OS, Node version, deployment preset), reproduction steps or a minimal proof of concept, and the impact you observed or expect.
 
-- Batiste version (git SHA or release tag).
-- Environment (OS, Node version, deployment preset).
-- Reproduction steps and, if possible, a minimal proof of concept.
-- The impact you observed or expect.
+## Response SLA
+
+Counted from a confirmed report. Acknowledgement happens within 2 business days; remediation targets by severity (CVSS v3.1 / v4):
+
+| Severity | Fix or mitigation target |
+|---|---|
+| Critical (9.0-10.0) | same day |
+| High (7.0-8.9) | within 72 hours |
+| Moderate (4.0-6.9) | within 14 days |
+| Low (< 4.0) | next regular release |
+
+The same targets apply to vulnerable dependencies reported by Dependabot, OSV-Scanner, `pnpm audit` or CodeQL. If a fix upstream does not exist, we ship a mitigation (pin, override, feature off) inside the target and track the upstream fix.
 
 ## Safe harbour
 
@@ -43,6 +51,7 @@ We will credit reporters on request once a fix is released, unless they prefer a
 In scope:
 
 - Source code in this repository and signed release artefacts published under the `jardhel/batiste` GitHub org.
+- CI/CD configuration (`.github/`) and every package under `packages/`.
 - Default deployment presets shipped by the project.
 
 Out of scope (please do not test):

@@ -1,9 +1,9 @@
 version: 2
 
-# Fallback in case Renovate is not enabled on the repository.
-# Primary configuration is `renovate.json` at the repo root.
-# If both are active, Renovate wins; Dependabot here only groups security alerts
-# to keep GitHub's native UI functional for reviewers who prefer it.
+# Dependabot: alertas e security updates sao ligados na configuracao do repositorio
+# (Settings > Code security). Este arquivo governa as ATUALIZACOES DE VERSAO.
+# Atualizacoes de seguranca ignoram o cooldown por natureza.
+# Renovate (renovate.json) continua como configuracao primaria quando ativo.
 
 updates:
   - package-ecosystem: npm
@@ -14,9 +14,13 @@ updates:
       time: "06:00"
       timezone: Europe/Amsterdam
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
     labels:
       - deps
       - dependabot
+      - security
     commit-message:
       prefix: chore(deps)
       include: scope
@@ -47,7 +51,10 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Amsterdam
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
     labels:
       - deps
       - dependabot
@@ -55,3 +62,10 @@ updates:
     commit-message:
       prefix: chore(ci)
       include: scope
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

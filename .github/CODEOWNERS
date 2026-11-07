@@ -1,0 +1,6 @@
+# Dono de revisao para caminhos sensiveis (CI, supply chain, gates de seguranca).
+/.github/                         @jardhel
+/SECURITY.md                      @jardhel
+/packages/secret-scan/            @jardhel
+/packages/deploy-integrity/       @jardhel
+/packages/*-hygiene/              @jardhel
