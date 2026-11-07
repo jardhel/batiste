@@ -24,7 +24,7 @@ export const EventLogEntrySchema = z.object({
   event: z.string().min(1),
   stream: z.string().optional(),
   generator: z.string().optional(),
-  payload: z.record(z.unknown()).optional(),
+  payload: z.record(z.string(), z.unknown()).optional(),
 });
 export type EventLogEntry = z.infer<typeof EventLogEntrySchema>;
 

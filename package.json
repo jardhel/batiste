@@ -49,17 +49,45 @@
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
     "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.59.0",
-    "@vitest/coverage-v8": "^2",
+    "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.2.0",
-    "turbo": "^2.0.0",
+    "turbo": "^2.11.10",
     "typescript": "^5.4.0",
-    "typescript-eslint": "^8.59.0"
+    "typescript-eslint": "^8.59.0",
+    "vite": "^7.3.7",
+    "@types/node": "^24.0.0"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
+  },
+  "pnpm": {
+    "_comment": "Overrides de seguranca (SEV0, 2026-11-07): transitivas cujo pai ainda fixa versao vulneravel. Cada linha = advisory corrigido na versao indicada. Revisar/remover quando o pai atualizar.",
+    "overrides": {
+      "protobufjs": "7.6.6",
+      "@protobufjs/utf8": "1.1.2",
+      "fast-uri": "3.1.9",
+      "ip-address": "10.7.6",
+      "qs": "6.17.1",
+      "body-parser": "2.4.0",
+      "proxy-addr": "2.0.8",
+      "hono": "4.13.17",
+      "@hono/node-server": "2.1.6",
+      "express-rate-limit>ip-address": "10.7.6",
+      "sharp": "0.35.5",
+      "postcss": "8.5.32",
+      "nanoid@3": "3.3.20",
+      "source-map-js": "1.2.2",
+      "js-yaml@3": "3.15.2",
+      "brace-expansion@1": "1.1.21",
+      "brace-expansion@5": "5.0.12",
+      "picomatch@2": "2.3.2",
+      "rollup": "4.68.0",
+      "esbuild": "0.28.2",
+      "minimatch@10": "11.0.5"
+    }
   }
 }

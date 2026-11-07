@@ -86,8 +86,8 @@ export const AgentMessageSchema = z.object({
   recipientId: z.string().uuid(),
   correlationId: z.string().uuid().optional(), // Links related messages
   timestamp: z.string().datetime(),
-  payload: z.record(z.unknown()),
-  metadata: z.record(z.string()).optional(),
+  payload: z.record(z.string(), z.unknown()),
+  metadata: z.record(z.string(), z.string()).optional(),
 });
 
 export type AgentMessage = z.infer<typeof AgentMessageSchema>;
@@ -99,7 +99,7 @@ export type AgentMessage = z.infer<typeof AgentMessageSchema>;
 export const TaskAssignmentSchema = z.object({
   taskId: z.string().uuid(),
   description: z.string(),
-  context: z.record(z.unknown()).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
   files: z.array(z.string()).optional(),
   deadline: z.string().datetime().optional(),
   parentTaskId: z.string().uuid().optional(),
@@ -172,11 +172,11 @@ export const CheckpointSchema = z.object({
     agentId: z.string().uuid(),
     state: AgentStateSchema,
     currentTask: z.string().uuid().optional(),
-    context: z.record(z.unknown()).optional(),
+    context: z.record(z.string(), z.unknown()).optional(),
   })),
   pendingMessages: z.array(AgentMessageSchema),
   completedTasks: z.array(z.string().uuid()),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type Checkpoint = z.infer<typeof CheckpointSchema>;
@@ -247,8 +247,8 @@ export type WorkflowExecution = z.infer<typeof WorkflowExecutionSchema>;
 export const K8sMetadataSchema = z.object({
   name: z.string(),
   namespace: z.string().default('default'),
-  labels: z.record(z.string()).optional(),
-  annotations: z.record(z.string()).optional(),
+  labels: z.record(z.string(), z.string()).optional(),
+  annotations: z.record(z.string(), z.string()).optional(),
 });
 
 export type K8sMetadata = z.infer<typeof K8sMetadataSchema>;

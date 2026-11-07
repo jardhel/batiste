@@ -38,7 +38,7 @@ export const TaskSchema = z.object({
   stream: z.string().optional(),
   sessionId: z.string().optional(),
   parentId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 export type Task = z.infer<typeof TaskSchema>;
 

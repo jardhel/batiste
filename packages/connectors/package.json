@@ -24,11 +24,11 @@
   },
   "dependencies": {
     "pdfjs-dist": "^4.5.136",
-    "zod": "^3.23.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "vitest": "^2.0.0"
+    "@types/node": "^24.0.0",
+    "vitest": "^5.1.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

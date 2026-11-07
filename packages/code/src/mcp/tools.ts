@@ -134,11 +134,11 @@ export const OrchestrateAgentsInput = z.object({
   }).optional().describe('Pool specification'),
   task: z.object({
     description: z.string(),
-    context: z.record(z.any()).optional(),
+    context: z.record(z.string(), z.any()).optional(),
     files: z.array(z.string()).optional(),
   }).optional().describe('Task to submit'),
   workflowId: z.string().optional(),
-  workflowInput: z.record(z.any()).optional(),
+  workflowInput: z.record(z.string(), z.any()).optional(),
   executionId: z.string().optional(),
   checkpointId: z.string().optional(),
 });

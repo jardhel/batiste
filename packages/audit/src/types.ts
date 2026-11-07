@@ -28,7 +28,7 @@ export const AuditEntrySchema = z.object({
   sessionId: z.string(),
   agentId: z.string(),
   tool: z.string(),
-  args: z.record(z.unknown()),
+  args: z.record(z.string(), z.unknown()),
   result: z.enum(['success', 'denied', 'error']),
   durationMs: z.number(),
   astNodesAccessed: z.number().optional(),

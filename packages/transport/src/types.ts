@@ -22,7 +22,7 @@ export const SessionInfoSchema = z.object({
   ip: z.string(),
   requestCount: z.number().default(0),
   bytesTransferred: z.number().default(0),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 export type SessionInfo = z.infer<typeof SessionInfoSchema>;
 
@@ -79,12 +79,12 @@ export type ProxyTrust = z.infer<typeof ProxyTrustSchema>;
 // --- Gateway Security ---
 
 export const GatewaySecuritySchema = z.object({
-  tls: TlsConfigSchema.default({}),
-  rateLimit: RateLimitConfigSchema.default({}),
+  tls: TlsConfigSchema.prefault({}),
+  rateLimit: RateLimitConfigSchema.prefault({}),
   ipAllowList: z.array(z.string()).optional(),
   maxRequestBodyBytes: z.number().default(1_048_576),
   cors: CorsConfigSchema.optional(),
-  proxy: ProxyTrustSchema.default({}),
+  proxy: ProxyTrustSchema.prefault({}),
 });
 export type GatewaySecurity = z.infer<typeof GatewaySecuritySchema>;
 
@@ -94,7 +94,7 @@ export const GatewayConfigSchema = z.object({
   mode: TransportModeSchema.default('stdio'),
   port: z.number().default(3100),
   host: z.string().default('127.0.0.1'),
-  security: GatewaySecuritySchema.default({}),
+  security: GatewaySecuritySchema.prefault({}),
   maxConcurrentSessions: z.number().default(10),
   sessionTimeoutMs: z.number().default(3_600_000),
   label: z.string().optional(),
