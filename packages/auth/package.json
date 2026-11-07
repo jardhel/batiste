@@ -34,7 +34,7 @@
     "@batiste-aidk/core": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "jose": "^6.1.3",
-    "zod": "^3.23.0"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",

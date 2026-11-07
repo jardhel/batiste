@@ -44,7 +44,7 @@
     "@batiste-aidk/auth": "workspace:*",
     "@batiste-aidk/scope": "workspace:*",
     "@batiste-aidk/audit": "workspace:*",
-    "zod": "^3.23.0"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
