@@ -15,7 +15,7 @@ export const RegisterNodeInputSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(500).default(''),
   capabilities: z.array(z.string().min(1)).min(1),
-  endpoint: z.string().url(),
+  endpoint: z.url(),
   pricePerCycle: z.number().positive(),
   creatorId: z.string().min(1),
   tags: z.array(z.string()).default([]),

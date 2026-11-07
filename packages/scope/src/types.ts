@@ -35,7 +35,7 @@ const GlobPattern = z
   .refine((p) => (p.match(/\*\*/g) ?? []).length <= 8, 'glob pattern contains >8 "**" segments (DoS guard)');
 
 export const AccessPolicySchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1).max(128),
   allowedPaths: z.array(GlobPattern).max(MAX_PATTERN_COUNT),
   deniedPaths: z.array(GlobPattern).max(MAX_PATTERN_COUNT).default([...SECRET_PATH_PATTERNS]),

@@ -20,7 +20,7 @@ import { dirname } from 'node:path';
 import { z } from 'zod';
 
 export const EventLogEntrySchema = z.object({
-  ts: z.string().datetime(),
+  ts: z.iso.datetime(),
   event: z.string().min(1),
   stream: z.string().optional(),
   generator: z.string().optional(),

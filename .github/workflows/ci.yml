@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      security-events: write  # github/codeql-action/upload-sarif posts ESLint findings to Code Scanning
+      security-events: write  # github/codeql-action/upload-sarif posts the security-only ESLint findings to Code Scanning
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -40,13 +40,24 @@ jobs:
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      - name: Lint (ESLint → SARIF)
+      # Lint completo (strictTypeChecked): qualidade/estilo, relatório no artefato ci-reports.
+      # NÃO vai ao Code Scanning: eram ~650 alertas de estilo no painel de segurança.
+      - name: Lint (relatório de qualidade)
         run: |
           mkdir -p reports
           pnpm exec eslint . \
             --format @microsoft/eslint-formatter-sarif \
-            --output-file reports/eslint.sarif || true
-        continue-on-error: false
+            --output-file reports/eslint-quality.sarif || true
+
+      # Só regras de SEGURANÇA (eslint.security.config.js) sobem ao Code Scanning, e esta
+      # etapa FALHA o build se achar algo. Um upload sem resultados fecha os alertas antigos
+      # da category "eslint". Ver docs/SECURITY-CODE-SCANNING-TRIAGE.md.
+      - name: Lint de segurança (ESLint → SARIF)
+        run: |
+          mkdir -p reports
+          pnpm exec eslint -c eslint.security.config.js . \
+            --format @microsoft/eslint-formatter-sarif \
+            --output-file reports/eslint.sarif
 
       - name: Typecheck
         run: pnpm -r typecheck

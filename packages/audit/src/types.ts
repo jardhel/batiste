@@ -23,8 +23,8 @@ export const TokenUsageSchema = z.object({
 export type TokenUsage = z.infer<typeof TokenUsageSchema>;
 
 export const AuditEntrySchema = z.object({
-  id: z.string().uuid(),
-  timestamp: z.string().datetime(),
+  id: z.uuid(),
+  timestamp: z.iso.datetime(),
   sessionId: z.string(),
   agentId: z.string(),
   tool: z.string(),

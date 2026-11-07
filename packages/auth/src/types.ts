@@ -27,12 +27,12 @@ export type ScopeDefinition = z.infer<typeof ScopeDefinitionSchema>;
 // --- API Token ---
 
 export const ApiTokenSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   agentId: z.string(),
   projectId: z.string(),
   scope: ScopeDefinitionSchema,
-  issuedAt: z.string().datetime(),
-  expiresAt: z.string().datetime(),
+  issuedAt: z.iso.datetime(),
+  expiresAt: z.iso.datetime(),
   revoked: z.boolean().default(false),
 });
 export type ApiToken = z.infer<typeof ApiTokenSchema>;

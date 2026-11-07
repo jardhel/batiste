@@ -45,14 +45,14 @@ export const AgentStateSchema = z.enum([
 export type AgentState = z.infer<typeof AgentStateSchema>;
 
 export const AgentIdentitySchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string(),
   role: AgentRoleSchema,
   capabilities: AgentCapabilitySchema,
   state: AgentStateSchema.default('idle'),
-  parentId: z.string().uuid().optional(), // For hierarchical agents
-  createdAt: z.string().datetime(),
-  lastActiveAt: z.string().datetime(),
+  parentId: z.uuid().optional(), // For hierarchical agents
+  createdAt: z.iso.datetime(),
+  lastActiveAt: z.iso.datetime(),
 });
 
 export type AgentIdentity = z.infer<typeof AgentIdentitySchema>;
@@ -79,13 +79,13 @@ export const MessagePrioritySchema = z.enum(['low', 'normal', 'high', 'critical'
 export type MessagePriority = z.infer<typeof MessagePrioritySchema>;
 
 export const AgentMessageSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   type: MessageTypeSchema,
   priority: MessagePrioritySchema.default('normal'),
-  senderId: z.string().uuid(),
-  recipientId: z.string().uuid(),
-  correlationId: z.string().uuid().optional(), // Links related messages
-  timestamp: z.string().datetime(),
+  senderId: z.uuid(),
+  recipientId: z.uuid(),
+  correlationId: z.uuid().optional(), // Links related messages
+  timestamp: z.iso.datetime(),
   payload: z.record(z.string(), z.unknown()),
   metadata: z.record(z.string(), z.string()).optional(),
 });
@@ -97,12 +97,12 @@ export type AgentMessage = z.infer<typeof AgentMessageSchema>;
 // ============================================================================
 
 export const TaskAssignmentSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: z.uuid(),
   description: z.string(),
   context: z.record(z.string(), z.unknown()).optional(),
   files: z.array(z.string()).optional(),
-  deadline: z.string().datetime().optional(),
-  parentTaskId: z.string().uuid().optional(),
+  deadline: z.iso.datetime().optional(),
+  parentTaskId: z.uuid().optional(),
   requiredCapabilities: AgentCapabilitySchema.partial().optional(),
   priority: MessagePrioritySchema.default('normal'),
   retryPolicy: z.object({
@@ -114,7 +114,7 @@ export const TaskAssignmentSchema = z.object({
 export type TaskAssignment = z.infer<typeof TaskAssignmentSchema>;
 
 export const TaskResultSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: z.uuid(),
   success: z.boolean(),
   output: z.unknown(),
   filesModified: z.array(z.string()).optional(),
@@ -143,8 +143,8 @@ export const VetoDecisionSchema = z.enum([
 export type VetoDecision = z.infer<typeof VetoDecisionSchema>;
 
 export const ReviewResultSchema = z.object({
-  taskId: z.string().uuid(),
-  reviewerId: z.string().uuid(),
+  taskId: z.uuid(),
+  reviewerId: z.uuid(),
   decision: VetoDecisionSchema,
   feedback: z.string().optional(),
   issues: z.array(z.object({
@@ -154,7 +154,7 @@ export const ReviewResultSchema = z.object({
     message: z.string(),
     suggestion: z.string().optional(),
   })).optional(),
-  approvedAt: z.string().datetime().optional(),
+  approvedAt: z.iso.datetime().optional(),
 });
 
 export type ReviewResult = z.infer<typeof ReviewResultSchema>;
@@ -164,18 +164,18 @@ export type ReviewResult = z.infer<typeof ReviewResultSchema>;
 // ============================================================================
 
 export const CheckpointSchema = z.object({
-  id: z.string().uuid(),
-  workflowId: z.string().uuid(),
+  id: z.uuid(),
+  workflowId: z.uuid(),
   phase: z.string(),
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
   agentStates: z.array(z.object({
-    agentId: z.string().uuid(),
+    agentId: z.uuid(),
     state: AgentStateSchema,
-    currentTask: z.string().uuid().optional(),
+    currentTask: z.uuid().optional(),
     context: z.record(z.string(), z.unknown()).optional(),
   })),
   pendingMessages: z.array(AgentMessageSchema),
-  completedTasks: z.array(z.string().uuid()),
+  completedTasks: z.array(z.uuid()),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -211,7 +211,7 @@ export const WorkflowStageSchema = z.object({
 export type WorkflowStage = z.infer<typeof WorkflowStageSchema>;
 
 export const WorkflowDefinitionSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string(),
   description: z.string().optional(),
   stages: z.array(WorkflowStageSchema),
@@ -227,13 +227,13 @@ export const WorkflowDefinitionSchema = z.object({
 export type WorkflowDefinition = z.infer<typeof WorkflowDefinitionSchema>;
 
 export const WorkflowExecutionSchema = z.object({
-  id: z.string().uuid(),
-  workflowId: z.string().uuid(),
+  id: z.uuid(),
+  workflowId: z.uuid(),
   status: z.enum(['pending', 'running', 'completed', 'failed', 'cancelled']),
   currentStage: z.string(),
-  startedAt: z.string().datetime(),
-  completedAt: z.string().datetime().optional(),
-  checkpoints: z.array(z.string().uuid()), // Checkpoint IDs
+  startedAt: z.iso.datetime(),
+  completedAt: z.iso.datetime().optional(),
+  checkpoints: z.array(z.uuid()), // Checkpoint IDs
   result: z.unknown().optional(),
   error: z.string().optional(),
 });
@@ -290,7 +290,7 @@ export const AgentPoolCRDSchema = z.object({
       status: z.enum(['True', 'False', 'Unknown']),
       reason: z.string().optional(),
       message: z.string().optional(),
-      lastTransitionTime: z.string().datetime(),
+      lastTransitionTime: z.iso.datetime(),
     })).optional(),
   }).optional(),
 });

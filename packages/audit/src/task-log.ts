@@ -30,8 +30,8 @@ export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
 export const TaskSchema = z.object({
   id: z.string().min(1),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
   status: TaskStatusSchema,
   subject: z.string().min(1),
   description: z.string().optional(),

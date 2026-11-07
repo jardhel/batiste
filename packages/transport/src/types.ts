@@ -15,10 +15,10 @@ export type TransportMode = z.infer<typeof TransportModeSchema>;
 // --- Session Info ---
 
 export const SessionInfoSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   agentId: z.string().optional(),
-  connectedAt: z.string().datetime(),
-  lastActiveAt: z.string().datetime(),
+  connectedAt: z.iso.datetime(),
+  lastActiveAt: z.iso.datetime(),
   ip: z.string(),
   requestCount: z.number().default(0),
   bytesTransferred: z.number().default(0),

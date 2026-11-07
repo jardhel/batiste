@@ -48,7 +48,7 @@ export const BaseFrontmatterSchema = z.object({
   language: z.string().length(2).optional(),
   supersedes: OptionalWikilinkField,
   superseded_by: OptionalWikilinkField,
-}).passthrough();
+}).loose();
 
 /**
  * A wikilink field. In YAML, authors may write `authority: [[Name]]` unquoted,
@@ -148,7 +148,7 @@ export interface ValidationReport {
   issues: ValidationIssue[];
 }
 
-export const AXIS_SCHEMAS: Record<Axis, z.ZodTypeAny> = {
+export const AXIS_SCHEMAS: Record<Axis, z.ZodType> = {
   identity: BaseFrontmatterSchema.extend({ axis: z.literal('identity') }),
   policy: BaseFrontmatterSchema.extend({ axis: z.literal('policy') }),
   roles: RolesFrontmatterSchema,
