@@ -101,12 +101,22 @@ function matchesAnyPattern(filePath: string, patterns: string[]): boolean {
 }
 
 function matchGlob(filePath: string, pattern: string): boolean {
-  // Convert glob to regex
-  const regexStr = pattern
-    .replace(/\./g, '\\.')
-    .replace(/\*\*/g, '{{GLOBSTAR}}')
-    .replace(/\*/g, '[^/]*')
-    .replace(/\{\{GLOBSTAR\}\}/g, '.*');
+  // Converte glob em regex escapando TODO metacaractere (nao so o ponto);
+  // so '*' e '**' viram curingas. Colapsa corridas de '*' para evitar
+  // quantificadores aninhados (ReDoS).
+  let regexStr = '';
+  for (let i = 0; i < pattern.length; ) {
+    const ch = pattern.charAt(i);
+    if (ch === '*') {
+      let j = i;
+      while (pattern.charAt(j) === '*') j++;
+      regexStr += j - i >= 2 ? '.*' : '[^/]*';
+      i = j;
+    } else {
+      regexStr += ch.replace(/[\\^$.*+?()[\]{}|/-]/g, '\\$&');
+      i++;
+    }
+  }
 
   const regex = new RegExp(`^${regexStr}$`);
   return regex.test(filePath);

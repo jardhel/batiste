@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 const describeWithSQLite = process.env.CI ? describe.skip : describe;
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { mkdir, rm, writeFile } from 'fs/promises';
+import { mkdir, rm, writeFile, mkdtemp } from 'fs/promises';
 import { ToolHandler } from './handler.js';
 
 describe('ToolHandler', () => {
@@ -13,9 +13,8 @@ describe('ToolHandler', () => {
   let handler: ToolHandler;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `mcp-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = await mkdtemp(join(tmpdir(), 'mcp-test-'));
     dataDir = join(testDir, '.batiste');
-    await mkdir(testDir, { recursive: true });
     await mkdir(dataDir, { recursive: true });
     handler = new ToolHandler(testDir, dataDir);
   });
@@ -93,6 +92,15 @@ describe('ToolHandler', () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Hello from sandbox');
+    });
+
+    it('rejects a workingDir that escapes the project root', async () => {
+      await expect(
+        handler.handleTool('execute_sandbox', { command: 'pwd', workingDir: '../..' }),
+      ).rejects.toThrow(/project root/);
+      await expect(
+        handler.handleTool('execute_sandbox', { command: 'pwd', workingDir: '/etc' }),
+      ).rejects.toThrow(/project root/);
     });
 
     it('handles command timeout', async () => {

@@ -15,9 +15,9 @@
  */
 
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { Command } from 'commander';
 import { AuditLedger } from '@batiste-aidk/audit';
@@ -244,10 +244,10 @@ export async function runPush(opts: PushOptions): Promise<void> {
   progress.done(green(`bundle ready (${onDisk.length}B, sha256 ${sha.slice(0, 12)}…)`));
 
   if (opts.dryRun) {
-    const stagingDir = join(tmpdir(), 'batiste-fm-sync');
-    await mkdir(stagingDir, { recursive: true });
-    const outPath = join(stagingDir, bundleName);
-    await writeFile(outPath, onDisk);
+    // Diretorio privado e imprevisivel (0o700); arquivo criado com 'wx' e 0o600.
+    const stagingDir = await mkdtemp(join(tmpdir(), 'batiste-fm-sync-'));
+    const outPath = join(stagingDir, basename(bundleName));
+    await writeFile(outPath, onDisk, { flag: 'wx', mode: 0o600 });
     section('Dry-run summary');
     kv('Staged at', gray(outPath));
     kv('Size (bytes)', String(onDisk.length));

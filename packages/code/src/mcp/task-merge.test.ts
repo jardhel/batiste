@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { mkdir, rm } from 'fs/promises';
+import { mkdir, rm, mkdtemp } from 'fs/promises';
 import { ToolHandler } from './handler.js';
 import { planMerge } from './task-merge.js';
 import type { Task } from '@batiste-aidk/core/tasks';
@@ -48,7 +48,7 @@ describeWithSQLite('manage_task merge / create correlato / triage (handler)', ()
   const mt = async (o: R) => (await h.handleTool('manage_task', o)) as R;
 
   beforeEach(async () => {
-    dir = join(tmpdir(), `mt-merge-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    dir = await mkdtemp(join(tmpdir(), 'mt-merge-'));
     await mkdir(join(dir, '.batiste'), { recursive: true });
     h = new ToolHandler(dir, join(dir, '.batiste'));
   });

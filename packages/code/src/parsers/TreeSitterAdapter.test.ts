@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { mkdir, rm, writeFile } from 'fs/promises';
+import { mkdir, rm, writeFile, mkdtemp } from 'fs/promises';
 import { TreeSitterAdapter } from './TreeSitterAdapter.js';
 
 describe('TreeSitterAdapter', () => {
@@ -9,11 +9,7 @@ describe('TreeSitterAdapter', () => {
   let adapter: TreeSitterAdapter;
 
   beforeEach(async () => {
-    testDir = join(
-      tmpdir(),
-      `tree-sitter-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    await mkdir(testDir, { recursive: true });
+    testDir = await mkdtemp(join(tmpdir(), 'tree-sitter-test-'));
     adapter = new TreeSitterAdapter();
   });
 

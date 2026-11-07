@@ -44,3 +44,18 @@ test("skips node_modules / dist / .git", () => {
   const r = scanForCdnFonts(join(FIX));
   assert.ok(Array.isArray(r.offenders));
 });
+
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+
+test("host de CDN é casado literal e com borda (sem falso positivo por vizinho)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "fonts-"));
+  try {
+    writeFileSync(join(dir, "a.html"), '<link href="https://fonts.googleapis.com/css2?family=X">');
+    writeFileSync(join(dir, "b.html"), '<a href="https://fontsXgoogleapis.com/">x</a> <a href="https://myfonts.googleapis.com.example/">y</a>');
+    const r = scanForCdnFonts(dir);
+    const arquivos = JSON.stringify(r);
+    assert.ok(arquivos.includes("a.html"));
+    assert.ok(!arquivos.includes("b.html"), arquivos);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

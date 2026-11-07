@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { writeFile, mkdir, rm } from 'node:fs/promises';
+import { writeFile, mkdir, rm, mkdtemp } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -44,8 +44,7 @@ async function saveConfigTo(dir: string, partial: Partial<BatisteConfig>): Promi
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = join(tmpdir(), `batiste-test-${Date.now()}`);
-  await mkdir(tmpDir, { recursive: true });
+  tmpDir = await mkdtemp(join(tmpdir(), 'batiste-test-'));
 });
 
 afterEach(async () => {

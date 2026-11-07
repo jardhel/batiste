@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { mkdir, rm, writeFile } from 'fs/promises';
+import { mkdir, rm, writeFile, mkdtemp } from 'fs/promises';
 import { execSync } from 'child_process';
 import { GitAwareIndexer, IndexState } from './git-aware-indexer.js';
 import type { Config } from '../utils/config.js';
@@ -12,9 +12,8 @@ describe('GitAwareIndexer', () => {
   let config: Config;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `git-aware-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = await mkdtemp(join(tmpdir(), 'git-aware-test-'));
     dataDir = join(testDir, '.batiste');
-    await mkdir(testDir, { recursive: true });
     await mkdir(dataDir, { recursive: true });
 
     config = {

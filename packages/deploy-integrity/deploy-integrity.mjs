@@ -149,6 +149,17 @@ export function htmlDinamico(padroes, rel) {
 
 /** Normaliza HTML para comparar o servido com o do stage: tira injeções da Cloudflare, _di, espaço final. */
 export function normalizarHtml(txt) {
+  // Repete até estabilizar: remover um <script> aninhado/entrelaçado pode formar outro
+  // (a remoção de uma passada só não é segura contra "<scr<script></script>ipt>"). Limite evita laço infinito.
+  let atual = String(txt);
+  for (let i = 0; i < 20; i++) {
+    const prox = normalizarHtmlUmaPassada(atual);
+    if (prox === atual) return prox;
+    atual = prox;
+  }
+  return atual;
+}
+function normalizarHtmlUmaPassada(txt) {
   return String(txt)
     .replace(/\r\n/g, "\n")
     // Web Analytics / beacon injetado pela borda
@@ -214,7 +225,7 @@ export function referenciasQuebradas(pub, { ignoreRefs = [] } = {}) {
 // ------------------------------------------------------------------------------------ tipo de conteúdo
 const CT_ESPERADO = {
   js: /javascript|ecmascript/i, mjs: /javascript|ecmascript/i, css: /^text\/css/i, json: /json/i, webmanifest: /json|manifest/i,
-  png: /^image\//i, jpg: /^image\//i, jpeg: /^image\//i, webp: /^image\//i, gif: /^image\//i, svg: /^image\//i, ico: /^image\/|icon/i, avif: /^image\//i,
+  png: /^image\//i, jpg: /^image\//i, jpeg: /^image\//i, webp: /^image\//i, gif: /^image\//i, svg: /^image\//i, ico: /^(?:image\/|.*icon)/i, avif: /^image\//i,
   mp4: /^video\//i, webm: /^video\//i, mp3: /^audio\//i, wav: /^audio\//i, m4a: /^audio\//i,
   woff: /font|octet/i, woff2: /font|octet/i, txt: /^text\//i, xml: /xml/i, pdf: /pdf/i,
 };
@@ -446,7 +457,7 @@ function provaPathDe(produtoDir) {
 export function classificarProva(falhas) {
   if (!falhas.length) return { tipo: "ok" };
   const f = falhas[0];
-  if (/^HTML no ar difere|conteúdo no ar diferente/.test(f)) return { tipo: "diverge", motivo: f };
+  if (f.startsWith("HTML no ar difere") || f.includes("conteúdo no ar diferente")) return { tipo: "diverge", motivo: f };
   if (/HTTP 404/.test(f)) return { tipo: "diverge", motivo: f };
   return { tipo: "sem-prova", motivo: f };   // não existe no stage, gated, dinâmico, 403, sem resposta
 }

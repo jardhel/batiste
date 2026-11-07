@@ -87,7 +87,7 @@ export class FileIndex {
     };
 
     await mkdir(dirname(this.filePath), { recursive: true });
-    await writeFile(this.filePath, JSON.stringify(data, null, 2));
+    await writeFile(this.filePath, JSON.stringify(data, null, 2), { mode: 0o600 });
     this.log.debug(`Saved file index with ${String(this.files.size)} files`);
   }
 

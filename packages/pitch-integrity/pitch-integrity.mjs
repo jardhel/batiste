@@ -135,7 +135,8 @@ export function scanSource(text, { file = "<mem>" } = {}) {
       const after = line.slice(succ.index + succ[0].length);
       const isTypeUnion = /^\s*\|/.test(after);                 // 'success' | 'error'
       const isMutableDecl = /\b(let|var)\b[^=]*\bresult\b/.test(line); // let result: T = 'success'
-      const isTernaryNearby = /\?[^:]*:/.test(line);            // já computa fallback
+      const qIdx = line.indexOf("?");
+      const isTernaryNearby = qIdx >= 0 && line.indexOf(":", qIdx + 1) >= 0;            // já computa fallback
       if (!isTypeUnion && !isMutableDecl && !isTernaryNearby) {
         add("theater-success", ln,
           `result fixo em literal '${succ[2]}' — resultado de tarefa precisa ser computado do trabalho real, não hard-coded`);
@@ -143,8 +144,10 @@ export function scanSource(text, { file = "<mem>" } = {}) {
     }
 
     // 2. fake-work-sleep — sleep/setTimeout com comentário "simulate … work/real"
+    const cIdx = line.indexOf("//");
+    const lineComment = cIdx >= 0 ? line.slice(cIdx, cIdx + 400) : ""; // limita a entrada do regex
     if (/\b(sleep|setTimeout|delay|wait)\b/i.test(line) &&
-        /\/\/.*\b(simulat\w*|fake|pretend|mock)\b.*\b(work|real|latency|process\w*|delay)\b/i.test(line)) {
+        /\b(simulat\w*|fake|pretend|mock)\b.*\b(work|real|latency|process\w*|delay)\b/i.test(lineComment)) {
       add("fake-work-sleep", ln,
         `sleep/delay marcado como "simulate real work" — demo deve EXECUTAR trabalho real, não dormir fingindo`);
     }

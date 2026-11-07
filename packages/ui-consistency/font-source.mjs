@@ -11,7 +11,10 @@ import { readdirSync, statSync, readFileSync } from "node:fs";
 import { join, extname } from "node:path";
 
 export const CDN_FONT_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com"];
-const CDN_RE = new RegExp(CDN_FONT_HOSTS.map((h) => h.replace(/\./g, "\\.")).join("|"), "i");
+// Escapa TODO metacaractere (inclusive a barra invertida) e ancora nas bordas do nome de host:
+// "fonts.googleapis.com" casa, "xfonts.googleapis.com" e "fonts.googleapis.com.evil" não.
+const escapeRe = (s) => s.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+const CDN_RE = new RegExp(`(?<![\\w.-])(?:${CDN_FONT_HOSTS.map(escapeRe).join("|")})(?![\\w-])`, "i");
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git", ".wrangler", "_scratch"]);
 
 // Strip comment bodies so a documented "we removed fonts.gstatic" note passes.

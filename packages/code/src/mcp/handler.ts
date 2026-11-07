@@ -5,7 +5,7 @@
  * Uses @batiste-aidk/core for tasks, context, sandbox, and agents.
  */
 
-import { join, isAbsolute } from 'path';
+import { join, isAbsolute, resolve, relative, sep } from 'path';
 import { mkdir } from 'fs/promises';
 import type { z } from 'zod';
 import {
@@ -78,13 +78,13 @@ import { THRESHOLD_SAME, THRESHOLD_RELATED, mergeCommand, phaseRank } from './ta
  */
 export class ValidationError extends Error {
   public readonly code = 'INPUT_VALIDATION_FAILED';
-  constructor(public readonly tool: string, public readonly issues: z.ZodIssue[]) {
+  constructor(public readonly tool: string, public readonly issues: z.core.$ZodIssue[]) {
     super(`Input validation failed for tool '${tool}': ${issues.map(i => `${i.path.join('.') || '(root)'} ${i.message}`).join('; ')}`);
     this.name = 'ValidationError';
   }
 }
 
-const INPUT_SCHEMAS: Record<ToolName, z.ZodTypeAny> = {
+const INPUT_SCHEMAS: Record<ToolName, z.ZodType> = {
   analyze_dependency: AnalyzeDependencyInput,
   validate_code: ValidateCodeInput,
   execute_sandbox: ExecuteSandboxInput,
@@ -278,6 +278,16 @@ export class ToolHandler {
     const timeout = args.timeout as number | undefined;
     const workingDir = args.workingDir as string | undefined;
 
+    // O diretorio de trabalho nao pode escapar da raiz do projeto (../, caminho absoluto).
+    const cwd = workingDir ? resolve(this.projectRoot, workingDir) : this.projectRoot;
+    const rel = relative(resolve(this.projectRoot), cwd);
+    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+      throw new Error('workingDir must stay inside the project root');
+    }
+    if (command.includes('\0') || (cmdArgs ?? []).some((a) => a.includes('\0'))) {
+      throw new Error('command and args must not contain NUL bytes');
+    }
+
     const sandbox = new ProcessSandbox();
     await sandbox.initialize();
 
@@ -286,7 +296,7 @@ export class ToolHandler {
         command,
         args: cmdArgs,
         timeout,
-        workingDir: workingDir ? join(this.projectRoot, workingDir) : this.projectRoot,
+        workingDir: cwd,
       });
 
       return {

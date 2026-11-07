@@ -119,4 +119,20 @@ describe('extractBearerToken', () => {
   it('should return undefined for non-Bearer auth', () => {
     expect(extractBearerToken('Basic abc123')).toBeUndefined();
   });
+
+  it('should handle pathological whitespace input in linear time', () => {
+    const evil = 'Bearer' + ' '.repeat(50_000) + '\n';
+    const t0 = performance.now();
+    expect(extractBearerToken(evil)).toBeUndefined();
+    expect(performance.now() - t0).toBeLessThan(500);
+  });
+
+  it('should reject oversized headers and a missing separator', () => {
+    expect(extractBearerToken('Bearer ' + 'a'.repeat(9000))).toBeUndefined();
+    expect(extractBearerToken('Bearerabc')).toBeUndefined();
+  });
+
+  it('should keep the token after extra whitespace', () => {
+    expect(extractBearerToken('Bearer   \t abc')).toBe('abc');
+  });
 });

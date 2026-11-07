@@ -408,3 +408,10 @@ test("resolverProduto: o dominio RAIZ cachola.tech (landing da casa) tambem e re
   assert.equal(r.host, "https://cachola.tech");
   assert.equal(resolverProduto(d, "products/astrus-front").host, "https://astrus.cachola.tech");
 });
+
+test("normalizarHtml: remoção de <script> da borda é repetida até estabilizar (sem reconstruir tag)", () => {
+  const tecido = '<scr<script data-cf-beacon="x"></script>ipt data-cf-beacon="y"></script>';
+  const out = normalizarHtml(tecido);
+  assert.ok(!/data-cf-beacon/.test(out), `sobrou beacon: ${out}`);
+  assert.equal(normalizarHtml(out), out); // idempotente
+});

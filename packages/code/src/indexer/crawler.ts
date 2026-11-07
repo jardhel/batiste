@@ -6,7 +6,7 @@
  * recently modified and uncommitted files are processed first.
  */
 
-import { readFile, stat } from 'fs/promises';
+import { open, readFile } from 'fs/promises';
 import { extname, relative } from 'path';
 import { join } from 'path';
 import { createRequire } from 'module';
@@ -155,8 +155,16 @@ export class Crawler {
       }
 
       try {
-        const stats = await stat(filePath);
-        const content = await readFile(filePath, 'utf-8');
+        // Abre o fd e faz stat/leitura nele: sem janela entre checar e usar.
+        const handle = await open(filePath, 'r');
+        let stats;
+        let content;
+        try {
+          stats = await handle.stat();
+          content = await handle.readFile('utf-8');
+        } finally {
+          await handle.close();
+        }
         const hash = this.hashContent(content);
 
         const gitPriority = this.gitRecentFiles.get(relativePath) ?? 0;

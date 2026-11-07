@@ -100,7 +100,7 @@ export class GitAwareIndexer {
    */
   async saveState(state: IndexState): Promise<void> {
     await mkdir(dirname(this.stateFilePath), { recursive: true });
-    await writeFile(this.stateFilePath, JSON.stringify(state, null, 2));
+    await writeFile(this.stateFilePath, JSON.stringify(state, null, 2), { mode: 0o600 });
     this.indexState = state;
     this.log.debug('Saved index state:', state);
   }

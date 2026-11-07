@@ -1,17 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FixGenerator, FixSuggestion } from './FixGenerator.js';
 import { ValidationError } from '../validation/types.js';
-import { writeFile, mkdir, rm } from 'fs/promises';
+import { writeFile, mkdtemp, rm } from 'fs/promises';
+import { tmpdir } from 'os';
 import { join } from 'path';
 
-const TEST_DIR = '/tmp/fix-generator-test';
+// Diretório privado e imprevisível por teste (mkdtemp cria com 0o700).
+let TEST_DIR: string;
 
 describe('FixGenerator', () => {
   let generator: FixGenerator;
 
   beforeEach(async () => {
     generator = new FixGenerator();
-    await mkdir(TEST_DIR, { recursive: true });
+    TEST_DIR = await mkdtemp(join(tmpdir(), 'fix-generator-test-'));
   });
 
   afterEach(async () => {

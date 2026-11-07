@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { DiffTracker } from './DiffTracker.js';
-import { writeFileSync, mkdirSync, rmSync } from 'fs';
+import { writeFileSync, mkdirSync, rmSync, mkdtempSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -10,8 +10,7 @@ describe('DiffTracker', () => {
 
   beforeEach(() => {
     tracker = new DiffTracker();
-    testDir = join(tmpdir(), `difftracker-test-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), 'difftracker-test-'));
   });
 
   afterEach(() => {

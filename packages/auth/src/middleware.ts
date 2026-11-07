@@ -86,13 +86,23 @@ export class AuthError extends Error {
   }
 }
 
+/** Headers de autorizacao maiores que isso sao rejeitados antes de qualquer parse. */
+const MAX_AUTH_HEADER_LENGTH = 8192;
+
 /**
  * Extract a Bearer token from an Authorization header.
  */
 export function extractBearerToken(authHeader: string | undefined): string | undefined {
   if (!authHeader) return undefined;
-  const match = /^Bearer\s+(.+)$/i.exec(authHeader);
-  return match?.[1];
+  // Parse linear (sem regex com \s+ seguido de .+, que e polinomial em entrada patologica).
+  if (authHeader.length > MAX_AUTH_HEADER_LENGTH) return undefined;
+  if (authHeader.slice(0, 6).toLowerCase() !== 'bearer') return undefined;
+  let i = 6;
+  while (i < authHeader.length && /\s/.test(authHeader.charAt(i))) i++;
+  if (i === 6) return undefined; // exige ao menos um espaco apos "Bearer"
+  const token = authHeader.slice(i);
+  if (token.length === 0 || /[\n\r\u2028\u2029]/.test(token)) return undefined;
+  return token;
 }
 
 /**

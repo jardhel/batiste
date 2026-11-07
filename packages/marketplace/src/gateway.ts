@@ -197,9 +197,10 @@ export async function startMarketplace(
       json(res, 404, { error: 'Not Found', url });
     } catch (err) {
       const isValidation = err instanceof Error && err.constructor.name === 'ZodError';
+      // Mensagem de erro interna nunca sai para o cliente (so a de validacao, que descreve a entrada dele).
       json(res, isValidation ? 400 : 500, {
         error: isValidation ? 'Validation error' : 'Internal server error',
-        details: err instanceof Error ? err.message : String(err),
+        ...(isValidation && err instanceof Error ? { details: err.message } : {}),
       });
     }
   };

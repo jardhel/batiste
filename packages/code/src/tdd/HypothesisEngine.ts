@@ -125,7 +125,7 @@ export class HypothesisEngine {
 
   private async writeFile(filePath: string, content: string): Promise<void> {
     await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(filePath, content, 'utf-8');
+    await writeFile(filePath, content, { encoding: 'utf-8', mode: 0o644 });
   }
 
   private async runTests(testFilePath: string, timeout: number) {

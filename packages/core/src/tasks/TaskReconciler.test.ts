@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { mkdir, rm, writeFile } from 'fs/promises';
+import { mkdir, rm, writeFile, mkdtemp } from 'fs/promises';
 import { execFileSync } from 'child_process';
 import { SQLiteTaskStore } from './SQLiteTaskStore.js';
 import { SQLiteReconcileMarkerStore } from './SQLiteReconcileMarkerStore.js';
@@ -75,7 +75,7 @@ describeWithSQLite('TaskReconciler', () => {
   let git: GitFixture;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `batiste-recon-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = await mkdtemp(join(tmpdir(), 'batiste-recon-'));
     repoDir = join(testDir, 'repo');
     await mkdir(repoDir, { recursive: true });
     store = new SQLiteTaskStore(join(testDir, 'tasks.db'));

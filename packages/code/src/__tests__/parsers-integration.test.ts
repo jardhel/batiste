@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { mkdir, rm, writeFile } from 'fs/promises';
+import { mkdir, rm, writeFile, mkdtemp } from 'fs/promises';
 import { TreeSitterAdapter } from '../parsers/TreeSitterAdapter.js';
 import { DEFAULT_STRATEGIES } from '../parsers/strategies/index.js';
 
@@ -68,11 +68,7 @@ describe('Phase 2a · parsers integration', () => {
   let testDir: string;
 
   beforeAll(async () => {
-    testDir = join(
-      tmpdir(),
-      `parsers-integration-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    await mkdir(testDir, { recursive: true });
+    testDir = await mkdtemp(join(tmpdir(), 'parsers-integration-'));
   });
 
   afterAll(async () => {

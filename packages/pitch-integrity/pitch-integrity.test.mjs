@@ -155,3 +155,10 @@ test("demo honesto (trabalho real + métrica medida) passa limpo", () => {
   const f = scanSource(honest);
   assert.equal(f.length, 0, JSON.stringify(f));
 });
+
+test("scanSource: entradas patológicas ('?' e '//' repetidos) rodam em tempo curto", () => {
+  const t0 = performance.now();
+  scanSource("const result: 'success' " + "?".repeat(50000), { file: "a.ts" });
+  scanSource("await sleep(1) " + "//".repeat(50000) + " fake", { file: "a.ts" });
+  assert.ok(performance.now() - t0 < 1500);
+});

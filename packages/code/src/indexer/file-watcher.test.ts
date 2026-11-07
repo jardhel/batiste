@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileWatcher } from './file-watcher.js';
-import { mkdir, rm, writeFile } from 'fs/promises';
+import { mkdir, rm, writeFile, mkdtemp } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -9,8 +9,7 @@ describe('FileWatcher', () => {
   let watcher: FileWatcher;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `file-watcher-test-${Date.now()}`);
-    await mkdir(testDir, { recursive: true });
+    testDir = await mkdtemp(join(tmpdir(), 'file-watcher-test-'));
   });
 
   afterEach(async () => {

@@ -142,3 +142,27 @@ describe('checkPromptScope', () => {
     expect(result.reason).toContain('secret-prompt');
   });
 });
+
+describe('checkScope glob matching hardening', () => {
+  const mk = (p: string): ScopeDefinition => ({ operations: ['read'], files: [p] });
+
+  it('treats regex metacharacters in patterns literally', () => {
+    expect(checkScope(mk('src/(a|b)/x.ts'), 'validate_code', { paths: ['src/a/x.ts'] }).allowed).toBe(false);
+    expect(checkScope(mk('src/(a|b)/x.ts'), 'validate_code', { paths: ['src/(a|b)/x.ts'] }).allowed).toBe(true);
+    expect(checkScope(mk('src/a+b.ts'), 'validate_code', { paths: ['src/aab.ts'] }).allowed).toBe(false);
+  });
+
+  it('does not throw nor hang on pathological patterns', () => {
+    const t0 = performance.now();
+    const r = checkScope(mk('*'.repeat(40) + 'x'), 'validate_code', { paths: ['a'.repeat(5000)] });
+    expect(r.allowed).toBe(false);
+    expect(performance.now() - t0).toBeLessThan(500);
+    expect(() => checkScope(mk('src/[unclosed'), 'validate_code', { paths: ['src/x'] })).not.toThrow();
+  });
+
+  it('keeps * within a segment and ** across segments', () => {
+    expect(checkScope(mk('src/*.ts'), 'validate_code', { paths: ['src/a.ts'] }).allowed).toBe(true);
+    expect(checkScope(mk('src/*.ts'), 'validate_code', { paths: ['src/d/a.ts'] }).allowed).toBe(false);
+    expect(checkScope(mk('src/**'), 'validate_code', { paths: ['src/d/a.ts'] }).allowed).toBe(true);
+  });
+});

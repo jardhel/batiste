@@ -6,6 +6,7 @@
 
 import { readFile, writeFile, unlink } from 'fs/promises';
 import { join, dirname } from 'path';
+import { randomBytes } from 'crypto';
 import { ProcessSandbox } from '@batiste-aidk/core/sandbox';
 import type { IValidator, ValidationResult, ValidationOptions } from './types.js';
 import { logger } from '../utils/logger.js';
@@ -29,7 +30,7 @@ export class TypeScriptValidator implements IValidator {
     }
 
     // Create a temp tsconfig that only checks the specified files
-    const tempTsconfig = join(dirname(tsconfigPath), '.batiste-tscheck.json');
+    const tempTsconfig = join(dirname(tsconfigPath), `.batiste-tscheck-${randomBytes(8).toString('hex')}.json`);
     const tsconfig = JSON.parse(await readFile(tsconfigPath, 'utf-8')) as {
       include?: string[];
       compilerOptions?: Record<string, unknown>;
@@ -40,7 +41,8 @@ export class TypeScriptValidator implements IValidator {
       noEmit: true,
     };
 
-    await writeFile(tempTsconfig, JSON.stringify(tsconfig, null, 2));
+    // 'wx': falha se o nome ja existir (nao segue symlink plantado); 0o600: so o dono le.
+    await writeFile(tempTsconfig, JSON.stringify(tsconfig, null, 2), { flag: 'wx', mode: 0o600 });
 
     const sandbox = new ProcessSandbox();
     await sandbox.initialize();

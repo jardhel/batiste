@@ -1,16 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { AutoFixer } from './AutoFixer.js';
-import { writeFile, mkdir, rm } from 'fs/promises';
+import { writeFile, mkdtemp, rm } from 'fs/promises';
+import { tmpdir } from 'os';
 import { join } from 'path';
 
-const TEST_DIR = '/tmp/autofixer-test';
+// Diretório privado e imprevisível por teste (mkdtemp cria com 0o700).
+let TEST_DIR: string;
 
 describe('AutoFixer', () => {
   let fixer: AutoFixer;
 
   beforeEach(async () => {
+    TEST_DIR = await mkdtemp(join(tmpdir(), 'autofixer-test-'));
     fixer = new AutoFixer({ projectRoot: TEST_DIR });
-    await mkdir(TEST_DIR, { recursive: true });
   });
 
   afterEach(async () => {

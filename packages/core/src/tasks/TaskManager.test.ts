@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { mkdir, rm } from 'fs/promises';
+import { mkdir, rm, mkdtemp } from 'fs/promises';
 import { SQLiteTaskStore } from './SQLiteTaskStore.js';
 import { TaskManager } from './TaskManager.js';
 
@@ -14,11 +14,7 @@ describeWithSQLite('TaskManager', () => {
   let manager: TaskManager;
 
   beforeEach(async () => {
-    testDir = join(
-      tmpdir(),
-      `batiste-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    await mkdir(testDir, { recursive: true });
+    testDir = await mkdtemp(join(tmpdir(), 'batiste-test-'));
     store = new SQLiteTaskStore(join(testDir, 'tasks.db'));
     manager = new TaskManager(store);
   });

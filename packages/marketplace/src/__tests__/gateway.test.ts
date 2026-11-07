@@ -34,6 +34,18 @@ async function del(path: string) {
 }
 
 describe('MarketplaceGateway', () => {
+  it('does not leak internal error messages on 500', async () => {
+    const res = await fetch(`${base}/nodes/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{not json',
+    });
+    const text = await res.text();
+    expect(res.status).toBe(500);
+    expect(JSON.parse(text)).toEqual({ error: 'Internal server error' });
+    expect(text).not.toMatch(/JSON|position|Unexpected/i);
+  });
+
   it('GET /health returns ok', async () => {
     const { status, body } = await get('/health');
     expect(status).toBe(200);

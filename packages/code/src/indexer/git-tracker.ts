@@ -2,11 +2,11 @@
  * Git integration for change detection.
  *
  * Provides git-aware file tracking, diff computation, and repository
- * status queries. Uses execSync wrapped in Promise.resolve() for an
+ * status queries. Uses execFileSync (argv array, no shell) wrapped in Promise.resolve() for an
  * async interface that is safe to call from async contexts.
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { join } from 'path';
 import { logger } from '../utils/logger.js';
 
@@ -40,6 +40,13 @@ export interface GitStatus {
   recentlyModified: GitFileInfo[];
 }
 
+/** Recusa refs que o git interpretaria como opcao (ex.: --output=/arquivo) ou com NUL. */
+function assertSafeRef(ref: string): void {
+  if (ref.startsWith('-') || ref.includes('\0')) {
+    throw new Error(`Invalid git ref: ${JSON.stringify(ref)}`);
+  }
+}
+
 export class GitTracker {
   private projectRoot: string;
   private log = logger.child('git-tracker');
@@ -52,7 +59,7 @@ export class GitTracker {
   async initialize(): Promise<boolean> {
     try {
       await Promise.resolve(
-        execSync('git rev-parse --is-inside-work-tree', {
+        execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
           cwd: this.projectRoot,
           stdio: 'pipe',
         })
@@ -77,12 +84,14 @@ export class GitTracker {
       const dateParts = since.toISOString().split('T');
       const sinceStr = dateParts[0] ?? since.toISOString();
       const output = await Promise.resolve(
-        execSync(
-          `git log --since="${sinceStr}" --name-only --pretty=format: | sort -u | grep -v '^$'`,
+        execFileSync(
+          'git',
+          ['log', `--since=${sinceStr}`, '--name-only', '--pretty=format:'],
           { cwd: this.projectRoot, stdio: 'pipe', encoding: 'utf-8' }
         )
       );
-      return output.trim().split('\n').filter(Boolean);
+      // equivalente a `sort -u | grep -v '^$'`, sem shell
+      return [...new Set(output.split('\n').filter(Boolean))].sort();
     } catch {
       return [];
     }
@@ -96,7 +105,7 @@ export class GitTracker {
 
     try {
       const output = await Promise.resolve(
-        execSync('git status --porcelain', {
+        execFileSync('git', ['status', '--porcelain'], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -121,8 +130,9 @@ export class GitTracker {
 
     try {
       const output = await Promise.resolve(
-        execSync(
-          `git log --all --name-only --pretty=format:"%H|%aI|%an" -n ${String(limit * 2)}`,
+        execFileSync(
+          'git',
+          ['log', '--all', '--name-only', '--pretty=format:%H|%aI|%an', '-n', String(Math.trunc(limit * 2))],
           {
             cwd: this.projectRoot,
             stdio: 'pipe',
@@ -179,7 +189,7 @@ export class GitTracker {
 
     try {
       const output = await Promise.resolve(
-        execSync(`git hash-object "${relativePath}"`, {
+        execFileSync('git', ['hash-object', '--', relativePath], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -199,7 +209,7 @@ export class GitTracker {
 
     try {
       const output = await Promise.resolve(
-        execSync(`git status --porcelain "${relativePath}"`, {
+        execFileSync('git', ['status', '--porcelain', '--', relativePath], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -219,7 +229,7 @@ export class GitTracker {
 
     try {
       const output = await Promise.resolve(
-        execSync('git branch --show-current', {
+        execFileSync('git', ['branch', '--show-current'], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -251,7 +261,7 @@ export class GitTracker {
 
     try {
       const output = await Promise.resolve(
-        execSync('git rev-parse HEAD', {
+        execFileSync('git', ['rev-parse', 'HEAD'], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -280,12 +290,14 @@ export class GitTracker {
     if (!this._isGitRepo) return result;
 
     try {
-      const diffCmd = headRef
-        ? `git diff --name-status -M ${baseRef} ${headRef}`
-        : `git diff --name-status -M ${baseRef}`;
+      assertSafeRef(baseRef);
+      if (headRef) assertSafeRef(headRef);
+      const diffArgs = headRef
+        ? ['diff', '--name-status', '-M', baseRef, headRef, '--']
+        : ['diff', '--name-status', '-M', baseRef, '--'];
 
       const output = await Promise.resolve(
-        execSync(diffCmd, {
+        execFileSync('git', diffArgs, {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -340,7 +352,7 @@ export class GitTracker {
 
     try {
       const stagedOutput = await Promise.resolve(
-        execSync('git diff --name-status --cached -M', {
+        execFileSync('git', ['diff', '--name-status', '--cached', '-M'], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -348,7 +360,7 @@ export class GitTracker {
       );
 
       const unstagedOutput = await Promise.resolve(
-        execSync('git diff --name-status -M', {
+        execFileSync('git', ['diff', '--name-status', '-M'], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -356,7 +368,7 @@ export class GitTracker {
       );
 
       const untrackedOutput = await Promise.resolve(
-        execSync('git ls-files --others --exclude-standard', {
+        execFileSync('git', ['ls-files', '--others', '--exclude-standard'], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -415,7 +427,7 @@ export class GitTracker {
 
     try {
       const output = await Promise.resolve(
-        execSync('git status --porcelain', {
+        execFileSync('git', ['status', '--porcelain'], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',
@@ -434,8 +446,9 @@ export class GitTracker {
     if (!this._isGitRepo) return null;
 
     try {
+      assertSafeRef(ref);
       const output = await Promise.resolve(
-        execSync(`git rev-parse ${ref}`, {
+        execFileSync('git', ['rev-parse', '--verify', ref], {
           cwd: this.projectRoot,
           stdio: 'pipe',
           encoding: 'utf-8',

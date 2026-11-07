@@ -13,7 +13,7 @@
  */
 
 import type { Command } from 'commander';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { open, readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { homedir, cpus } from 'node:os';
 import { basename, join, relative } from 'node:path';
@@ -210,8 +210,20 @@ export function registerIngestCcMemory(parent: Command): void {
           for (const cwd of cwdDirs) {
             const memDir = join(opts.projectsRoot, cwd, 'memory');
             const indexPath = join(memDir, 'MEMORY.md');
-            if (!existsSync(indexPath)) continue;
-            await writeFile(indexPath, STUB_TEMPLATE(new Date().toISOString(), paths.fmRoot), 'utf8');
+            // Abre o fd existente ('r+', sem criar) e opera nele: sem check-then-use.
+            let handle;
+            try {
+              handle = await open(indexPath, 'r+');
+            } catch (err) {
+              if ((err as NodeJS.ErrnoException).code === 'ENOENT') continue;
+              throw err;
+            }
+            try {
+              await handle.truncate(0);
+              await handle.writeFile(STUB_TEMPLATE(new Date().toISOString(), paths.fmRoot), 'utf8');
+            } finally {
+              await handle.close();
+            }
             stubbed++;
             process.stdout.write(`  ${green('stubbed:')} ${indexPath}\n`);
           }

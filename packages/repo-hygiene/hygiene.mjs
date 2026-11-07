@@ -28,7 +28,7 @@
 //    7. tasklog        — TaskLog parado/orfão/estado apodrecido (packages/tasklog-hygiene) [ERRO]
 //                        ligado por "tasklog": {"enabled": true, ...} no .hygiene.json; fim de sessão.
 // =============================================================================
-import { execSync, spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, dirname, basename, relative, resolve } from "node:path";
@@ -50,8 +50,11 @@ const NO_TASKLOG = flags.has("--no-tasklog"); // CHECK 7 só no fim de sessão
 
 const findings = [];
 const add = (check, level, msg) => findings.push({ check, level, msg });
+// argv direto (sem shell): `cmd` string é dividida em espaços (só literais fixos);
+// entrada dinâmica (caminhos, branch) SEMPRE vai como array.
 const git = (cmd, cwd) =>
-  execSync(`git ${cmd}`, { cwd, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim();
+  execFileSync("git", Array.isArray(cmd) ? cmd : cmd.split(/\s+/).filter(Boolean),
+    { cwd, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim();
 // glob simples → regex (suporta ** e *) p/ o check de derivado-stale
 const globToRe = (g) => new RegExp("^" +
   g.replace(/[.+^${}()|[\]\\]/g, "\\$&")
@@ -163,7 +166,7 @@ if (!root) {
 
   // CHECK 1 — git-clean (pulado em pre-commit via --no-git-clean)
   if (!NO_GIT_CLEAN) try {
-    const dirty = git(`status --porcelain -- "${relTarget}"`, root).split("\n").filter(Boolean)
+    const dirty = git(["status", "--porcelain", "--", relTarget], root).split("\n").filter(Boolean)
       .filter((l) => !cfg.ignore.some((ig) => l.includes(ig)));
     if (dirty.length)
       add("git-clean", "error", `${dirty.length} mudança(s) não-commitada(s):\n    ` +
@@ -277,7 +280,7 @@ if (!root) {
     let prState = null;
     if (aheadUpstream > 0 || aheadOrigin > 0) {
       try {
-        const out = git ? execSync(`gh pr view ${JSON.stringify(branch)} --json state`,
+        const out = git ? execFileSync("gh", ["pr", "view", branch, "--json", "state"],
           { cwd: root, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim() : "";
         prState = (JSON.parse(out || "{}").state || null);
       } catch { prState = null; }
