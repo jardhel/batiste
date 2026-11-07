@@ -17,7 +17,7 @@
  * E6-DD-26. Complements generate-license-report.mjs.
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, openSync, fstatSync, closeSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
@@ -56,12 +56,16 @@ function collectFiles(pkgPath) {
   const names = readdirSync(pkgPath).sort((a, b) => a.localeCompare(b));
   for (const name of names) {
     const abs = join(pkgPath, name);
+    if (!(NOTICE_FILE_NAMES.has(name) || NOTICE_FILE_NAMES.has(name.toUpperCase()))) continue;
+    // Abre uma vez e opera sobre o descritor (sem checar-depois-usar: evita corrida de arquivo).
+    let fd;
     try {
-      if (!statSync(abs).isFile()) continue;
-    } catch { continue; }
-    if (NOTICE_FILE_NAMES.has(name) || NOTICE_FILE_NAMES.has(name.toUpperCase())) {
-      const body = readFileSync(abs, 'utf8').trim();
+      fd = openSync(abs, 'r');
+      if (!fstatSync(fd).isFile()) continue;
+      const body = readFileSync(fd, 'utf8').trim();
       if (body) out.push({ name, body });
+    } catch { continue; } finally {
+      if (fd !== undefined) closeSync(fd);
     }
   }
   return out;
