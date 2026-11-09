@@ -31,7 +31,7 @@
     "@batiste-aidk/audit": "workspace:*",
     "@batiste-aidk/memory": "workspace:*",
     "@batiste-aidk/parallel": "workspace:*",
-    "ag-psd": "25.0.0",
+    "ag-psd": "31.0.1",
     "better-sqlite3": "11.10.0",
     "commander": "12.1.0",
     "zod": "4.6.7"
