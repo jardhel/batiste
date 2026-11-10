@@ -117,8 +117,8 @@ importers:
         specifier: workspace:*
         version: link:../parallel
       ag-psd:
-        specifier: 25.0.0
-        version: 25.0.0
+        specifier: 31.0.3
+        version: 31.0.3
       better-sqlite3:
         specifier: 11.10.0
         version: 11.10.0
@@ -1450,10 +1450,6 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  '@types/base64-js@1.5.0':
-    resolution: {integrity: sha512-xDDGwUoGXW4FHFWs1pIMXZrVD4kxOAo4KmNSZlb0w5hT52Gd4eIzkjwVp/XRpSox2hfR3h7ZO6witfU7aAZ6XA==}
-    deprecated: This is a stub types definition. base64-js provides its own type definitions, so you do not need this installed.
-
   '@types/better-sqlite3@7.6.13':
     resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
 
@@ -1608,8 +1604,8 @@ packages:
     resolution: {integrity: sha512-Xwrja8nx9e5o2N1my4DsKCeKpdrnACyr1wtbPxBDgGzKzKyE9kRtBFA8mWldI+RVlD7CBZNWY/wQ2+ydwOR6kQ==}
     engines: {node: '>=14.0'}
 
-  ag-psd@25.0.0:
-    resolution: {integrity: sha512-UNKVaqGBiWJIvauQxC78NKEOo0lfh4w/iZuWOazYy5E+WOKwacO7KrGQ10nvT5/6GgXlSi8EFF2ABll5xAckHQ==}
+  ag-psd@31.0.3:
+    resolution: {integrity: sha512-THDYK+WK1F5GOH4G0l4wkQRc0Cyq5tnxIwBezACKwa6idKygphnGgMISr4lmW6n0Q89ceoqpdPZQF3Y7TL1pgg==}
 
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
@@ -3822,10 +3818,6 @@ snapshots:
   '@turbo/windows-arm64@2.11.10':
     optional: true
 
-  '@types/base64-js@1.5.0':
-    dependencies:
-      base64-js: 1.5.1
-
   '@types/better-sqlite3@7.6.13':
     dependencies:
       '@types/node': 24.19.2
@@ -4000,9 +3992,8 @@ snapshots:
 
   adm-zip@0.6.1: {}
 
-  ag-psd@25.0.0:
+  ag-psd@31.0.3:
     dependencies:
-      '@types/base64-js': 1.5.0
       base64-js: 1.5.1
       pako: 2.1.0
 
