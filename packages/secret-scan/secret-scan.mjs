@@ -51,7 +51,19 @@ export const PADROES = [
   { id: 8, desc: "chave privada PEM",
     re: /BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY/ },
   { id: 9, desc: "entropia alta (hex ≥40 ou base64 ≥48 entre aspas)",
-    re: /["'][0-9a-f]{40,}["']|["'][A-Za-z0-9+\/]{48,}={0,2}["']/ },
+    re: /["'][0-9a-f]{40,}["']|["'][A-Za-z0-9+\/]{48,}={0,2}["']/,
+    // Checksum rotulado NAO e credencial: hex de exatamente 40/64/128 (sha1/sha256/sha512) numa linha que o
+    // nomeia (sha256:, integrity, checksum, digest, hash). E o caso das fichas do vault (sources[].sha256) e
+    // dos manifests; sem isto cada ficha nova exigiria pins na allowlist, que e a correcao errada.
+    // Checksum rotulado NAO e credencial: TODO hex de 40/64/128 (sha1/sha256/sha512) entre aspas na linha precisa
+    // vir logo depois de um rotulo (sha256:, integrity:, checksum=, digest, hash). E o caso das fichas do vault
+    // (sources[].sha256) e dos manifests; sem isto cada ficha nova exigiria pins na allowlist, que e a correcao errada.
+    excecao: (linha) => {
+      const hexes = [...linha.matchAll(/["'][0-9a-f]{40,}["']/g)];
+      if (!hexes.length) return false;
+      return hexes.every((m) => /^(?:[0-9a-f]{40}|[0-9a-f]{64}|[0-9a-f]{128})$/.test(m[0].slice(1, -1))
+        && /\b(sha-?(1|256|512)|integrity|checksum|digest|hash)\b["']?\s*[:=]\s*$/i.test(linha.slice(Math.max(0, m.index - 40), m.index)));
+    } },
 ];
 
 // Arquivo de segredo staged bloqueia por NOME (padrão 8b): .env/.dev.vars/.pem/id_rsa
@@ -132,6 +144,7 @@ export function scan({ root = gitRoot(), modo = "staged", files, allowlist } = {
       for (const p of PADROES) {
         if (p.soEm && !p.soEm(f)) continue;
         if (!p.re.test(linha)) continue;
+        if (p.excecao && p.excecao(linha)) continue;
         if (p.check && !p.check(linha)) continue;
         if (permitido(A, f, linha, p.id)) continue;
         achados.push({ f, n: i + 1, id: p.id, linha: linha.trim().slice(0, 160), desc: p.desc });

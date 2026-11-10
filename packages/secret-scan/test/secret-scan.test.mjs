@@ -66,3 +66,15 @@ test("arquivo com acento/travessao no nome e VARRIDO (antes o git show falhava e
   assert.notEqual(r.code, 0, r.out);
   assert.doesNotMatch(r.out, /fatal/i);
 });
+
+test("checksum rotulado (sha256: '<64 hex>') NAO e credencial; hex solto entre aspas continua bloqueando", () => {
+  const h64 = "beb39b8543474df87fc48d54a42cbb6048ab5bcca43c10ccbd9a644f0d1e2c3a";
+  const ok = repo({ "ficha.md": `sources:\n  - {arquivo: "x.html", sha256: "${h64}"}\n` });
+  assert.equal(run(ok).code, 0, run(ok).out);
+  const ok2 = repo({ "m.json": `{"integrity": "${h64}"}\n` });
+  assert.equal(run(ok2).code, 0, run(ok2).out);
+  const ruim = repo({ "cfg.md": `token: "${h64}"\n` });
+  assert.notEqual(run(ruim).code, 0, "hex de 64 sem rotulo de checksum deve bloquear");
+  const ruim2 = repo({ "cfg2.md": `api_key = "${h64}" # sha256: nao e\n` });
+  assert.notEqual(run(ruim2).code, 0, "rotulo depois do valor nao livra");
+});
